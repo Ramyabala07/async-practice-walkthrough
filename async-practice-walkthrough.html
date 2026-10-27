@@ -1,0 +1,1737 @@
+<title>Async Practice Walkthrough</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* Layout: a fixed 1440×960 candidate screen (the Figma frame size), scaled to fit the window,
+   with the prototype controls in their own band below it so they never cover the screen.
+   Candidate practice screen (question left, recorder right, stacks below 960px)
+   with a spotlight overlay and one anchored coach card on top.
+   Light mode only. Colour values follow the V8 Test Taker Experience Figma variables (zinc greys), which
+   override the Tailwind-gray reference values in the Tessera skill file. Values marked
+   "not in Figma" need checking against the DS before shipping. */
+:root{
+  color-scheme:light;
+  --stage-bg:#d4d4d8;
+  --tv-font:'Roboto',system-ui,-apple-system,'Segoe UI',sans-serif;
+
+  --tv-bg-surface:#ffffff;
+  --tv-bg-muted:#fafafa;
+  --tv-bg-accent:#eff6ff;
+  --tv-bg-overlay-primary:rgba(24,24,27,.75);
+  --tv-bg-overlay-secondary:rgba(0,0,0,.5);          /* not in Figma: spotlight dim */
+  --tv-text-primary:#18181b;
+  --tv-text-tertiary:#3f3f46;
+  --tv-text-muted:#71717a;                            /* not in Figma */
+  --tv-text-on-primary:#ffffff;
+  --tv-border-subtle:#e4e4e7;
+  --tv-border-primary:#d4d4d8;
+  --tv-border-strong:#a1a1aa;
+  --tv-interactive-primary:#1d4ed8;
+  --tv-interactive-primary-hover:#1e40af;
+  --tv-interactive-link:#1d4ed8;
+  --tv-error-strong:#dc2626;
+  --tv-error-surface:#fef2f2; --tv-error-border:#fca5a5; --tv-error-text:#b91c1c;         /* not in Figma */
+  --tv-warning-surface:#fff7ed; --tv-warning-border:#fdba74; --tv-warning-text:#c2410c;   /* not in Figma */
+  --tv-success-surface:#f0fdf4; --tv-success-border:#86efac; --tv-success-text:#15803d;   /* not in Figma */
+  --tv-ai-blue:#1d4ed8;
+  --tv-ai-purple:#7e22ce;
+
+  /* Recorder surface (always dark, like a camera feed) */
+  --tv-video-bg:#27272a;
+  --tv-video-fg:#d4d4d8;
+  --tv-on-video:#ffffff;
+  --tv-rec-bg:rgba(24,24,27,.6);
+  --tv-toggle-off:#71717a;
+  --tv-toggle-knob:#ffffff;
+  --tv-chat-you:#dbeafe;
+
+  --tv-shadow-sm:0 1px 2px #0A0D120F,0 1px 3px #0A0D121A;
+  --tv-shadow-modal:-4px 4px 50px rgba(0,0,0,.07);
+
+  --tv-h3:500 20px/30px var(--tv-font);
+  --tv-h4:500 18px/28px var(--tv-font);
+  --tv-h5:500 16px/24px var(--tv-font);
+  --tv-p1:400 16px/24px var(--tv-font);
+  --tv-p2:400 14px/20px var(--tv-font);
+  --tv-p3:400 12px/18px var(--tv-font);
+  --tv-l1:500 14px/20px var(--tv-font);
+  --tv-l2:500 12px/18px var(--tv-font);
+  --tv-n2:400 24px/36px var(--tv-font);
+
+  --gutter:60px;
+}
+*,*::before,*::after{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{height:100%}
+body{margin:0;display:flex;flex-direction:row;font:var(--tv-p1);color:var(--tv-text-primary);background:var(--stage-bg);-webkit-font-smoothing:antialiased}
+.stage{position:relative;flex:1;min-width:0;min-height:0;overflow:hidden;padding-block:16px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+#screen{position:absolute;left:50%;top:50%;width:1440px;height:960px;margin:-480px 0 0 -720px;transform:scale(var(--k,1));transform-origin:50% 50%;background:var(--tv-bg-surface);overflow:hidden;box-shadow:0 8px 40px rgba(0,0,0,.18)}
+#scroller{position:absolute;inset:0;overflow:auto;display:flex;flex-direction:column}
+#scroller>.topnav{flex:none}
+#scroller>.body-row{flex:1 0 auto;display:flex;min-height:0}
+.body-row>.page{flex:1;min-width:0}
+
+/* ---------- Chat with Alvy side panel (Figma Help Center 605:44247) ---------- */
+.alvy{flex:none;width:328px;height:calc(960px - 65px);position:sticky;top:0;display:flex;flex-direction:column;background:var(--tv-bg-surface);border-left:1px solid var(--tv-border-subtle)}
+.alvy-head{flex:none;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 8px 8px 12px;border-bottom:1px solid var(--tv-border-subtle)}
+.alvy-head h2{margin:0;font:var(--tv-h5)}
+.chat-log{flex:1;min-height:0;overflow:auto;display:flex;flex-direction:column;gap:14px;padding:16px 12px}
+.chat-log:before{content:"";margin-top:auto}
+.msg{display:grid;gap:6px}
+.msg .who{font:var(--tv-l2);color:var(--tv-text-primary)}
+.msg.you .who{justify-self:end}
+.bubble{border-radius:8px;padding:10px;font:var(--tv-p2)}
+.msg.bot .bubble{background:linear-gradient(171deg,var(--tv-ai-blue),var(--tv-ai-purple));color:var(--tv-on-video)}
+.msg.you .bubble{background:var(--tv-chat-you);color:var(--tv-text-primary)}
+.bubble ol{margin:6px 0 0;padding-left:18px;display:grid;gap:4px}
+.bubble b{font-weight:500}
+.bubble .time{display:block;margin-top:6px;font:var(--tv-p3);opacity:.85;text-align:right}
+.msg.bot .bubble .time{text-align:left}
+.searching{display:flex;align-items:center;gap:8px;font:var(--tv-p2);color:var(--tv-text-muted)}
+.chat-form{flex:none;border-top:1px solid var(--tv-border-subtle);padding:12px 12px 8px;display:grid;gap:8px}
+.chat-form input{border:0;background:none;font:var(--tv-p2);color:var(--tv-text-primary);padding:4px 2px;outline-offset:2px}
+.chat-form input::placeholder{color:var(--tv-text-muted)}
+.chat-actions{display:flex;justify-content:space-between}
+.chat-actions .send{color:var(--tv-interactive-primary)}
+.help-link{display:inline-flex;align-items:center;gap:6px;margin-top:12px;padding:4px 0;border:0;background:none;cursor:pointer;font:var(--tv-l1);color:var(--tv-interactive-link)}
+.help-link:hover{text-decoration:underline}
+.retry-note{font:var(--tv-l1);color:var(--tv-warning-text)}
+
+/* ---------- Variant A: device check screen (same split as the practice screen) ---------- */
+.chk-h{margin:0 0 8px;font:var(--tv-h4)}
+.chk-p{margin:0;font:var(--tv-p1);color:var(--tv-text-tertiary);max-width:52ch}
+.chk-alert{display:grid;gap:10px;justify-items:start;margin:16px 0 0;padding:14px 16px;border:1px solid var(--tv-error-border);border-radius:8px;background:var(--tv-error-surface)}
+.chk-alert h3{margin:0;font:var(--tv-h5);color:var(--tv-error-text)}
+.chk-alert .steps,.chk-alert .help-link{margin-top:0}
+/* Action sits on the camera window itself */
+.vstage .btn{margin-top:4px}
+.vstage .waiting{color:var(--tv-video-fg)}
+/* Per-device check, directly under each dropdown */
+.dev-check{display:flex;align-items:center;gap:8px;font:var(--tv-l2);color:var(--tv-text-tertiary);min-height:24px}
+.dev-check.ok{color:var(--tv-success-text)}
+.dev-check.warn{color:var(--tv-warning-text)}
+.dev-check .meter{height:16px}
+button,select{font:inherit;color:inherit}
+.i{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round}
+.i.sm{width:16px;height:16px}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap}
+:focus-visible{outline:2px solid var(--tv-interactive-primary);outline-offset:2px}
+
+/* ---------- Top nav ---------- */
+.topnav{background:var(--tv-bg-surface);border-bottom:1px solid var(--tv-border-subtle)}
+.nav-inner{height:64px;display:flex;align-items:center;justify-content:space-between;gap:12px;
+  padding-left:max(var(--gutter),env(safe-area-inset-left,0px));padding-right:max(var(--gutter),env(safe-area-inset-right,0px))}
+.logo{display:flex;align-items:center;gap:8px;font:500 16px/1 var(--tv-font);letter-spacing:.06em;color:var(--tv-text-tertiary);flex:none}
+.logo svg{width:30px;height:30px}
+.practice-chip{display:inline-flex;align-items:center;gap:8px;min-width:0;padding:4px 12px;border-radius:999px;background:var(--tv-bg-muted);border:1px solid var(--tv-border-subtle);font:var(--tv-p2);color:var(--tv-text-tertiary);white-space:nowrap}
+.practice-chip b{font:var(--tv-l1);color:var(--tv-text-primary)}
+.practice-chip .i{color:var(--tv-text-muted)}
+.nav-right{display:flex;align-items:center;gap:8px;flex:none}
+.timer{display:flex;align-items:flex-end;gap:20px}
+.toggle.timer-toggle{display:inline-flex;align-items:center;gap:8px;background:none;border:0;padding:0;cursor:pointer;font:var(--tv-p1);color:var(--tv-text-primary);min-height:36px}
+.timer-toggle .track{width:44px;height:24px;border-radius:12px;background:var(--tv-border-primary)}
+.timer-toggle .track::after{width:20px;height:20px;top:2px;left:2px}
+.toggle.timer-toggle[aria-pressed="true"] .track::after{transform:translateX(20px)}
+.timer-clock{width:105px;display:grid;gap:6px}
+.timer-clock.concealed{visibility:hidden}
+.timer-bar{height:4px;border-radius:4px;background:var(--tv-border-subtle);overflow:hidden}
+.timer-bar>span{display:block;height:100%;border-radius:4px;background:var(--tv-interactive-primary);transition:width .3s ease}
+.timer-num{font:var(--tv-n2);text-align:center;font-variant-numeric:tabular-nums}
+.lang{position:relative;display:inline-flex;align-items:center;border-radius:8px}
+.lang select{appearance:none;-webkit-appearance:none;border:0;background:none;font:var(--tv-l1);color:var(--tv-text-primary);min-height:36px;padding:8px 32px 8px 36px;border-radius:8px;cursor:pointer}
+.lang select:hover{background:var(--tv-bg-muted)}
+.lang .i{position:absolute;pointer-events:none;color:var(--tv-text-tertiary)}
+.lang .lead{left:10px}.lang .chev{right:10px}
+
+/* ---------- Buttons ---------- */
+.btn{font:var(--tv-l1);border-radius:8px;padding:8px 12px;min-height:36px;border:1px solid transparent;background:none;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:8px;white-space:nowrap}
+.btn:disabled{cursor:default;opacity:.7}
+.btn-primary{background:var(--tv-interactive-primary);color:var(--tv-text-on-primary)}
+.btn-primary:hover:not(:disabled){background:var(--tv-interactive-primary-hover)}
+.btn-secondary{background:var(--tv-bg-surface);border-color:var(--tv-border-primary);color:var(--tv-text-primary)}
+.btn-secondary:hover{background:var(--tv-bg-muted)}
+.btn-link{color:var(--tv-interactive-link);padding:8px 4px}
+.btn-link:hover{text-decoration:underline}
+.btn-ai{border-color:var(--tv-ai-blue)}
+.ai-text{background:linear-gradient(171deg,var(--tv-ai-blue),var(--tv-ai-purple));-webkit-background-clip:text;background-clip:text;color:transparent}
+.ai-icon{color:var(--tv-ai-purple)}
+.icon-btn{width:36px;height:36px;border-radius:8px;border:0;background:none;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;color:var(--tv-text-tertiary)}
+.icon-btn:hover{background:var(--tv-border-subtle)}
+
+/* ---------- Page ---------- */
+.page{display:flex;flex-direction:column;align-items:center;gap:24px;padding-top:24px;padding-bottom:24px;
+  padding-left:max(var(--gutter),env(safe-area-inset-left,0px));padding-right:max(var(--gutter),env(safe-area-inset-right,0px))}
+.qcard{flex:1 0 auto;display:flex;flex-direction:column;width:100%;max-width:1320px;background:var(--tv-bg-muted);border:1px solid var(--tv-border-subtle);border-radius:12px}
+.qhead{min-height:68px;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 24px;border-bottom:1px solid var(--tv-border-subtle)}
+.qhead h1{font:var(--tv-h5);margin:0;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.tag{font:var(--tv-l2);padding:1px 8px;border-radius:4px;background:var(--tv-bg-accent);color:var(--tv-interactive-link)}
+.qbody{flex:1 0 auto;padding:24px;display:grid;grid-template-columns:minmax(0,1fr) 1px minmax(0,1fr);grid-template-rows:minmax(0,1fr);gap:24px}
+.right{align-self:start}
+.vdiv{background:var(--tv-border-subtle)}
+.left{align-self:start;display:flex;flex-direction:column;gap:16px;min-width:0}
+.question{font:var(--tv-h4);margin:0;text-wrap:pretty}
+.right{min-width:0;display:flex;flex-direction:column;gap:10px}
+
+/* ---------- Assessment loading skeleton (behind the all-set and countdown modals) ---------- */
+.sk{background:var(--tv-border-subtle);border-radius:4px}
+.sk-head{width:min(480px,70%);height:24px}
+.sk-title{width:min(332px,80%);height:18px}
+.sk-lines{display:grid;gap:16px;margin-top:24px}
+.sk-line{width:80px;height:8px}
+.sk-media{border-radius:8px;background:var(--tv-bg-accent);aspect-ratio:612/443;width:100%}
+.qbody.single{grid-template-columns:minmax(0,1fr);min-height:520px}
+.skel-foot,.pagefoot{flex:none;width:100%;max-width:1320px;display:flex;align-items:center;justify-content:flex-end;gap:12px}
+.foot-hint{font:var(--tv-p2);color:var(--tv-text-muted)}
+.foot-hint.warn{color:var(--tv-warning-text)}
+.coach-foot .foot-hint{margin-right:auto}
+.pagefoot .btn:disabled{opacity:.45}
+.sk-pill{width:96px;height:32px;border-radius:16px}
+.proto-note{align-self:start;display:grid;gap:10px;justify-items:start;max-width:420px;margin-top:32px;padding:16px;border:1px dashed var(--tv-border-strong);border-radius:8px;background:var(--tv-bg-surface);font:var(--tv-p2);color:var(--tv-text-tertiary)}
+
+/* ---------- Video recorder ---------- */
+.vrec{position:relative;width:100%;max-width:100%;aspect-ratio:612/443;border-radius:8px;overflow:hidden;background:var(--tv-video-bg)}
+.vstage{position:absolute;inset:0 0 60px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:0 24px;text-align:center;color:var(--tv-video-fg);font:var(--tv-p2)}
+.vmedia{position:absolute;inset:0}
+.vmedia video,.vmedia canvas{display:block;width:100%;height:100%;object-fit:cover}
+.vmedia video{transform:scaleX(-1)} /* mirrored, like a mirror */
+.sim-tag{position:absolute;top:16px;right:16px;font:var(--tv-l2);color:var(--tv-on-video);background:var(--tv-rec-bg);padding:4px 10px;border-radius:999px}
+.vbar{position:absolute;left:0;right:0;bottom:0;height:60px;background:var(--tv-bg-overlay-primary);display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 24px}
+.vbar-note{font:var(--tv-p2);color:var(--tv-video-fg);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.rec-badge{position:absolute;top:16px;left:16px;display:flex;align-items:center;gap:6px;font:var(--tv-l2);color:var(--tv-on-video);background:var(--tv-rec-bg);padding:4px 10px;border-radius:999px;font-variant-numeric:tabular-nums}
+.rec-dot{width:8px;height:8px;border-radius:50%;background:var(--tv-error-strong)}
+.toggle{display:inline-flex;align-items:center;gap:8px;white-space:nowrap;flex:none;background:none;border:0;padding:0;cursor:pointer;font:var(--tv-l1);color:var(--tv-on-video);min-height:36px}
+.track{width:28px;height:14px;border-radius:7px;background:var(--tv-toggle-off);position:relative;transition:background .2s;flex:none}
+.track::after{content:"";position:absolute;top:2px;left:2px;width:10px;height:10px;border-radius:50%;background:var(--tv-toggle-knob);transition:transform .2s}
+.toggle[aria-pressed="true"] .track{background:var(--tv-interactive-primary)}
+.toggle[aria-pressed="true"] .track::after{transform:translateX(14px)}
+
+/* ---------- Device selectors ---------- */
+.devices{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.device{display:flex;flex-direction:column;gap:6px;min-width:0}
+.select{position:relative;display:flex;align-items:center;min-width:0;border:1px solid var(--tv-border-primary);border-radius:4px;background:var(--tv-bg-surface)}
+.select select{appearance:none;-webkit-appearance:none;width:100%;min-width:0;border:0;background:none;border-radius:4px;font:var(--tv-p2);color:var(--tv-text-primary);padding:8px 32px 8px 36px;cursor:pointer;text-overflow:ellipsis}
+.select select:disabled{cursor:default;color:var(--tv-text-muted)}
+.select .i{position:absolute;pointer-events:none;color:var(--tv-text-tertiary)}
+.select .lead{left:8px}.select .chev{right:8px}
+.status{align-self:flex-start;display:inline-flex;align-items:center;gap:4px;font:var(--tv-l2);padding:2px 10px;border-radius:999px;border:1px solid}
+.status.wait{background:var(--tv-bg-muted);border-color:var(--tv-border-primary);color:var(--tv-text-tertiary)}
+.status.ok{background:var(--tv-success-surface);border-color:var(--tv-success-border);color:var(--tv-success-text)}
+.status.bad{background:var(--tv-error-surface);border-color:var(--tv-error-border);color:var(--tv-error-text)}
+.status.warn{background:var(--tv-warning-surface);border-color:var(--tv-warning-border);color:var(--tv-warning-text)}
+
+/* ---------- Wait screen ---------- */
+.waitscreen{width:100%;max-width:560px;display:flex;flex-direction:column;align-items:center;text-align:center;padding:56px 0}
+.wait-mark{width:48px;height:48px;display:flex;align-items:center;justify-content:center}
+.wait-mark.err{border-radius:50%;background:var(--tv-error-surface);color:var(--tv-error-text)}
+.waitscreen h1{font:var(--tv-h3);margin:16px 0 4px;text-wrap:balance}
+.waitscreen p{font:var(--tv-p2);color:var(--tv-text-tertiary);margin:0 0 20px}
+.checklist{list-style:none;margin:0 0 20px;padding:8px 20px;background:var(--tv-bg-surface);border:1px solid var(--tv-border-subtle);border-radius:8px;width:min(340px,100%);text-align:left}
+.checklist li{display:flex;align-items:center;gap:10px;padding:8px 0;font:var(--tv-p2)}
+.checklist li.done .i{color:var(--tv-success-text)}
+.checklist li.pend{color:var(--tv-text-muted)}
+.checklist li.fail{color:var(--tv-error-text)}
+.spin{width:16px;height:16px;border:2px solid var(--tv-border-primary);border-top-color:var(--tv-interactive-primary);border-radius:50%;animation:spin .8s linear infinite;flex:none}
+.spin.xs{width:12px;height:12px}
+.spin.lg{width:28px;height:28px;border-width:3px}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ---------- Simulated browser prompt ---------- */
+.browser-prompt{position:fixed;z-index:60;top:calc(12px + env(safe-area-inset-top,0px));left:120px;width:290px;background:var(--tv-bg-surface);border:1px solid var(--tv-border-primary);border-radius:12px;padding:14px 16px;box-shadow:var(--tv-shadow-modal),var(--tv-shadow-sm);font:var(--tv-p2)}
+.browser-prompt strong{font:var(--tv-l1);display:block;margin-bottom:8px}
+.browser-prompt .row{display:flex;align-items:center;gap:8px;color:var(--tv-text-tertiary);padding:3px 0}
+.browser-prompt .acts{display:flex;justify-content:flex-end;gap:8px;margin-top:10px}
+.browser-prompt small{display:block;font:var(--tv-p3);color:var(--tv-text-muted);margin-top:8px}
+
+
+/* ---------- Spotlight ---------- */
+#overlay{position:fixed;inset:0;width:100%;height:100%;z-index:40;pointer-events:none}
+#overlay .dim{fill:var(--tv-bg-overlay-secondary)}
+#overlay .ring{fill:none;stroke:var(--tv-interactive-primary);stroke-width:2;animation:ring 1.8s ease-in-out infinite}
+@keyframes ring{50%{stroke-opacity:.35}}
+
+/* ---------- Coach mark ---------- */
+#coach{--coach-border:var(--tv-border-subtle);position:fixed;left:0;top:0;z-index:50;width:340px;
+  background:var(--tv-bg-surface);border:1px solid var(--coach-border);border-radius:8px;padding:20px;
+  box-shadow:var(--tv-shadow-modal),var(--tv-shadow-sm);container:coach / inline-size}
+#coach.moving{transition:left .2s ease,top .2s ease}
+#coach.centered{width:480px;padding:20px;max-height:calc(100% - 32px);overflow:auto;box-shadow:0 16px 80px rgba(0,0,0,.10),var(--tv-shadow-sm)}
+#coach.countdown{padding:40px 20px 40px;text-align:center}
+.allset h2{font:var(--tv-h3);margin:0 0 12px}
+.allset p strong{font-weight:500;color:var(--tv-text-primary)}
+.allset .coach-foot{margin-top:24px}
+.count-title{font:var(--tv-h4);color:var(--tv-text-primary);margin:0 0 16px}
+.count-ring{position:relative;width:100px;height:100px;margin:0 auto}
+.count-ring svg{position:absolute;inset:0;transform:rotate(-90deg)}
+.count-ring circle{fill:none;stroke-width:5}
+.count-ring .bg{stroke:var(--tv-bg-accent)}
+.count-ring .fg{stroke:var(--tv-interactive-primary);stroke-linecap:round;stroke-dasharray:289;stroke-dashoffset:0}
+.count-ring .fg.run{animation:drain 1s linear forwards}
+@keyframes drain{to{stroke-dashoffset:289}}
+.count-num{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font:400 40px/1 var(--tv-font);color:var(--tv-text-primary);font-variant-numeric:tabular-nums}
+#coach.docked{max-height:calc(100% - 32px);overflow:auto}
+#coach.tone-error{--coach-border:var(--tv-error-border)}
+#coach.wide{width:440px}
+#coach.tone-warning{--coach-border:var(--tv-warning-border)}
+#coach:focus{outline:none}
+#coach:focus-visible{outline:2px solid var(--tv-interactive-primary);outline-offset:2px}
+.caret{position:absolute;width:12px;height:12px;background:var(--tv-bg-surface);transform:rotate(45deg);border:1px solid transparent}
+.caret[data-side="bottom"]{top:-7px;border-left-color:var(--coach-border);border-top-color:var(--coach-border)}
+.caret[data-side="top"]{bottom:-7px;border-right-color:var(--coach-border);border-bottom-color:var(--coach-border)}
+.caret[data-side="right"]{left:-7px;border-left-color:var(--coach-border);border-bottom-color:var(--coach-border)}
+.caret[data-side="left"]{right:-7px;border-right-color:var(--coach-border);border-top-color:var(--coach-border)}
+.coach h2{font:var(--tv-h3);margin:0 0 8px;text-wrap:balance}
+.coach .step-no{margin:0 0 4px;font:var(--tv-p2);color:var(--tv-text-muted);font-variant-numeric:tabular-nums}
+.coach h2.tone-error{color:var(--tv-error-text)}
+.coach h2.tone-warning{color:var(--tv-warning-text)}
+.coach p{font:var(--tv-p1);color:var(--tv-text-tertiary);margin:0}
+.coach .note{display:flex;gap:6px;align-items:flex-start;font:var(--tv-p3);color:var(--tv-text-muted);margin-top:12px}
+.coach-foot{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px 12px;margin-top:20px}
+.coach-foot .end{display:flex;align-items:center;justify-content:flex-end;flex-wrap:wrap;gap:8px 12px;margin-left:auto}
+@container coach (max-width: 340px){
+  .coach-foot.stackable .end{width:100%;flex-direction:column-reverse;align-items:stretch}
+  .coach-foot.stackable .btn{width:100%}
+}
+.waiting{display:inline-flex;align-items:center;gap:6px;font:var(--tv-p2);color:var(--tv-text-muted)}
+.meter-row{display:flex;align-items:center;gap:12px;margin-top:14px;font:var(--tv-p2);color:var(--tv-text-tertiary)}
+.meter{display:inline-flex;align-items:flex-end;gap:3px;height:20px}
+.meter i{width:4px;height:4px;border-radius:2px;background:var(--tv-interactive-primary);transition:height .1s}
+.meter.quiet i{background:var(--tv-border-strong)}
+.meter.done i{background:var(--tv-success-text);height:8px}
+.detected{display:inline-flex;align-items:center;gap:6px;font:var(--tv-l1);color:var(--tv-success-text)}
+.badge-icon{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin-bottom:14px}
+.badge-icon .i{width:24px;height:24px}
+.badge-icon.ok{background:var(--tv-success-surface);color:var(--tv-success-text)}
+.badge-icon.info{background:var(--tv-bg-accent);color:var(--tv-interactive-link)}
+.badge-icon.err{background:var(--tv-error-surface);color:var(--tv-error-text)}
+.steps{margin:12px 0 0;padding-left:20px;display:grid;gap:6px;font:var(--tv-p2);color:var(--tv-text-tertiary)}
+.steps li::marker{color:var(--tv-text-muted);font-variant-numeric:tabular-nums}
+.steps b{font-weight:500;color:var(--tv-text-primary)}
+
+/* ---------- Prototype controls (not part of the design) ---------- */
+.proto{flex:none;position:relative;z-index:70;width:300px;height:100%;overflow:auto;display:flex;flex-direction:column;background:var(--tv-bg-surface);border-left:1px solid var(--tv-border-strong);font:var(--tv-p3);color:var(--tv-text-tertiary)}
+.proto-head,.proto-body{padding-left:16px;padding-right:max(16px,env(safe-area-inset-right,0px))}
+.proto-head{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;padding-top:max(14px,env(safe-area-inset-top,0px));padding-bottom:12px;border-bottom:1px solid var(--tv-border-subtle)}
+.proto-title{flex:none;font:var(--tv-l2);color:var(--tv-text-primary);letter-spacing:.04em;text-transform:uppercase}
+.proto-head button{flex:none;margin-left:auto;font:var(--tv-l2);border:0;background:none;color:var(--tv-interactive-link);cursor:pointer;padding:4px 6px;border-radius:6px}
+.proto-ticket{order:3;flex-basis:100%;margin:0;padding:8px 10px;border-radius:8px;background:var(--tv-bg-muted);color:var(--tv-text-tertiary)}
+.proto-ticket b{font:var(--tv-l2);color:var(--tv-text-primary)}
+.proto-body{display:flex;flex-direction:column;gap:16px;padding-top:14px;padding-bottom:max(16px,env(safe-area-inset-bottom,0px))}
+.proto.collapsed{width:auto}
+.proto.collapsed .proto-body,.proto.collapsed .proto-ticket{display:none}
+.proto.collapsed .proto-head{flex-direction:column;align-items:flex-start;border-bottom:0}
+.proto.collapsed .proto-head button{margin-left:0}
+.proto-group{display:flex;flex-direction:column;align-items:flex-start;gap:6px}
+.proto-label{font:var(--tv-l2);color:var(--tv-text-muted)}
+.chips,.seg{display:flex;flex-wrap:wrap;gap:4px}
+@media (max-width:760px){
+  body{flex-direction:column}
+  .proto{width:auto;height:auto;max-height:45%;border-left:0;border-top:1px solid var(--tv-border-strong)}
+}
+.chips button,.seg button{white-space:nowrap;font:var(--tv-l2);border:1px solid var(--tv-border-primary);background:var(--tv-bg-surface);color:var(--tv-text-tertiary);border-radius:999px;padding:3px 10px;cursor:pointer}
+.chips button[aria-current="step"],.seg button[aria-pressed="true"]{border-color:var(--tv-interactive-primary);color:var(--tv-interactive-link);background:var(--tv-bg-accent)}
+
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{animation:none!important;transition:none!important}
+}
+</style>
+
+<div class="stage" id="stage">
+<div id="screen" role="region" aria-label="Candidate screen, 1440 by 960">
+<div id="scroller">
+<header class="topnav">
+  <div class="nav-inner">
+    <div class="logo" aria-label="Talview">
+      <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 2.5 28 9.25v13.5L16 29.5 4 22.75V9.25z" fill="none" stroke="var(--tv-interactive-primary)" stroke-width="2"/><path d="M10.5 12.5 16 21l5.5-8.5" fill="none" stroke="var(--tv-interactive-primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span class="logo-word">TALVIEW</span>
+    </div>
+    <div class="timer" id="timerBox" hidden>
+      <button class="toggle timer-toggle" id="timerToggle" data-act="hide-timer" aria-pressed="false" type="button"><span class="track" aria-hidden="true"></span><span class="label">Hide Timer</span></button>
+      <div class="timer-clock" id="timerClock">
+        <div class="timer-bar" aria-hidden="true"><span id="timerBar" style="width:36%"></span></div>
+        <div class="timer-num" id="timerNum" role="timer" aria-label="Time left">00:02:15</div>
+      </div>
+    </div>
+    <div class="practice-chip" id="practiceChip">
+      <svg class="i sm" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+      <span><b>Practice</b><span class="chip-sub"> · Timer starts with the assessment</span></span>
+    </div>
+    <div class="nav-right">
+      <div class="lang" id="langWrap">
+        <svg class="i sm lead" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg>
+        <select id="langSelect" aria-label="Language">
+          <option>English US</option><option>Español</option><option>Français</option><option>Deutsch</option><option>हिन्दी</option>
+        </select>
+        <svg class="i sm chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+      </div>
+      <button class="btn btn-ai" id="alvyBtn" data-act="alvy" type="button" aria-label="Chat with Alvy" aria-expanded="false" aria-controls="alvy"><svg class="i sm ai-icon" viewBox="0 0 24 24" style="fill:currentColor;stroke:none" aria-hidden="true"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8zM18.5 15l.8 2.2 2.2.8-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8z"/></svg><span class="ai-text ai-label">Chat with Alvy</span></button>
+    </div>
+  </div>
+</header>
+
+<div class="body-row">
+<main class="page" id="main"></main>
+<aside class="alvy" id="alvy" aria-label="Chat with Alvy" hidden>
+  <div class="alvy-head"><h2>Chat with Alvy</h2><button class="icon-btn" data-act="alvy-close" type="button" aria-label="Close chat"><svg class="i sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12h18M7 8l-4 4 4 4M17 8l4 4-4 4"/></svg></button></div>
+  <div class="chat-log" id="chatLog" aria-live="polite"></div>
+  <form class="chat-form" id="chatForm">
+    <input id="chatInput" type="text" placeholder="Write something" aria-label="Message Alvy" autocomplete="off">
+    <div class="chat-actions">
+      <button class="icon-btn" type="button" aria-label="Attach a file"><svg class="i sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 11.5l-8.6 8.6a5.5 5.5 0 0 1-7.8-7.8l8.6-8.6a3.7 3.7 0 0 1 5.2 5.2l-8.6 8.6a1.8 1.8 0 0 1-2.6-2.6l7.9-7.9"/></svg></button>
+      <button class="icon-btn send" type="submit" aria-label="Send"><svg class="i" viewBox="0 0 24 24" style="fill:currentColor;stroke:none" aria-hidden="true"><path d="M3 20.5 21 12 3 3.5l2.6 7.1L14 12l-8.4 1.4z"/></svg></button>
+    </div>
+  </form>
+</aside>
+</div>
+</div>
+
+<svg id="overlay" aria-hidden="true" hidden>
+  <defs>
+    <mask id="spotMask" maskUnits="userSpaceOnUse" x="0" y="0" width="100%" height="100%">
+      <rect x="0" y="0" width="100%" height="100%" fill="white"/>
+      <g id="holes"></g>
+    </mask>
+  </defs>
+  <rect class="dim" x="0" y="0" width="100%" height="100%" mask="url(#spotMask)"/>
+  <g id="rings"></g>
+</svg>
+
+<div id="coach" class="coach" role="dialog" aria-modal="false" aria-labelledby="coachTitle" aria-describedby="coachText" tabindex="-1" hidden>
+  <div class="caret" id="caret" aria-hidden="true"></div>
+  <div id="coachBody"></div>
+</div>
+
+<div class="browser-prompt" id="prompt" role="dialog" aria-label="Browser permission prompt (simulated)" hidden>
+  <strong>cx-v2.talview.com wants to</strong>
+  <div class="row"><svg class="i sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 10l4.553-2.276A1 1 0 0 1 21 8.618v6.764a1 1 0 0 1-1.447.894L15 14v-4z"/><rect x="3" y="6" width="12" height="12" rx="2"/></svg>Use your camera</div>
+  <div class="row"><svg class="i sm" viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="2" width="6" height="11" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M8 21h8M12 17v4"/></svg>Use your microphone</div>
+  <div class="acts"><button class="btn btn-secondary" data-act="block" type="button">Block</button><button class="btn btn-secondary" data-act="allow" type="button">Allow</button></div>
+  <small>Simulated. The real prompt’s position depends on the browser.</small>
+</div>
+
+</div>
+</div>
+
+<aside class="proto" id="proto" aria-label="Prototype controls">
+  <div class="proto-head">
+    <span class="proto-title">Prototype</span>
+    <p class="proto-ticket" id="protoTicket" aria-live="polite"></p>
+    <button type="button" id="protoToggle" aria-expanded="true" aria-controls="protoBody">Hide controls</button>
+  </div>
+  <div class="proto-body" id="protoBody">
+    <div class="proto-group"><span class="proto-label">Variant</span>
+      <div class="seg"><button type="button" data-set="variant" data-val="A">A · Device check screen</button><button type="button" data-set="variant" data-val="B">B · Extra tour step</button></div>
+    </div>
+    <div class="proto-group"><span class="proto-label">Jump to</span>
+      <div class="chips" id="jumpChips"></div>
+    </div>
+    <div class="proto-group"><span class="proto-label">Browser access</span>
+      <div class="seg"><button type="button" data-set="permMode" data-val="ask">Prompt</button><button type="button" data-set="permMode" data-val="granted">Already allowed</button><button type="button" data-set="permMode" data-val="inuse">Camera in use</button></div>
+    </div>
+    <div class="proto-group"><span class="proto-label">Voice check</span>
+      <div class="seg"><button type="button" data-set="voiceMode" data-val="heard">Voice heard</button><button type="button" data-set="voiceMode" data-val="silent">Silent</button></div>
+    </div>
+    <div class="proto-group"><span class="proto-label">Loading</span>
+      <div class="seg"><button type="button" data-set="loadMode" data-val="ok">Succeeds</button><button type="button" data-set="loadMode" data-val="fail">Fails</button></div>
+    </div>
+    <div class="proto-group"><span class="proto-label">Browser</span>
+      <div class="seg"><button type="button" data-set="browser" data-val="auto" id="browserAuto">Detected</button><button type="button" data-set="browser" data-val="chrome">Chrome</button><button type="button" data-set="browser" data-val="edge">Edge</button><button type="button" data-set="browser" data-val="safari">Safari</button><button type="button" data-set="browser" data-val="firefox">Firefox</button><button type="button" data-set="browser" data-val="ios">iPhone</button><button type="button" data-set="browser" data-val="android">Android</button></div>
+    </div>
+  </div>
+</aside>
+
+<script>
+(() => {
+  const ICON = {
+    video:'<path d="M15 10l4.553-2.276A1 1 0 0 1 21 8.618v6.764a1 1 0 0 1-1.447.894L15 14v-4z"/><rect x="3" y="6" width="12" height="12" rx="2"/>',
+    mic:'<rect x="9" y="2" width="6" height="11" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M8 21h8M12 17v4"/>',
+    micOff:'<path d="M3 3l18 18M9 9v1a3 3 0 0 0 5.12 2.12M15 9.34V5a3 3 0 0 0-5.94-.6M17 16.95A7 7 0 0 1 5 10M19 10a7 7 0 0 1-.11 1.23M8 21h8M12 17v4"/>',
+    chevron:'<path d="M6 9l6 6 6-6"/>',
+    check:'<path d="M5 12l5 5L20 7"/>',
+    x:'<path d="M18 6 6 18M6 6l12 12"/>',
+    clock:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/>',
+    refresh:'<path d="M20 11A8.1 8.1 0 0 0 4.5 9M4 5v4h4M4 13a8.1 8.1 0 0 0 15.5 2m.5 4v-4h-4"/>',
+    info:'<circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v4h1"/>',
+    eyeOff:'<path d="M3 3l18 18M10.584 10.587a2 2 0 0 0 2.828 2.83M9.363 5.365A9.466 9.466 0 0 1 12 5c4 0 7.333 2.333 10 7-.778 1.361-1.612 2.524-2.503 3.488M17.357 17.349C15.726 18.449 13.942 19 12 19c-4 0-7.333-2.333-10-7 1.369-2.395 2.913-4.175 4.632-5.341"/>',
+    videoOff:'<path d="M3 3l18 18M15 11v-1l4.553-2.276A1 1 0 0 1 21 8.618v6.764a1 1 0 0 1-.675.946M10 6h3a2 2 0 0 1 2 2v3m0 4v1a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h1"/>',
+    circleCheck:'<circle cx="12" cy="12" r="9"/><path d="M9 12l2 2 4-4"/>',
+    circleX:'<circle cx="12" cy="12" r="9"/><path d="M15 9l-6 6M9 9l6 6"/>',
+    circle:'<circle cx="12" cy="12" r="9"/>',
+    alert:'<path d="M12 9v4M12 17h.01M10.24 3.957 2.389 17.06a2 2 0 0 0 1.71 3h15.802a2 2 0 0 0 1.71-3L13.76 3.957a2 2 0 0 0-3.52 0z"/>',
+    flag:'<path d="M5 21V4M5 4h11l-2 4 2 4H5"/>',
+    user:'<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>',
+    sun:'<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M19.1 4.9l-1.4 1.4M6.3 17.7l-1.4 1.4"/>',
+    lock:'<rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/>',
+    rec:'<circle cx="12" cy="12" r="5" fill="currentColor" stroke="none"/>',
+    square:'<rect x="7" y="7" width="10" height="10" rx="1.5" fill="currentColor" stroke="none"/>'
+  };
+  const ic = (n, cls = '') => `<svg class="i ${cls}" viewBox="0 0 24 24" aria-hidden="true">${ICON[n]}</svg>`;
+  const $ = id => document.getElementById(id);
+
+  const main = $('main'), overlay = $('overlay'), holesG = $('holes'), ringsG = $('rings');
+  const coach = $('coach'), coachBody = $('coachBody'), caret = $('caret'), promptEl = $('prompt');
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)');
+  const coarse = matchMedia('(pointer: coarse)');
+  // The screen is always the 1440×960 desktop frame, so the stacked phone layout never applies.
+  const stackedMQ = {matches:false};
+  const FRAME_W = 1440, FRAME_H = 960;
+  const screenEl = $('screen'), scroller = $('scroller'), stage = $('stage');
+  let K = 1;
+  function fit(){
+    const cs = getComputedStyle(stage);
+    const w = stage.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+    const h = stage.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
+    K = Math.max(.1, Math.min(1, w / FRAME_W, h / FRAME_H));
+    screenEl.style.setProperty('--k', K);
+  }
+  fit();
+
+  // Positioning constants from the handoff: 6px spotlight padding, 14px gap from the ring,
+  // and one 16px viewport margin for both the fit check and the shift clamp.
+  const M = 16, PAD = 6, GAP = 14, OFF = PAD + GAP;
+
+  // The mic is checked once, in the device check, so the recording step just records.
+  // Variant A: device check screen before the practice, so the tour has 3 steps.
+  // Variant B: the same checks as tour steps 1–2, before the practice question.
+  const STEPS = {
+    A:{orient:1, start:2, talk:3},
+    B:{perm:1, blocked:1, devices:2, orient:3, start:4, talk:5}
+  };
+  const TOUR = ['orient', 'start', 'perm', 'blocked', 'devices', 'talk', 'quiet', 'stop'];
+  const stepInfo = () => [STEPS[S.variant][S.state], S.variant === 'A' ? 3 : 5];
+  const CAMS = ['FaceTime HD Camera', 'Logitech C920'];
+  const MICS = ['MacBook Air Microphone', 'AirPods Pro', 'External USB Microphone'];
+  const WAIT_LABELS = ['Email verified', 'Loading your assessment', 'Preparing a practice question'];
+
+  const S = {
+    state:'wait', variant:'A', chk:'idle', permMode:'ask', voiceMode:'heard', loadMode:'ok',
+    browser:'auto', retest:'fixed', alvyOpen:false, micFailed:false, permitted:false, inuseCleared:false, devicesOk:false, blockedReason:'denied',
+    permAuto:false, hidePreview:false, heard:false,
+    recSecs:0, cam:0, mic:0, waitItems:['done','act','pend'],
+    lock:null, lockUntil:0, last:null,
+    stream:null, audioCtx:null, analyser:null, abuf:null, level:0, realFailed:false,
+    count:5, timerSecs:135, hideTimer:false
+  };
+
+  let timers = [], intervals = [];
+  const later = (fn, ms) => timers.push(setTimeout(fn, ms));
+  const every = (fn, ms) => intervals.push(setInterval(fn, ms));
+  const clearTimers = () => { timers.forEach(clearTimeout); intervals.forEach(clearInterval); timers = []; intervals = []; };
+  const fmt = s => String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0');
+  const isLive = () => ['talk', 'quiet', 'stop'].includes(S.state);
+  // Camera preview shows while recording, and (not recording) during either device check.
+  const showPreview = () => isLive() || S.state === 'devices' || (S.state === 'check' && S.chk === 'live');
+  const inTour = () => TOUR.includes(S.state);
+  const isCentered = () => S.state === 'done' || S.state === 'countdown';
+  const isPost = () => ['done', 'countdown', 'assessment'].includes(S.state);
+  const verb = () => coarse.matches ? 'Tap' : 'Click';
+
+  /* ================= State machine ================= */
+  function go(next){
+    clearTimers();
+    S.state = next;
+    S.heard = false;
+    S.lock = null;
+    S.last = null;
+    if (next === 'wait') S.waitItems = ['done', 'act', 'pend'];
+    if (next === 'orient' || next === 'start'){ S.recSecs = 0; S.hidePreview = false; }
+    if (next === 'perm'){ S.recSecs = 0; S.permAuto = S.permitted || S.permMode === 'granted'; }
+    if (['wait', 'check', 'orient', 'start', 'blocked', 'done', 'countdown', 'assessment'].includes(next)) stopStream();
+    if (next === 'done'){ S.timerSecs = 135; }
+    if (next === 'countdown') S.count = 5;
+    render(true);
+    enter(next);
+  }
+
+  function enter(st){
+    if (st === 'wait'){
+      // Prototype stand-in: production drives these from real loading milestones.
+      later(() => {
+        if (S.loadMode === 'fail'){ S.waitItems = ['done', 'fail', 'pend']; go('waitError'); return; }
+        S.waitItems = ['done', 'done', 'act']; renderWaitList();
+      }, 1400);
+      later(() => { S.waitItems = ['done', 'done', 'done']; renderWaitList(); }, 2600);
+      later(() => { S.chk = 'idle'; go(S.variant === 'A' ? 'check' : 'perm'); }, 3200);
+    }
+    if (st === 'perm'){
+      if (S.permAuto){
+        S.permitted = true;
+        if (canUseCamera() && !S.stream) acquire().catch(() => {});
+        later(resolveDevices, 1300);
+      } else if (canUseCamera()){
+        // A real camera is available (page opened directly in a browser): use the browser's own prompt.
+        acquire().then(stream => {
+          if (!stream || S.state !== 'perm') return;
+          S.permitted = true; resolveDevices();
+        }).catch(err => {
+          if (S.state !== 'perm' || err?.stale) return;
+          if (err && err.fallback){ promptEl.hidden = false; return; }
+          if (err && (err.name === 'NotReadableError' || err.name === 'AbortError')){ S.permitted = true; S.blockedReason = 'inuse'; }
+          else { S.permitted = false; S.blockedReason = 'denied'; }
+          go('blocked');
+        });
+      }
+    }
+    if (isLive()){
+      if (canUseCamera() && !S.stream) acquire().catch(() => {});
+      every(() => { S.recSecs++; const t = $('recTime'); if (t) t.textContent = fmt(S.recSecs); }, 1000);
+      startLevel();
+    }
+    if (st === 'check'){
+      if (S.chk === 'asking') beginAsk();
+      if (S.chk === 'live') startMicCheck();
+    }
+    if (st === 'devices'){ S.permitted = true; startMicCheck(); }
+    if (st === 'countdown'){
+      every(() => {
+        S.count--;
+        if (S.count <= 0){ go('assessment'); return; }
+        const n = $('countNum'); if (n) n.textContent = S.count;
+        restartRing();
+      }, 1000);
+      restartRing();
+    }
+    if (st === 'assessment'){
+      every(() => { if (S.timerSecs > 0){ S.timerSecs--; renderTimer(); } }, 1000);
+    }
+    if (st === 'talk') S.devicesOk = true;
+  }
+
+  function resolveDevices(){
+    if (S.permMode === 'inuse' && !S.inuseCleared){ S.blockedReason = 'inuse'; go('blocked'); }
+    else if (S.variant === 'B'){ go('devices'); }
+    else { S.devicesOk = true; go('talk'); }
+  }
+
+  /* ---------- Device check (A: own screen, B: tour step 4) ---------- */
+  function setChk(v){
+    clearTimers();
+    S.chk = v; S.heard = false; S.micFailed = false;
+    renderCheckPage();
+    if (v === 'asking') beginAsk();
+    if (v === 'live') startMicCheck();
+  }
+  function beginAsk(){
+    if (S.permitted || S.permMode === 'granted'){ S.permitted = true; later(chkResolve, 900); return; }
+    if (!canUseCamera()){ promptEl.hidden = false; return; }
+    acquire().then(stream => {
+      if (!stream || S.state !== 'check') return;
+      S.permitted = true; chkResolve();
+    }).catch(err => {
+      if (S.state !== 'check' || err?.stale) return;
+      if (err?.fallback){ promptEl.hidden = false; return; }
+      S.blockedReason = (err.name === 'NotReadableError' || err.name === 'AbortError') ? 'inuse' : 'denied';
+      S.permitted = S.blockedReason === 'inuse';
+      setChk('blocked');
+    });
+  }
+  function chkResolve(){
+    promptEl.hidden = true;
+    if (S.permMode === 'inuse' && !S.inuseCleared){ S.blockedReason = 'inuse'; setChk('blocked'); }
+    else { S.devicesOk = true; setChk('live'); }
+  }
+  function startMicCheck(){
+    if (canUseCamera() && !S.stream) acquire().catch(() => {});
+    startLevel();
+    if (S.voiceMode === 'heard' && !S.analyser) later(micOk, 3000);
+    later(() => { if (!S.heard) micNone(); }, 7000);
+  }
+  function micOk(){
+    if (S.heard || !(S.state === 'devices' || (S.state === 'check' && S.chk === 'live'))) return;
+    S.heard = true;
+    const m = $('meter');
+    if (m){ m.classList.remove('quiet'); m.classList.add('done'); m.querySelectorAll('i').forEach(b => b.style.height = ''); }
+    const v = $('voiceStatus');
+    if (v) v.textContent = 'Working';
+    const micPill = $('micStatus');
+    if (micPill){ micPill.className = 'status ok'; micPill.innerHTML = ic('check', 'sm') + 'Working'; }
+    S.micFailed = false;
+    // On the check screen the waveform is replaced by a plain status chip.
+    const chk = $('micCheck');
+    if (chk && S.state === 'check') chk.outerHTML = pill('ok', 'Working', 'micCheck');
+    if (S.state === 'check' && $('leftPane')) $('leftPane').innerHTML = leftLive();
+    renderHints();
+    ['chkContinue', 'devOk'].forEach(id => { const b = $(id); if (b) b.disabled = false; });
+    schedule();
+  }
+  function micNone(){
+    if (S.heard) return;
+    const v = $('voiceStatus');
+    S.micFailed = true;
+    const chk = $('micCheck');
+    if (chk && chk.classList.contains('dev-check')){ chk.className = 'dev-check warn'; if (v) v.textContent = 'No sound yet'; }
+    else if (v){ v.className = 'retry-note'; v.textContent = 'We can’t hear you. Check it isn’t muted, or choose another microphone.'; }
+    if (S.state === 'check' && $('leftPane')){ $('leftPane').innerHTML = leftLive(); schedule(); }
+    renderHints();
+    const micPill = $('micStatus');
+    if (micPill){ micPill.className = 'status warn'; micPill.innerHTML = ic('micOff', 'sm') + 'No sound yet'; }
+  }
+
+  // Simulated speech: syllable-like bursts with short pauses.
+  function simSpeech(){
+    const t = performance.now() / 1000;
+    const talking = (Math.sin(t * 1.7) + Math.sin(t * 0.63)) > -0.9;
+    return talking ? Math.min(1, 0.25 + 0.75 * Math.abs(Math.sin(t * 10.5 + Math.sin(t * 3.1) * 2))) : 0.03;
+  }
+  function realLevel(){
+    S.analyser.getByteTimeDomainData(S.abuf);
+    let sum = 0;
+    for (const v of S.abuf){ const d = (v - 128) / 128; sum += d * d; }
+    return Math.min(1, Math.sqrt(sum / S.abuf.length) * 5);
+  }
+
+  // Drives the step 4 level meter, the sample preview's mouth, and real-mic voice detection.
+  function startLevel(){
+    let loud = 0;
+    every(() => {
+      const st = S.state;
+      let lvl;
+      if (S.voiceMode === 'silent') lvl = 0;
+      else if (S.analyser) lvl = realLevel();
+      else lvl = st === 'quiet' && !(S.retesting && S.retest === 'fixed') ? 0 : simSpeech();
+      S.level = lvl;
+      const checking = st === 'devices' || (st === 'check' && S.chk === 'live');
+      if (checking && !S.heard){
+        document.querySelectorAll('#meter i').forEach(b => b.style.height = Math.round(3 + lvl * 17 * (0.55 + 0.45 * Math.random())) + 'px');
+        if (S.analyser && S.voiceMode === 'heard'){ loud = lvl > 0.12 ? loud + 80 : Math.max(0, loud - 40); if (loud >= 600) micOk(); }
+      }
+      if ((st === 'talk' || st === 'quiet') && !S.heard){
+        document.querySelectorAll('#meter i').forEach(b => b.style.height = Math.round(3 + lvl * 17 * (0.55 + 0.45 * Math.random())) + 'px');
+        if (st === 'quiet' && S.analyser && S.voiceMode === 'heard'){
+          loud = lvl > 0.12 ? loud + 80 : Math.max(0, loud - 40);
+          // Give the candidate at least 8s of speaking before the check passes.
+          if (loud >= 600 && (S.state === 'quiet' || performance.now() - S.talkStart >= 8000)) voiceHeard();
+        }
+      }
+    }, 80);
+  }
+
+  /* ================= Camera ================= */
+  const canUseCamera = () => {
+    if (S.realFailed || !window.isSecureContext || !navigator.mediaDevices?.getUserMedia) return false;
+    const policy = document.permissionsPolicy || document.featurePolicy;
+    return policy?.allowsFeature ? policy.allowsFeature('camera') : true;
+  };
+  let acquireToken = 0;
+  function acquire(){
+    const tok = ++acquireToken, t0 = performance.now();
+    return navigator.mediaDevices.getUserMedia({video:true, audio:true}).then(stream => {
+      if (tok !== acquireToken){ stream.getTracks().forEach(t => t.stop()); return null; }
+      S.stream = stream;
+      setupAudio(stream);
+      if (showPreview()) refreshMedia();
+      return stream;
+    }, err => {
+      if (tok !== acquireToken) throw {stale:true};
+      // An instant refusal means this frame can't use the camera at all (e.g. the artifact viewer):
+      // fall back to the simulated prompt and sample preview.
+      if ((err.name === 'NotAllowedError' && performance.now() - t0 < 250) || err.name === 'SecurityError' || err.name === 'TypeError'){
+        S.realFailed = true;
+        throw {fallback:true};
+      }
+      throw err;
+    });
+  }
+  function setupAudio(stream){
+    try {
+      if (!stream.getAudioTracks().length) return;
+      const AC = window.AudioContext || window.webkitAudioContext;
+      S.audioCtx = new AC();
+      const an = S.audioCtx.createAnalyser();
+      an.fftSize = 512;
+      S.audioCtx.createMediaStreamSource(stream).connect(an);
+      S.analyser = an;
+      S.abuf = new Uint8Array(an.fftSize);
+      S.audioCtx.resume?.();
+    } catch (e){ S.analyser = null; }
+  }
+  function stopStream(){
+    acquireToken++;
+    S.stream?.getTracks().forEach(t => t.stop());
+    try { S.audioCtx?.close(); } catch (e){}
+    S.stream = null; S.audioCtx = null; S.analyser = null;
+  }
+
+  function mediaHTML(){
+    if (!showPreview() || (isLive() && S.hidePreview)) return '';
+    return S.stream
+      ? '<video id="liveVideo" autoplay muted playsinline aria-label="Your camera preview"></video>'
+      : '<canvas id="simCam" role="img" aria-label="Sample camera preview"></canvas><span class="sim-tag">Sample preview</span>';
+  }
+  function attachMedia(){
+    const v = $('liveVideo');
+    if (v && S.stream){ v.srcObject = S.stream; v.play().catch(() => {}); }
+    const c = $('simCam');
+    if (c) startSim(c);
+  }
+  function refreshMedia(){
+    const m = $('vmedia');
+    if (!m) return;
+    m.innerHTML = mediaHTML();
+    const stage = document.querySelector('#videoRecorder .vstage');
+    if (stage) stage.innerHTML = stageHTML();
+    attachMedia();
+  }
+
+  /* Sample preview for viewers whose browser frame blocks the camera: a drawn person who
+     sways, blinks and talks in time with the level meter. */
+  let simRaf = 0;
+  function startSim(c){
+    cancelAnimationFrame(simRaf);
+    const ctx = c.getContext('2d');
+    const t0 = performance.now();
+    const frame = now => {
+      if (!c.isConnected) return;
+      const dpr = Math.min(window.devicePixelRatio || 1, 2), w = c.clientWidth, h = c.clientHeight;
+      if (c.width !== Math.round(w * dpr) || c.height !== Math.round(h * dpr)){ c.width = Math.round(w * dpr); c.height = Math.round(h * dpr); }
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      drawPerson(ctx, w, h, (now - t0) / 1000, S.level);
+      if (!reduce.matches) simRaf = requestAnimationFrame(frame);
+    };
+    simRaf = requestAnimationFrame(frame);
+  }
+  function drawPerson(ctx, w, h, t, level){
+    const u = h / 443;
+    // Room: warm wall, window light on the right, a picture frame and a shelf behind.
+    const wall = ctx.createLinearGradient(0, 0, 0, h);
+    wall.addColorStop(0, '#6b625a'); wall.addColorStop(1, '#433d38');
+    ctx.fillStyle = wall; ctx.fillRect(0, 0, w, h);
+    const glow = ctx.createRadialGradient(w * .92, h * .2, 10, w * .92, h * .2, w * .6);
+    glow.addColorStop(0, 'rgba(255,236,205,.42)'); glow.addColorStop(1, 'rgba(255,236,205,0)');
+    ctx.fillStyle = glow; ctx.fillRect(0, 0, w, h);
+    ctx.fillStyle = '#4f4740'; ctx.fillRect(w * .08, h * .14, 92 * u, 70 * u);
+    ctx.fillStyle = '#7d8c87'; ctx.fillRect(w * .08 + 6 * u, h * .14 + 6 * u, 80 * u, 58 * u);
+    ctx.fillStyle = '#3a332d'; ctx.fillRect(w * .72, h * .5, w * .3, 8 * u);
+    ctx.fillStyle = '#5e7a5a'; ctx.beginPath(); ctx.ellipse(w * .8, h * .5 - 16 * u, 18 * u, 20 * u, 0, 0, Math.PI * 2); ctx.fill();
+
+    const cx = w / 2 + Math.sin(t * .6) * 6 * u, cy = h * .4 + Math.sin(t * .9) * 3 * u;
+    ctx.save();
+    ctx.translate(cx, cy); ctx.rotate(Math.sin(t * .5) * .03);
+    // Shoulders and shirt
+    ctx.fillStyle = '#2f4a6b';
+    ctx.beginPath();
+    ctx.moveTo(-210 * u, h);
+    ctx.bezierCurveTo(-200 * u, 140 * u, -120 * u, 118 * u, -40 * u, 112 * u);
+    ctx.lineTo(40 * u, 112 * u);
+    ctx.bezierCurveTo(120 * u, 118 * u, 200 * u, 140 * u, 210 * u, h);
+    ctx.closePath(); ctx.fill();
+    // Neck
+    ctx.fillStyle = '#b97f5d';
+    ctx.beginPath(); ctx.ellipse(0, 100 * u, 30 * u, 36 * u, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#2f4a6b';
+    ctx.beginPath(); ctx.moveTo(-44 * u, 112 * u); ctx.quadraticCurveTo(0, 150 * u, 44 * u, 112 * u); ctx.lineTo(44 * u, 140 * u); ctx.lineTo(-44 * u, 140 * u); ctx.fill();
+    // Head
+    ctx.fillStyle = '#d29c78';
+    ctx.beginPath(); ctx.ellipse(0, 0, 62 * u, 78 * u, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(-62 * u, 8 * u, 10 * u, 16 * u, 0, 0, Math.PI * 2); ctx.ellipse(62 * u, 8 * u, 10 * u, 16 * u, 0, 0, Math.PI * 2); ctx.fill();
+    const light = ctx.createRadialGradient(24 * u, -24 * u, 4 * u, 24 * u, -24 * u, 90 * u);
+    light.addColorStop(0, 'rgba(255,230,205,.35)'); light.addColorStop(1, 'rgba(255,230,205,0)');
+    ctx.fillStyle = light; ctx.beginPath(); ctx.ellipse(0, 0, 62 * u, 78 * u, 0, 0, Math.PI * 2); ctx.fill();
+    // Hair
+    ctx.fillStyle = '#2b201b';
+    ctx.beginPath();
+    ctx.ellipse(0, -30 * u, 68 * u, 56 * u, 0, Math.PI, Math.PI * 2);
+    ctx.quadraticCurveTo(40 * u, -50 * u, 0, -46 * u);
+    ctx.quadraticCurveTo(-40 * u, -44 * u, -68 * u, -30 * u);
+    ctx.fill();
+    // Brows and eyes (blink every ~4s)
+    ctx.strokeStyle = '#2b201b'; ctx.lineWidth = 4 * u; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(-34 * u, -24 * u); ctx.lineTo(-14 * u, -26 * u); ctx.moveTo(14 * u, -26 * u); ctx.lineTo(34 * u, -24 * u); ctx.stroke();
+    const blink = (t % 4.2) < .14;
+    ctx.fillStyle = '#2b201b';
+    ctx.beginPath(); ctx.ellipse(-24 * u, -8 * u, 6 * u, blink ? 1 * u : 6 * u, 0, 0, Math.PI * 2); ctx.ellipse(24 * u, -8 * u, 6 * u, blink ? 1 * u : 6 * u, 0, 0, Math.PI * 2); ctx.fill();
+    // Nose and mouth (opens with the voice level)
+    ctx.strokeStyle = 'rgba(120,70,45,.55)'; ctx.lineWidth = 3 * u;
+    ctx.beginPath(); ctx.moveTo(0, -2 * u); ctx.quadraticCurveTo(-6 * u, 14 * u, 2 * u, 18 * u); ctx.stroke();
+    ctx.fillStyle = '#7a3b32';
+    ctx.beginPath(); ctx.ellipse(0, 40 * u, 15 * u, 2.5 * u + level * 9 * u, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+    // Lens vignette
+    const vig = ctx.createRadialGradient(w / 2, h / 2, h * .35, w / 2, h / 2, h * .95);
+    vig.addColorStop(0, 'rgba(0,0,0,0)'); vig.addColorStop(1, 'rgba(0,0,0,.45)');
+    ctx.fillStyle = vig; ctx.fillRect(0, 0, w, h);
+  }
+
+  /* ---------- Chat with Alvy ---------- */
+  const alvyPanel = $('alvy'), chatLog = $('chatLog');
+  const nowTime = () => new Date().toLocaleTimeString([], {hour:'numeric', minute:'2-digit'});
+  function bubble(who, html){
+    const d = document.createElement('div');
+    d.className = 'msg ' + who;
+    d.innerHTML = `<span class="who">${who === 'you' ? 'You' : 'Alvy'}</span><div class="bubble">${html}<span class="time">${nowTime()}</span></div>`;
+    chatLog.append(d);
+    chatLog.scrollTop = chatLog.scrollHeight;
+  }
+  function openAlvy(){
+    if (S.alvyOpen) return;
+    S.alvyOpen = true; alvyPanel.hidden = false; $('alvyBtn').setAttribute('aria-expanded', 'true');
+    if (!chatLog.children.length) bubble('bot', 'Need help?<br>Type your question or describe the issue, and I’ll instantly find the right steps or guide you to support.');
+    schedule();
+  }
+  function closeAlvy(){ S.alvyOpen = false; alvyPanel.hidden = true; $('alvyBtn').setAttribute('aria-expanded', 'false'); schedule(); }
+  let chatTimers = [];
+  // Help-centre articles Alvy summarises (prototype copy; the real articles need confirming).
+  function article(topic){
+    const name = BROWSERS[browserKey()].name;
+    if (topic === 'blocked') return {
+      ask:`Hi, my camera and microphone are blocked in ${name}. Can you help?`,
+      search:`${name} permission steps`,
+      title:`Allowing camera and microphone in ${name}`,
+      steps:[...BROWSERS[browserKey()].steps, `Still blocked? Make sure ${name} is allowed in ${osCamSettings()}.`]
+    };
+    if (topic === 'inuse') return {
+      ask:'Hi, it says my camera is being used by another app. Can you help?',
+      search:'camera troubleshooting steps',
+      title:'Fixing “Camera in use”',
+      steps:['Close apps that use the camera, like Zoom, Teams, Google Meet, FaceTime or OBS.', 'Make sure they’ve fully quit, not just minimised.', 'Click <b>Try again</b> on the practice screen.', 'Still not working? Restart your browser and open the link again.']
+    };
+    return {
+      ask:'Hi, I’m on the practice question and you can’t hear my microphone. Can you help?',
+      search:'microphone troubleshooting steps',
+      title:'Fixing “Microphone not detected”',
+      steps:['Choose the right microphone from the list under your video.', 'Check that your microphone or headset isn’t muted.', `Make sure ${name} can use your microphone in ${micSettings()}.`, 'Close apps that may be using it, like Zoom, Teams or Google Meet.', 'Click <b>Test again</b> on the practice screen.']
+    };
+  }
+  function helpFlow(topic){
+    openAlvy();
+    chatTimers.forEach(clearTimeout); chatTimers = [];
+    const t = (fn, ms) => chatTimers.push(setTimeout(fn, ms));
+    const ar = article(topic);
+    let searching;
+    t(() => bubble('you', ar.ask), 500);
+    t(() => bubble('bot', `Absolutely, let me help you fix that.<br>I’m checking our help center for ${ar.search}.`), 1300);
+    t(() => { searching = document.createElement('div'); searching.className = 'searching'; searching.innerHTML = '<span class="spin xs" aria-hidden="true"></span>Searching…'; chatLog.append(searching); chatLog.scrollTop = chatLog.scrollHeight; }, 2000);
+    t(() => { searching?.remove(); bubble('bot', `I found an article that matches your issue. Here’s a quick summary of <b>${ar.title}</b>:<ol>${ar.steps.map(x => `<li>${x}</li>`).join('')}</ol>`); }, 3400);
+  }
+  $('chatForm').addEventListener('submit', e => {
+    e.preventDefault();
+    const inp = $('chatInput'), text = inp.value.trim();
+    if (!text) return;
+    bubble('you', text.replace(/[&<>]/g, c => ({'&':'&amp;', '<':'&lt;', '>':'&gt;'})[c]));
+    inp.value = '';
+    chatTimers.push(setTimeout(() => bubble('bot', 'Thanks, I’m looking into that now.'), 900));
+  });
+
+  function voiceHeard(){
+    if (S.heard || !(S.state === 'talk' || S.state === 'quiet')) return;
+    S.heard = true;
+    const m = $('meter');
+    if (m){ m.classList.remove('quiet'); m.classList.add('done'); m.querySelectorAll('i').forEach(b => b.style.height = ''); }
+    const v = $('voiceStatus');
+    if (v){ v.className = 'detected'; v.innerHTML = ic('circleCheck', 'sm') + 'Voice detected'; }
+    const pill = $('micStatus');
+    if (pill){ pill.className = 'status ok'; pill.innerHTML = ic('check', 'sm') + 'Allowed'; }
+    later(() => go('stop'), 1400);
+  }
+
+  /* ================= Page content ================= */
+  function listHTML(){
+    const SR = {done:'done', act:'in progress', pend:'not started', fail:'failed'};
+    return WAIT_LABELS.map((t, i) => {
+      const s = S.waitItems[i];
+      const mark = s === 'done' ? ic('circleCheck', 'sm') : s === 'act' ? '<span class="spin" aria-hidden="true"></span>' : s === 'fail' ? ic('circleX', 'sm') : ic('circle', 'sm');
+      return `<li class="${s}">${mark}<span>${t}</span><span class="sr-only">, ${SR[s]}</span></li>`;
+    }).join('');
+  }
+  function renderWaitList(){ const l = $('waitList'); if (l) l.innerHTML = listHTML(); }
+
+  function waitHTML(){
+    const err = S.state === 'waitError';
+    return `<section class="waitscreen" aria-labelledby="waitTitle">
+      <div class="wait-mark ${err ? 'err' : ''}">${err ? ic('alert') : '<span class="spin lg" aria-hidden="true"></span>'}</div>
+      <h1 id="waitTitle">${err ? 'We couldn’t load your assessment' : 'Getting your assessment ready…'}</h1>
+      <p>${err ? 'Check your internet connection, then try again.' : 'This can take up to 30 seconds. Keep this tab open.'}</p>
+      <ul class="checklist" id="waitList" aria-live="polite">${listHTML()}</ul>
+      ${err ? '<button class="btn btn-primary" id="reloadBtn" data-act="reload" type="button">Try again</button>' : ''}
+    </section>`;
+  }
+
+  function stageHTML(){
+    const st = S.state;
+    if (st === 'orient' || st === 'start') return `${ic('video')}<span>Your camera preview will appear here</span>`;
+    if (st === 'perm') return `<span class="spin" aria-hidden="true"></span><span>${S.permAuto ? 'Starting your camera…' : 'Waiting for camera and microphone access…'}</span>`;
+    if (st === 'blocked') return `${ic('videoOff')}<span>${S.blockedReason === 'inuse' ? 'Another app is using your camera' : 'No camera access'}</span>`;
+    if (isLive()) return S.hidePreview ? `${ic('eyeOff')}<span>Preview hidden. Your video is still recording.</span>` : '';
+    if (st === 'devices') return '';
+    if (st === 'check'){
+      if (S.chk === 'asking') return `<span class="spin" aria-hidden="true"></span><span>Waiting for camera and microphone access…</span>`;
+      if (S.chk === 'blocked') return `${ic('videoOff')}<span>${S.blockedReason === 'inuse' ? 'Another app is using your camera' : 'No camera access'}</span>
+        <button class="btn btn-primary" data-act="retry" type="button">Try again</button>`;
+      if (S.chk === 'live') return '';
+      return `${ic('video')}<span>Allow access to see your camera preview</span>
+        <button class="btn btn-primary" data-act="chk-allow" type="button" id="chkAllow">Allow access</button>`;
+    }
+    return `${ic('circleCheck')}<span>Practice complete. This clip isn’t saved.</span>`;
+  }
+
+  function pill(kind, label, id = ''){
+    const icon = {ok:'check', bad:'x', wait:'clock', warn:'micOff'}[kind];
+    return `<span class="status ${kind}"${id ? ` id="${id}"` : ''}>${ic(icon, 'sm')}${label}</span>`;
+  }
+
+  function selectHTML(id, kind, names, idx, known){
+    const opts = known
+      ? names.map((n, i) => `<option${i === idx ? ' selected' : ''}>${n}</option>`).join('')
+      : `<option>${kind === 'cam' ? 'Default camera' : 'Default microphone'}</option>`;
+    return `<div class="select">${ic(kind === 'cam' ? 'video' : 'mic', 'lead')}
+      <select id="${id}" aria-label="${kind === 'cam' ? 'Camera' : 'Microphone'}"${known ? '' : ' disabled'}>${opts}</select>${ic('chevron', 'sm chev')}</div>`;
+  }
+
+  function rightHTML(){
+    const st = S.state, live = isLive();
+    const known = S.permitted || S.devicesOk;
+    const toggle = live
+      ? `<button class="toggle" id="hideToggle" data-act="hide" aria-pressed="${S.hidePreview}" type="button"><span class="track" aria-hidden="true"></span>Hide Preview</button>`
+      : '<span></span>';
+    let action = '';
+    if (st === 'orient' || st === 'start') action = `<button class="btn btn-primary" id="startBtn" data-act="start-rec" type="button">${ic('rec', 'sm')}Start recording</button>`;
+    if (st === 'quiet') action = '<span class="vbar-note">Checking your voice…</span>';
+    if (st === 'talk' || st === 'stop') action = `<button class="btn btn-primary" id="stopBtn" data-act="stop" type="button">${ic('square', 'sm')}Stop recording</button>`;
+
+    let cam = '', mic = '';
+    if (st === 'perm'){ cam = mic = S.permAuto ? pill('ok', 'Allowed') : pill('wait', 'Waiting'); }
+    else if (st === 'blocked'){
+      if (S.blockedReason === 'inuse'){ cam = pill('bad', 'In use'); mic = pill('ok', 'Allowed'); }
+      else cam = mic = pill('bad', 'Blocked');
+    }
+    else if (st === 'quiet'){ cam = pill('ok', 'Allowed'); mic = pill('warn', 'No sound yet', 'micStatus'); }
+    else if (st === 'devices'){ cam = pill('ok', 'Working'); mic = pill('wait', 'Checking…', 'micStatus'); }
+    else if (live || st === 'done'){ cam = pill('ok', 'Allowed'); mic = pill('ok', 'Allowed', 'micStatus'); }
+
+    return `<div class="vrec" id="videoRecorder">
+        <div class="vmedia" id="vmedia">${mediaHTML()}</div>
+        <div class="vstage">${stageHTML()}</div>
+        ${live ? `<span class="rec-badge"><span class="rec-dot"></span>REC <span id="recTime">${fmt(S.recSecs)}</span></span>` : ''}
+        <div class="vbar">${toggle}${action}</div>
+      </div>
+      <div class="devices" id="devices">
+        <div class="device" id="camDevice">${selectHTML('camSelect', 'cam', CAMS, S.cam, known)}${cam}</div>
+        <div class="device" id="micDevice">${selectHTML('micSelect', 'mic', MICS, S.mic, known)}${mic}</div>
+      </div>
+`;
+  }
+
+  const fmtClock = s => '00:' + fmt(s);
+  function renderTimer(){
+    const n = $('timerNum'), b = $('timerBar');
+    if (n) n.textContent = fmtClock(S.timerSecs);
+    if (b) b.style.width = Math.round((1 - S.timerSecs / 210) * 100) + '%';
+  }
+  function restartRing(){
+    const fg = document.querySelector('.count-ring .fg');
+    if (!fg || reduce.matches) return;
+    fg.classList.remove('run'); void fg.getBoundingClientRect(); fg.classList.add('run');
+  }
+
+  // The practice screen is torn down after onboarding; the assessment loads behind the modals.
+  function skeletonHTML(withMedia){
+    const lines = '<span class="sk sk-line"></span>'.repeat(4);
+    const end = S.state === 'assessment'
+      ? `<div class="proto-note" role="note"><strong>End of prototype</strong><span>The timer is running and the first assessment question loads here.</span><button class="btn btn-secondary" data-act="reload" type="button">Restart prototype</button></div>`
+      : '';
+    return `<section class="qcard" aria-label="Loading assessment" aria-busy="${S.state !== 'assessment'}">
+      <div class="qhead"><span class="sk sk-head"></span><span class="icon-btn" aria-hidden="true">${ic('alert', 'sm')}</span></div>
+      <div class="qbody${withMedia ? '' : ' single'}">
+        <div class="left"><span class="sk sk-title"></span><div class="sk-lines">${lines}</div>${end}</div>
+        ${withMedia ? '<div class="vdiv" aria-hidden="true"></div><div class="right"><div class="sk-media"></div></div>' : ''}
+      </div>
+    </section>
+    <div class="skel-foot" aria-hidden="true"><span class="sk sk-pill"></span></div>`;
+  }
+
+  // Left pane once the preview is running — including when the mic hears nothing.
+  function leftLive(){
+    return S.micFailed
+      ? `<h2 class="chk-h">We can’t hear you</h2>
+         <p class="chk-p">Your microphone isn’t picking up any sound. Check it isn’t muted, or choose a different microphone on the right.</p>
+         <button class="help-link" data-act="help" data-topic="mic" type="button">${ic('info', 'sm')}Get help from Alvy</button>`
+      : `<p class="chk-p">Check that you can see yourself and the bar moves when you speak, then continue to your practice question.</p>`;
+  }
+  // What a disabled Continue / Start recording is waiting for.
+  function footHint(){
+    if (S.heard) return '';
+    // The mic check is live on A's check screen and on B's devices step.
+    if (S.state === 'devices' || (S.state === 'check' && S.chk === 'live'))
+      return S.micFailed ? ['warn', 'Fix your microphone to continue'] : ['', 'Say something to continue'];
+    return ['', 'Allow access to continue'];
+  }
+  function renderHints(){
+    const [cls, text] = footHint() || ['', ''];
+    const d = $('devHint');
+    if (d){ d.className = 'foot-hint ' + cls; d.textContent = S.heard ? '' : text; }
+  }
+
+  function checkHTML(){
+    const c = S.chk, name = BROWSERS[browserKey()].name, live = c === 'live', known = S.permitted || live;
+    const blocked = c === 'blocked', micBad = blocked && S.blockedReason !== 'inuse';
+    const tip = (icon, title, text) => `<li><span class="ti">${ic(icon, 'sm')}</span><span><b>${title}</b>${text}</span></li>`;
+
+    // Left: why access is needed (and, when blocked, how to allow it). Nothing else.
+    let left;
+    if (blocked) left = S.blockedReason === 'inuse'
+      ? `<ol class="steps">
+           <li>Close Zoom, Teams, Google Meet, FaceTime or OBS.</li>
+           <li>Make sure they’ve fully quit, not just minimised.</li>
+           <li>Click <b>Try again</b> on the right.</li>
+         </ol>
+         <button class="help-link" data-act="help" data-topic="inuse" type="button">${ic('info', 'sm')}Still not working? Get help from Alvy</button>`
+      : `<ol class="steps">${SHORT_STEPS[browserKey()].map(x => `<li>${x}</li>`).join('')}</ol>
+         <button class="help-link" data-act="help" data-topic="blocked" type="button">${ic('info', 'sm')}Still blocked? Get help from Alvy</button>`;
+    else if (live) left = leftLive();
+    else left = `<p class="chk-p">You answer this assessment by recording video, so we need your camera and microphone. ${c === 'asking' ? `Look for your browser’s prompt and ${verb().toLowerCase()} Allow.` : 'Your browser will ask for permission.'}</p>`;
+
+    const pending = '<span class="dev-check">Not checked yet</span>';
+    const waitingFor = `<span class="dev-check"><span class="spin xs" aria-hidden="true"></span>Waiting</span>`;
+    const camCheck = live ? pill('ok', 'Working')
+      : blocked ? pill('bad', S.blockedReason === 'inuse' ? 'In use' : 'Blocked')
+      : c === 'asking' ? waitingFor : pending;
+    // While listening the mic shows a live waveform; once it passes it becomes a status chip.
+    const micCheck = live ? (S.heard ? pill('ok', 'Working', 'micCheck')
+        : `<span class="dev-check" id="micCheck"><span class="meter" id="meter" aria-hidden="true">${'<i></i>'.repeat(14)}</span><span id="voiceStatus">Say something…</span></span>`)
+      : micBad ? pill('bad', 'Blocked')
+      : c === 'asking' ? waitingFor : pending;
+
+    return `<section class="qcard" aria-labelledby="chkTitle">
+      <div class="qhead"><h1 id="chkTitle">${live ? 'Check your camera and microphone' : 'Allow camera and microphone'}</h1></div>
+      <div class="qbody">
+        <div class="left" id="leftPane">${left}</div>
+        <div class="vdiv" aria-hidden="true"></div>
+        <div class="right" id="rightCol">
+          <div class="vrec" id="videoRecorder">
+            <div class="vmedia" id="vmedia">${mediaHTML()}</div>
+            <div class="vstage">${stageHTML()}</div>
+          </div>
+          <div class="devices" id="devices">
+            <div class="device" id="camDevice">${selectHTML('camSelect', 'cam', CAMS, S.cam, known)}${camCheck}</div>
+            <div class="device" id="micDevice">${selectHTML('micSelect', 'mic', MICS, S.mic, known)}${micCheck}</div>
+          </div>
+        </div>
+      </div>
+    </section>
+    <div class="pagefoot"><button class="btn btn-primary" id="chkContinue" data-act="chk-continue" type="button" disabled>Continue to practice question</button></div>`;
+  }
+  function renderCheckPage(){
+    main.innerHTML = checkHTML();
+    attachMedia();
+    renderHints();
+    promptEl.hidden = !(S.chk === 'asking' && !S.permitted && S.permMode !== 'granted' && !canUseCamera());
+    updateProto();
+  }
+
+  function pageHTML(){
+    return `<section class="qcard" aria-labelledby="qtitle">
+      <div class="qhead">
+        <h1 id="qtitle">Practice question <span class="tag">Not scored</span></h1>
+        <button class="icon-btn" type="button" aria-label="Report a problem with this question">${ic('flag', 'sm')}</button>
+      </div>
+      <div class="qbody">
+        <div class="left" id="leftPane">
+          <div id="questionCard">
+            <p class="question">Tell us about a project you’re proud of and what you learned from it.</p>
+          </div>
+        </div>
+        <div class="vdiv" aria-hidden="true"></div>
+        <div class="right" id="rightCol">${rightHTML()}</div>
+      </div>
+    </section>
+    <div class="pagefoot"><button class="btn btn-primary" id="nextBtn" type="button" disabled>Next</button></div>`;
+  }
+
+  /* ================= Coach card content ================= */
+  const waiting = t => `<span class="waiting"><span class="spin xs" aria-hidden="true"></span>${t}</span>`;
+
+  // Permission steps for the candidate's own browser (detected; the prototype band can override it).
+  const SITE = 'cx-v2.talview.com';
+  const BROWSERS = {
+    chrome:{name:'Chrome', steps:['Click the camera icon with a red cross at the right end of the address bar.', `Choose <b>Always allow ${SITE} to access your camera and microphone</b>.`, 'Click <b>Done</b>, then <b>Try again</b> below.']},
+    edge:{name:'Edge', steps:['Click the camera icon at the right end of the address bar.', `Choose <b>Always allow ${SITE} to access your camera and microphone</b>.`, 'Click <b>Done</b>, then <b>Try again</b> below.']},
+    safari:{name:'Safari', steps:[`In the menu bar, choose <b>Safari › Settings for ${SITE}</b>.`, 'Set <b>Camera</b> and <b>Microphone</b> to <b>Allow</b>.', 'Close the window, then click <b>Try again</b> below.']},
+    firefox:{name:'Firefox', steps:['Click the crossed-out camera icon at the left of the address bar.', 'Click the <b>×</b> next to <b>Blocked</b> for the camera and the microphone.', 'Click <b>Try again</b> below, then choose <b>Allow</b>.']},
+    ios:{name:'Safari', steps:['Tap <b>aA</b> in the address bar.', 'Tap <b>Website Settings</b>.', 'Set <b>Camera</b> and <b>Microphone</b> to <b>Allow</b>, then tap <b>Try again</b>.']},
+    android:{name:'Chrome', steps:['Tap the icon at the left of the address bar.', 'Tap <b>Permissions</b>.', 'Turn on <b>Camera</b> and <b>Microphone</b>, then tap <b>Try again</b>.']}
+  };
+  const SHORT_STEPS = {
+    chrome:['Click the camera icon in the address bar.', 'Choose <b>Always allow</b>, then <b>Done</b>.', 'Click <b>Try again</b>.'],
+    edge:['Click the camera icon in the address bar.', 'Choose <b>Always allow</b>, then <b>Done</b>.', 'Click <b>Try again</b>.'],
+    safari:['Choose <b>Safari › Settings for this website</b>.', 'Set Camera and Microphone to <b>Allow</b>.', 'Click <b>Try again</b>.'],
+    firefox:['Click the camera icon left of the address bar.', 'Clear the <b>Blocked</b> permissions.', 'Click <b>Try again</b>, then <b>Allow</b>.'],
+    ios:['Tap <b>aA</b>, then <b>Website Settings</b>.', 'Set Camera and Microphone to <b>Allow</b>.', 'Tap <b>Try again</b>.'],
+    android:['Tap the icon left of the address bar.', 'Tap <b>Permissions</b> and allow both.', 'Tap <b>Try again</b>.']
+  };
+  const UA = navigator.userAgent;
+  const DETECTED = /iPhone|iPad|iPod/.test(UA) || (/Macintosh/.test(UA) && navigator.maxTouchPoints > 1) ? 'ios'
+    : /Android/.test(UA) ? 'android'
+    : /Edg\//.test(UA) ? 'edge'
+    : /Firefox\//.test(UA) ? 'firefox'
+    : /Chrome\//.test(UA) ? 'chrome'
+    : /Safari\//.test(UA) ? 'safari' : 'chrome';
+  const OS = /Windows/.test(UA) ? 'windows' : 'mac';
+  const browserKey = () => S.browser === 'auto' ? DETECTED : S.browser;
+  function osCamSettings(){
+    const key = browserKey();
+    return key === 'ios' ? 'Settings › Safari › Camera on your phone'
+      : key === 'android' ? 'Settings › Apps › Chrome › Permissions on your phone'
+      : OS === 'windows' ? 'Settings › Privacy & security › Camera in Windows' : 'System Settings › Privacy & Security › Camera on your Mac';
+  }
+  function micSettings(){
+    const key = browserKey();
+    return key === 'ios' ? 'Settings › Safari › Microphone on your phone'
+      : key === 'android' ? 'Settings › Apps › Chrome › Permissions on your phone'
+      : OS === 'windows' ? 'Settings › Privacy & security › Microphone in Windows' : 'System Settings › Privacy & Security › Microphone on your Mac';
+  }
+
+  function centeredHTML(){
+    if (S.state === 'countdown'){
+      return `<h2 class="count-title" id="coachTitle">Starting Assessment in</h2>
+        <div class="count-ring" aria-live="polite">
+          <svg viewBox="0 0 100 100" aria-hidden="true"><circle class="bg" cx="50" cy="50" r="46"/><circle class="fg" cx="50" cy="50" r="46"/></svg>
+          <span class="count-num" id="countNum">${S.count}</span>
+        </div>
+        <p class="sr-only" id="coachText">The assessment starts in a few seconds.</p>`;
+    }
+    return `<div class="allset">
+      <h2 id="coachTitle">You’re all set!</h2>
+      <p id="coachText">Great job practicing! When you’re ready, click <strong>Start Assessment</strong> to proceed.</p>
+      <div class="coach-foot stackable"><div class="end">
+        <button class="btn btn-secondary" data-act="again" type="button">Practice again</button>
+        <button class="btn btn-primary" data-act="begin" type="button" data-focus>Start Assessment</button>
+      </div></div></div>`;
+  }
+
+  function coachHTML(){
+    if (isCentered()) return centeredHTML();
+    const st = S.state, [n, total] = stepInfo();
+    let title, body, extra = '', end = '', tone = '', hint = '';
+    switch (st){
+      case 'orient':
+        title = 'Your practice question';
+        body = 'Use this practice question to try recording once. Nothing is saved or scored.';
+        end = '<button class="btn btn-primary" data-act="next" type="button" data-focus>Next</button>';
+        break;
+      case 'start':
+        title = 'Start recording';
+        body = `${verb()} Start recording to try answering the question.`;
+        end = waiting('Waiting for you to start');
+        break;
+      case 'perm':
+        if (S.permAuto){
+          title = 'Camera and microphone allowed';
+          body = 'Your browser already has access, so there’s nothing to allow.';
+          end = waiting('Starting your camera');
+        } else {
+          title = 'Allow your camera and microphone';
+          body = coarse.matches
+            ? 'Your browser will ask for access. Tap Allow when the prompt appears.'
+            : 'Your browser will ask for access. Look for the prompt near the address bar and click Allow.';
+          end = waiting('Waiting for access');
+        }
+        break;
+      case 'blocked':
+        tone = 'error';
+        if (S.blockedReason === 'inuse'){
+          title = 'Your camera is in use';
+          body = 'Another app is using your camera. Close apps like Zoom, Teams or FaceTime, then try again.';
+          extra = `<button class="help-link" data-act="help" data-topic="inuse" type="button">${ic('info', 'sm')}Still not working? Get help from Alvy</button>`;
+        } else {
+          title = 'Camera and microphone are blocked';
+          body = `${BROWSERS[browserKey()].name} is blocking access. To allow it:`;
+          extra = `<ol class="steps">${SHORT_STEPS[browserKey()].map(x => `<li>${x}</li>`).join('')}</ol>
+            <button class="help-link" data-act="help" data-topic="blocked" type="button">${ic('info', 'sm')}Still blocked? Get help from Alvy</button>`;
+        }
+        end = '<button class="btn btn-secondary" data-act="retry" type="button" data-focus>Try again</button>';
+        break;
+      case 'devices':
+        title = 'Check your camera and microphone';
+        body = 'Make sure you can see yourself and the bar moves when you speak. Switch the camera or mic below if needed.';
+        if (S.variant === 'B') body += ' Your practice question comes next.';
+        extra = `<div class="meter-row"><span class="meter" id="meter" aria-hidden="true">${'<i></i>'.repeat(16)}</span><span id="voiceStatus" class="waiting" role="status"><span class="spin xs" aria-hidden="true"></span>Say something…</span></div>
+          <button class="help-link" data-act="help" data-topic="mic" type="button">${ic('info', 'sm')}Mic not working? Get help from Alvy</button>`;
+        end = `<button class="btn btn-primary" id="devOk" data-act="dev-ok" type="button" disabled>Continue</button>`;
+        hint = '<span class="foot-hint" id="devHint">Say something to continue</span>';
+        break;
+      case 'talk':
+        title = 'Answer out loud';
+        body = `Say a sentence or two, then ${verb().toLowerCase()} Stop recording. It doesn’t need to be perfect.`;
+        extra = `<div class="meter-row"><span class="meter" id="meter" aria-hidden="true">${'<i></i>'.repeat(16)}</span><span class="waiting" role="status"><span class="rec-dot" aria-hidden="true"></span>Recording</span></div>
+          <p class="note">${ic('eyeOff', 'sm')}Prefer not to watch yourself? Turn on Hide Preview. Your video still records.</p>`;
+        end = waiting('Waiting for you to stop');
+        break;
+      case 'quiet':
+        tone = 'warning';
+        title = 'We can’t hear you';
+        body = 'Check that the right microphone is selected and isn’t muted, then test again.';
+        extra = `<div class="meter-row"><span class="meter quiet" id="meter" aria-hidden="true">${'<i></i>'.repeat(16)}</span><span id="voiceStatus" class="waiting" role="status"><span class="spin xs" aria-hidden="true"></span>Still listening…</span></div>
+          <button class="help-link" data-act="help" data-topic="mic" type="button">${ic('info', 'sm')}How to fix microphone problems</button>`;
+        end = '<button class="btn btn-secondary" id="retestBtn" data-act="retest" type="button" data-focus>Test again</button>';
+        break;
+      case 'stop':
+        title = 'Stop recording';
+        body = `${verb()} Stop recording when you’re done. It doesn’t need to be perfect.`;
+        end = waiting('Waiting for you to stop');
+        break;
+    }
+    const h = `<p class="step-no"><span aria-hidden="true">${n}/${total}</span><span class="sr-only">Step ${n} of ${total}</span></p><h2 id="coachTitle"${tone ? ` class="tone-${tone}"` : ''}>${title}</h2>`;
+    return `${h}<p id="coachText">${body}</p>${extra}
+      ${end ? `<div class="coach-foot">${hint}<div class="end">${end}</div></div>` : ''}`;
+  }
+
+  function coachTone(){
+    if (S.state === 'blocked') return 'error';
+    if (S.state === 'quiet') return 'warning';
+    return '';
+  }
+
+  /* ================= Render ================= */
+  function render(stepChange){
+    const st = S.state;
+    promptEl.hidden = !(st === 'perm' && !S.permAuto && !canUseCamera());
+    updateProto();
+
+    if (st === 'wait' || st === 'waitError'){
+      $('timerBox').hidden = true; $('practiceChip').hidden = false;
+      main.innerHTML = waitHTML();
+      coach.hidden = true; overlay.toggleAttribute('hidden', true); setInert(null); document.body.classList.remove('touring');
+      if (st === 'waitError') requestAnimationFrame(() => $('reloadBtn')?.focus({preventScroll:true}));
+      return;
+    }
+
+    $('timerBox').hidden = !isPost();
+    $('practiceChip').hidden = isPost();
+    $('timerToggle').setAttribute('aria-pressed', String(S.hideTimer));
+    $('timerClock').classList.toggle('concealed', S.hideTimer);
+    renderTimer();
+    if (st === 'check'){
+      renderCheckPage();
+      coach.hidden = true; place();
+      requestAnimationFrame(() => ($('chkAllow') || $('chkContinue'))?.focus({preventScroll:true}));
+      return;
+    }
+    if (isPost()){
+      main.innerHTML = skeletonHTML(st === 'done');
+      if (st === 'assessment'){ coach.hidden = true; place(); return; }
+    } else {
+      main.innerHTML = pageHTML();
+      attachMedia();
+    }
+    const wasHidden = coach.hidden;
+    const tone = coachTone();
+    coach.className = 'coach' + (isCentered() ? ' centered' : '') + (st === 'countdown' ? ' countdown' : '') + (st === 'blocked' ? ' wide' : '') + (tone ? ' tone-' + tone : '');
+    coach.setAttribute('aria-modal', isCentered() ? 'true' : 'false');
+    coachBody.innerHTML = coachHTML();
+    coach.hidden = false;
+    renderHints();
+
+    // The step's real action lives on the page, so it takes focus and points at the card text.
+    const target = {start:'startBtn', stop:'stopBtn', talk:'stopBtn'}[st];
+    if (target) $(target)?.setAttribute('aria-describedby', 'coachText');
+
+    if (stepChange && !wasHidden && !reduce.matches){
+      coach.classList.add('moving');
+      setTimeout(() => coach.classList.remove('moving'), 260);
+    }
+    requestAnimationFrame(() => { settle(); focusStep(); });
+  }
+
+  function focusStep(){
+    const el = ({start:$('startBtn'), stop:$('stopBtn'), talk:$('stopBtn'), devices:$('micSelect')})[S.state] || coach.querySelector('[data-focus]') || coach;
+    el?.focus({preventScroll:true});
+  }
+
+  /* ================= Spotlight + placement ================= */
+  // Rectangles in the screen's own 1440×960 coordinates (undoing the fit-to-window scale).
+  const box = el => {
+    const r = el.getBoundingClientRect(), s = screenEl.getBoundingClientRect();
+    const l = (r.left - s.left) / K, t = (r.top - s.top) / K, w = r.width / K, h = r.height / K;
+    return {l, t, r:l + w, b:t + h, w, h};
+  };
+  const shiftY = (r, dy) => ({...r, t:r.t - dy, b:r.b - dy});
+  const inflate = (r, n) => ({l:r.l - n, t:r.t - n, r:r.r + n, b:r.b + n, w:r.w + 2 * n, h:r.h + 2 * n});
+  const clamp = (v, a, b) => Math.max(a, Math.min(v, b));
+  const overlaps = (p, cw, ch, r) => p.x < r.r && p.x + cw > r.l && p.y < r.b && p.y + ch > r.t;
+  const fitsView = (p, cw, ch, vw, vh) => { const hb = hBounds(vw); return p.x >= hb.l - .5 && p.y >= M - .5 && p.x + cw <= hb.r + .5 && p.y + ch <= vh - M + .5; };
+  const anchorVisible = (a, vh) => a.h > vh - 2 * M ? (a.t < vh - M && a.b > M) : (a.t >= M - .5 && a.b <= vh - M + .5);
+  const svgRect = (r, pad, rx, attrs) => `<rect x="${r.l - pad}" y="${r.t - pad}" width="${r.w + pad * 2}" height="${r.h + pad * 2}" rx="${rx}" ${attrs}/>`;
+
+  function sides(el, pref){
+    const opp = {top:'bottom', bottom:'top', left:'right', right:'left'};
+    return [pref, opp[pref], ...['bottom', 'top', 'right', 'left'].filter(s => s !== pref && s !== opp[pref])].map(side => ({el, side}));
+  }
+
+  // Per state: spotlight holes, candidate anchors (in preference order) and hard no-go
+  // zones. The live video is a hard no-go zone whenever the candidate is recording.
+  function config(){
+    const st = S.state, stacked = stackedMQ.matches, video = $('videoRecorder');
+    const lang = {el:$('langWrap'), pad:2, rx:10};
+    let holes = [], cands = [], hard = [], centered = false, inPlace = false;
+    switch (st){
+      case 'orient': holes = [{el:$('leftPane'), ring:true}]; cands = sides($('leftPane'), 'right'); break;
+      case 'start': holes = [{el:$('startBtn'), ring:true}]; cands = sides($('startBtn'), 'top'); break;
+      case 'perm':
+      case 'blocked': holes = [{el:$('devices'), ring:true}]; cands = sides($('devices'), 'top'); break;
+      case 'devices': holes = [{el:$('devices'), ring:true}, {el:video, flush:true}]; cands = sides($('devices'), 'top'); break;
+      // Answer + stop in one step. The card sits beside the recorder so the preview stays clear.
+      case 'talk': holes = [{el:video, flush:true}]; cands = sides(video, 'left'); hard = [video]; break;
+      // Recording steps: the card sits above its target (over the lower video) so it stays above the fold.
+      case 'quiet': holes = [{el:$('micDevice'), ring:true}, {el:video, flush:true}]; cands = sides($('micDevice'), 'top'); break;
+      case 'stop': holes = [{el:$('stopBtn'), ring:true}, {el:video, flush:true}]; cands = sides($('stopBtn'), 'top'); break;
+      default: centered = true;
+    }
+    // Help and language stay lit on every step: a stuck candidate must always be able to ask.
+    if (!centered){ holes.push(lang, {el:$('alvyBtn'), pad:2, rx:10}); }
+    if (!centered && S.alvyOpen) holes.push({el:alvyPanel, flush:true, rx:0});
+    return {holes:holes.filter(h => h.el), cands:cands.filter(c => c.el), hard:hard.filter(Boolean), centered, inPlace};
+  }
+
+  // Cards stay inside the question container horizontally (16px in from its edges).
+  function hBounds(vw){
+    const q = document.querySelector('.qcard');
+    if (!q) return {l:M, r:vw - M};
+    const b = box(q);
+    return {l:b.l + M, r:b.r - M};
+  }
+  function cardPos(a, side, cw, ch, vw, vh, align){
+    const hb = hBounds(vw);
+    let x, y;
+    if (side === 'top' || side === 'bottom'){
+      y = side === 'top' ? a.t - OFF - ch : a.b + OFF;
+      x = clamp(a.l + a.w / 2 - cw / 2, hb.l, hb.r - cw);
+    } else {
+      x = side === 'left' ? a.l - OFF - cw : a.r + OFF;
+      const mid = a.t + a.h / 2;
+      // 'low': push the card as far down as fits while the caret (16px from the corners) still reaches the anchor.
+      y = align === 'low' ? Math.max(Math.min(vh - M - ch, mid - 22), mid + 22 - ch) : mid - ch / 2;
+      y = clamp(y, M, vh - ch - M);
+    }
+    return {x, y};
+  }
+
+  // Visible height: the window minus the prototype band at the bottom.
+  // Smallest supported screen: a 1366×768 laptop leaves about 640px of browser viewport,
+  // so every card must end above this line, even though the frame is 960px tall.
+  const SAFE_H = 640;
+  const viewH = () => SAFE_H;
+  const overlapArea = (p, cw, ch, r) => Math.max(0, Math.min(p.x + cw, r.r) - Math.max(p.x, r.l)) * Math.max(0, Math.min(p.y + ch, r.b) - Math.max(p.y, r.t));
+
+  // Finds where the card goes inside the visible viewport. Passes: clear of every hole, then
+  // clear of the live video only, then (phones only) scrolled to make room. If nothing fits,
+  // it takes the side that covers the least of the video rather than pushing below the fold.
+  function solve(cfg, cw, ch, allowScroll){
+    const vw = FRAME_W, vh = viewH(), se = scroller;
+    const minDy = -se.scrollTop, maxDy = se.scrollHeight - se.clientHeight - se.scrollTop;
+    const hard = cfg.hard.map(el => inflate(box(el), 8));
+    let cands = cfg.cands;
+    if (S.last){
+      const keep = cands.find(c => c.el === S.last.el && c.side === S.last.side);
+      if (keep) cands = [keep, ...cands.filter(c => c !== keep)];
+    }
+    const softOf = c => cfg.holes.filter(h => h.el !== c.el && !h.el.contains(c.el) && !c.el.contains(h.el)).map(h => inflate(box(h.el), h.flush ? 8 : PAD));
+    const passes = cfg.inPlace ? [['first', false]] : [['soft', false], ['hard', false], ['soft', true], ['hard', true], ['least', false]];
+    for (const [mode, scroll] of passes){
+      if (scroll && !allowScroll) continue;
+      let best = null;
+      for (const c of cands){
+        const a0 = box(c.el);
+        let dys = [0];
+        if (scroll){
+          const need = c.side === 'bottom' ? a0.b + OFF + ch + M - vh
+            : c.side === 'top' ? a0.t - OFF - ch - M
+            : a0.t + a0.h / 2 - vh / 2;
+          dys = [need, a0.t + a0.h / 2 - vh / 2].filter(d => Math.abs(d) > 1);
+        }
+        for (const dy of dys){
+          if (dy < minDy - 1 || dy > maxDy + 1) continue;
+          const a = shiftY(a0, dy);
+          if (!anchorVisible(a, FRAME_H)) continue;
+          const p = cardPos(a, c.side, cw, ch, vw, vh, c.align);
+          if (!fitsView(p, cw, ch, vw, vh)) continue;
+          if (mode === 'first') return {c, dy, p};
+          if (mode === 'least'){
+            const cover = hard.reduce((sum, r) => sum + overlapArea(p, cw, ch, r), 0);
+            if (!best || cover < best.cover - 1) best = {c, dy, p, cover};
+            continue;
+          }
+          const avoid = mode === 'soft' ? [...hard, ...softOf(c)] : hard;
+          if (!avoid.some(r => overlaps(p, cw, ch, shiftY(r, dy)))) return {c, dy, p};
+        }
+      }
+      if (best) return best;
+    }
+    return null;
+  }
+
+  function settle(){
+    const cfg = config();
+    document.body.classList.add('touring');
+    if (!cfg.centered && cfg.cands.length){
+      coach.classList.remove('docked');
+      const cw = coach.offsetWidth, ch = coach.offsetHeight, vh = viewH();
+      let dy = 0;
+      // Phones: the card may scroll into place below the target, since the page already scrolls.
+      if (stackedMQ.matches){
+        const r = solve(cfg, cw, ch, true);
+        if (r && r.dy){ dy = r.dy; S.lock = r.c; }
+      }
+      // Otherwise only scroll when the target itself is out of view, and just enough to show it.
+      if (!dy){
+        const a = box(cfg.cands[0].el);
+        if (a.t < M || a.h > vh - 2 * M) dy = a.t - M - 8;
+        else if (a.b > vh - M) dy = a.b - (vh - M) + 8;
+      }
+      if (Math.abs(dy) > 1){
+        const hold = reduce.matches ? 80 : 900;
+        S.lockUntil = performance.now() + hold;
+        later(schedule, hold + 20);
+        scroller.scrollBy({top:dy, behavior:reduce.matches ? 'auto' : 'smooth'});
+      }
+    }
+    place();
+  }
+
+  function place(){
+    if (!inTour() && !isCentered()){ document.body.classList.remove('touring'); overlay.toggleAttribute('hidden', true); coach.hidden = true; setInert(null); return; }
+    const cfg = config();
+    document.body.classList.add('touring');
+    overlay.toggleAttribute('hidden', cfg.centered);
+    // Holes: ringed targets get 6px padding; the live video is cut flush so no undimmed rim shows.
+    const R = cfg.holes.map(h => ({h, r:box(h.el)}));
+    holesG.innerHTML = R.map(({h, r}) => svgRect(r, h.flush ? 0 : (h.pad ?? PAD), h.rx ?? (h.flush ? 8 : 12), 'fill="black"')).join('');
+    ringsG.innerHTML = R.filter(x => x.h.ring).map(({r}) => svgRect(r, PAD, 12, 'class="ring"')).join('');
+    setInert(cfg.centered ? [] : cfg.holes.map(h => h.el));
+
+    coach.classList.remove('docked');
+    const vw = FRAME_W, vh = viewH(), cw = coach.offsetWidth, ch = coach.offsetHeight;
+    if (cfg.centered){
+      caret.hidden = true;
+      coach.style.left = Math.max(M, (vw - cw) / 2) + 'px';
+      coach.style.top = Math.max(M, (SAFE_H - ch) / 2) + 'px';
+      return;
+    }
+    let res = null;
+    if (S.lock && performance.now() < S.lockUntil && document.contains(S.lock.el)){
+      res = {c:S.lock, p:cardPos(box(S.lock.el), S.lock.side, cw, ch, vw, vh, S.lock.align)};
+    }
+    // Drop the scroll lock once the scroll lands, or if the band resized and the card no longer fits.
+    if (!res || (performance.now() >= S.lockUntil - 400 && !fitsView(res.p, cw, ch, vw, vh))){
+      S.lock = null;
+      res = solve(cfg, cw, ch, false);
+    }
+    if (!res){ dock(cfg, cw, vw, vh); return; }
+    S.last = res.c;
+    coach.style.left = res.p.x + 'px';
+    coach.style.top = res.p.y + 'px';
+    const a = box(res.c.el);
+    caret.hidden = false;
+    caret.dataset.side = res.c.side;
+    caret.style.left = caret.style.top = '';
+    if (res.c.side === 'top' || res.c.side === 'bottom') caret.style.left = clamp(a.l + a.w / 2 - res.p.x - 6, 16, cw - 28) + 'px';
+    else caret.style.top = clamp(a.t + a.h / 2 - res.p.y - 6, 16, ch - 28) + 'px';
+  }
+
+  // Last resort when no side fits (very short viewports, details expanded): dock the card
+  // to whichever viewport edge keeps it off the live video, without a caret.
+  function dock(cfg, cw, vw, vh){
+    coach.classList.add('docked');
+    const ch = coach.offsetHeight;
+    const hard = cfg.hard.map(el => inflate(box(el), 8));
+    const x = Math.max(M, (vw - cw) / 2);
+    let y = vh - ch - M;
+    if (hard.some(r => overlaps({x, y}, cw, ch, r)) && !hard.some(r => overlaps({x, y:M}, cw, ch, r))) y = M;
+    coach.style.left = x + 'px';
+    coach.style.top = Math.max(M, y) + 'px';
+    caret.hidden = true;
+  }
+
+  // Everything outside the holes is inert: no clicks and no Tab stops in the dimmed area.
+  let inertSet = new Set();
+  function setInert(allowed){
+    const next = new Set();
+    if (allowed){
+      const walk = node => {
+        for (const c of node.children){
+          if (allowed.includes(c)) continue;
+          if (allowed.some(a => c.contains(a))) walk(c);
+          else next.add(c);
+        }
+      };
+      walk(document.querySelector('.topnav'));
+      walk(main);
+    }
+    inertSet.forEach(el => { if (!next.has(el)) el.inert = false; });
+    next.forEach(el => { if (!el.inert) el.inert = true; });
+    inertSet = next;
+  }
+
+  let raf = 0;
+  const schedule = () => { cancelAnimationFrame(raf); raf = requestAnimationFrame(place); };
+
+  /* ================= Events ================= */
+  function toggleHide(btn){
+    S.hidePreview = !S.hidePreview;
+    btn.setAttribute('aria-pressed', String(S.hidePreview));
+    refreshMedia();
+    schedule();
+  }
+
+  document.addEventListener('click', e => {
+    const a = e.target.closest('[data-act]');
+    if (!a) return;
+    switch (a.dataset.act){
+      case 'next': go('start'); break;
+      case 'start-rec': go('talk'); break;
+      case 'allow':
+        S.permitted = true;
+        if (S.state === 'check') chkResolve(); else resolveDevices();
+        break;
+      case 'block':
+        S.permitted = false; S.blockedReason = 'denied';
+        if (S.state === 'check'){ promptEl.hidden = true; setChk('blocked'); } else go('blocked');
+        break;
+      case 'retry':
+        if (S.blockedReason === 'inuse') S.inuseCleared = true;
+        if (S.state === 'check') setChk('asking'); else go('perm');
+        break;
+      case 'chk-allow': setChk('asking'); break;
+      case 'chk-continue': go('orient'); break;
+      case 'dev-ok': go('orient'); break;
+      case 'retest': {
+        // Re-check the mic after the candidate tries a fix. Prototype: the outcome follows the "Test again" control.
+        const v = $('voiceStatus'), m = $('meter');
+        a.disabled = true; a.textContent = 'Listening…';
+        if (v){ v.className = 'waiting'; v.innerHTML = '<span class="spin xs" aria-hidden="true"></span>Say a sentence now…'; }
+        if (m) m.classList.remove('quiet');
+        S.retesting = true;
+        later(() => {
+          S.retesting = false;
+          if (S.retest === 'fixed' || S.analyser && S.heard) return voiceHeard();
+          const w = $('voiceStatus'), btn = $('retestBtn');
+          if (w){ w.className = 'retry-note'; w.textContent = 'Still no sound. Try another fix, then test again.'; }
+          if ($('meter')) $('meter').classList.add('quiet');
+          if (btn){ btn.disabled = false; btn.textContent = 'Test again'; btn.focus({preventScroll:true}); }
+        }, 3500);
+        break;
+      }
+      case 'alvy': S.alvyOpen ? closeAlvy() : openAlvy(); break;
+      case 'alvy-close': closeAlvy(); break;
+      case 'help': helpFlow(a.dataset.topic); break;
+      case 'stop': go('done'); break;
+      case 'again': go('start'); break;
+      case 'hide': toggleHide(a); break;
+      case 'reload': go('wait'); break;
+      case 'begin': go('countdown'); break;
+      case 'hide-timer':
+        S.hideTimer = !S.hideTimer;
+        a.setAttribute('aria-pressed', String(S.hideTimer));
+        $('timerClock').classList.toggle('concealed', S.hideTimer);
+        break;
+    }
+  });
+
+  document.addEventListener('change', e => {
+    if (e.target.id === 'camSelect') S.cam = e.target.selectedIndex;
+    if (e.target.id === 'micSelect'){
+      S.mic = e.target.selectedIndex;
+      // Prototype: switching microphone during "We can't hear you" picks up the voice.
+      if (S.state === 'quiet') later(voiceHeard, 1200);
+      if ((S.state === 'devices' || S.state === 'check') && !S.heard){
+        const v = $('voiceStatus'), chk = $('micCheck');
+        S.micFailed = false;
+        if (chk) chk.className = 'dev-check';
+        if (v){ v.className = ''; v.textContent = 'Say something…'; }
+        if (S.state === 'check' && $('leftPane')) $('leftPane').innerHTML = leftLive();
+        renderHints();
+        later(micOk, 1200);
+      }
+    }
+  });
+
+  addEventListener('resize', () => { fit(); schedule(); });
+  addEventListener('scroll', schedule, {capture:true, passive:true});
+  addEventListener('scrollend', () => { S.lock = null; schedule(); }, true);
+  if ('ResizeObserver' in window) new ResizeObserver(() => { fit(); schedule(); }).observe(stage);
+  if (window.visualViewport){ visualViewport.addEventListener('resize', schedule); visualViewport.addEventListener('scroll', schedule); }
+  if ('ResizeObserver' in window){ const ro = new ResizeObserver(schedule); ro.observe(document.body); ro.observe(coach); }
+  document.addEventListener('toggle', schedule, true);
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(schedule);
+
+  /* ================= Prototype controls ================= */
+  const proto = $('proto'), protoToggle = $('protoToggle');
+  function setCollapsed(c){ proto.classList.toggle('collapsed', c); protoToggle.textContent = c ? 'Show controls' : 'Hide controls'; protoToggle.setAttribute('aria-expanded', String(!c)); }
+
+  protoToggle.addEventListener('click', () => setCollapsed(!proto.classList.contains('collapsed')));
+
+  // UX-1224 points: 1 page after OTP feels stuck · 2 practice gives no direction · 3 tracker skips a step · 4 10–30s waits
+  const TICKET = {
+    wait:'#1 + #4: a wait screen with live loading steps replaces the blank page and skeletons.',
+    waitError:'#4: if loading fails, say so and offer Try again instead of an endless spinner.',
+    check:'#2 + review feedback: allow access, preview the camera, pick devices and test the mic on one familiar screen (like Meet or Zoom) before practising.',
+    devices:'Review feedback: confirm or change the camera and mic before the practice question.',
+    orient:'#2: the tour opens by saying what the practice run is for.',
+    start:'#2: one clear action per step, with the card pointing at it.',
+    perm:'#2: camera and mic access is explained before the browser asks.',
+    blocked:'#2: blocked or busy camera gets a fix, not a dead end.',
+    talk:'#2 + #3: the mic was already checked, so this step just records: live preview, level bar, and Stop available straight away. No step is skipped.',
+    quiet:'#3: if no voice is heard, step 4 helps fix the mic instead of skipping ahead.',
+    stop:'#3: step 5 of 5. Every step is reached by the candidate’s own action.',
+    done:'#3 + #4: the tour ends clearly, and the assessment loads behind this modal.',
+    countdown:'#4: a short countdown so the start of the timer is never a surprise.',
+    assessment:'End of the flow.'
+  };
+  const LABEL = {chrome:'Chrome', edge:'Edge', safari:'Safari', firefox:'Firefox', ios:'iPhone', android:'Android'};
+  const CHIPS = {
+    A:[['wait','Loading'], ['check','Device check'], ['check:blocked','Check: blocked'], ['orient','1 Orient'], ['start','2 Start'], ['talk','3 Answer'], ['done','All set'], ['countdown','Countdown']],
+    B:[['wait','Loading'], ['perm','1 Allow'], ['blocked','1 Blocked'], ['devices','2 Devices'], ['orient','3 Question'], ['start','4 Start'], ['talk','5 Answer'], ['done','All set'], ['countdown','Countdown']]
+  };
+  let chipsFor = null;
+  function updateProto(){
+    if (chipsFor !== S.variant){
+      chipsFor = S.variant;
+      $('jumpChips').innerHTML = CHIPS[S.variant].map(([k, l]) => `<button type="button" data-go="${k}">${l}</button>`).join('');
+    }
+    const ba = $('browserAuto'); if (ba) ba.textContent = `Detected (${LABEL[DETECTED]})`;
+    const tk = $('protoTicket');
+    if (tk) tk.innerHTML = `<b>UX-1224</b> ${TICKET[S.state] || ''}`;
+    const cur = S.state === 'waitError' ? 'wait' : S.state === 'check' && S.chk === 'blocked' ? 'check:blocked' : S.state;
+    proto.querySelectorAll('[data-go]').forEach(b => b.dataset.go === cur ? b.setAttribute('aria-current', 'step') : b.removeAttribute('aria-current'));
+    proto.querySelectorAll('[data-set]').forEach(b => b.setAttribute('aria-pressed', String(S[b.dataset.set] === b.dataset.val)));
+  }
+
+  function jump(st){
+    S.inuseCleared = false;
+    if (st === 'check' || st === 'check:blocked'){
+      S.permitted = false; S.devicesOk = false; S.chk = 'idle';
+      if (st === 'check:blocked'){ S.blockedReason = S.permMode === 'inuse' ? 'inuse' : 'denied'; S.permitted = S.blockedReason === 'inuse'; S.chk = 'blocked'; }
+      return go('check');
+    }
+    if (st === 'devices'){ S.permitted = true; S.devicesOk = false; return go('devices'); }
+    if (['orient', 'start'].includes(st)){ S.permitted = true; S.devicesOk = true; return go(st); }
+    if (['wait', 'orient', 'start', 'perm'].includes(st)){ S.permitted = false; S.devicesOk = false; }
+    if (['talk', 'quiet', 'stop', 'done', 'countdown'].includes(st)){ S.permitted = true; S.devicesOk = true; }
+    if (st === 'blocked'){
+      S.devicesOk = false;
+      S.blockedReason = S.permMode === 'inuse' ? 'inuse' : 'denied';
+      S.permitted = S.blockedReason === 'inuse';
+    }
+    go(st);
+  }
+
+  proto.addEventListener('click', e => {
+    const g = e.target.closest('[data-go]');
+    if (g) return jump(g.dataset.go);
+    const s = e.target.closest('[data-set]');
+    if (s){
+      S[s.dataset.set] = s.dataset.val;
+      if (s.dataset.set === 'variant'){ S.permitted = false; S.devicesOk = false; S.chk = 'idle'; updateProto(); return go(S.variant === 'A' ? 'check' : 'perm'); }
+      if (s.dataset.set === 'permMode'){ S.permitted = false; S.inuseCleared = false; }
+      if (s.dataset.set === 'voiceMode' && s.dataset.val === 'heard' && (S.state === 'talk' || S.state === 'quiet')) later(voiceHeard, 600);
+      if (s.dataset.set === 'browser' && S.state === 'blocked'){ coachBody.innerHTML = coachHTML(); schedule(); }
+      if (s.dataset.set === 'browser' && S.state === 'check' && S.chk === 'blocked') renderCheckPage();
+      if (s.dataset.set === 'voiceMode' && s.dataset.val === 'heard' && (S.state === 'devices' || S.state === 'check')) later(micOk, 600);
+      updateProto();
+      return;
+    }
+  });
+
+  go('wait');
+})();
+</script>
