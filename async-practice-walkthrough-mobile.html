@@ -1,0 +1,1428 @@
+<title>Async Practice Walkthrough — Mobile</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* Mobile companion to async-practice-walkthrough.html.
+
+   Same two variants and the same copy, re-laid-out for a phone:
+   - a phone frame (Android Chrome 360×800 or iPhone Safari 390×844) scaled to fit,
+     with the browser chrome drawn because the blocked-permission steps point at it;
+   - the camera preview is full-bleed portrait, the way Meet/Zoom/Teams show a pre-call check;
+   - every tour step is a bottom sheet IN NORMAL FLOW, not an overlay. The sheet takes its
+     own height out of the camera area, so a step can never cover what it is pointing at
+     and the primary action is always in the thumb zone.
+   Light mode only. Colour values follow the V8 Test Taker Experience Figma variables (zinc greys).
+   Values marked "not in Figma" need checking against the DS before shipping. */
+:root{
+  color-scheme:light;
+  --stage-bg:#d4d4d8;
+  --tv-font:'Roboto',system-ui,-apple-system,'Segoe UI',sans-serif;
+
+  --tv-bg-surface:#ffffff;
+  --tv-bg-muted:#fafafa;
+  --tv-bg-accent:#eff6ff;
+  --tv-bg-overlay-secondary:rgba(0,0,0,.55);          /* not in Figma: spotlight dim */
+  --tv-text-primary:#18181b;
+  --tv-text-tertiary:#3f3f46;
+  --tv-text-muted:#71717a;                            /* not in Figma */
+  --tv-text-on-primary:#ffffff;
+  --tv-border-subtle:#e4e4e7;
+  --tv-border-primary:#d4d4d8;
+  --tv-border-strong:#a1a1aa;
+  --tv-interactive-primary:#1d4ed8;
+  --tv-interactive-primary-hover:#1e40af;
+  --tv-interactive-link:#1d4ed8;
+  --tv-error-strong:#dc2626;
+  --tv-error-surface:#fef2f2; --tv-error-border:#fca5a5; --tv-error-text:#b91c1c;         /* not in Figma */
+  --tv-warning-surface:#fff7ed; --tv-warning-border:#fdba74; --tv-warning-text:#c2410c;   /* not in Figma */
+  --tv-success-surface:#f0fdf4; --tv-success-border:#86efac; --tv-success-text:#15803d;   /* not in Figma */
+  --tv-ai-blue:#1d4ed8;
+  --tv-ai-purple:#7e22ce;
+
+  --tv-video-bg:#27272a;
+  --tv-video-fg:#d4d4d8;
+  --tv-on-video:#ffffff;
+  --tv-scrim:rgba(24,24,27,.62);
+  --tv-toggle-off:#71717a;
+  --tv-toggle-knob:#ffffff;
+  --tv-chat-you:#dbeafe;
+
+  --tv-shadow-sm:0 1px 2px #0A0D120F,0 1px 3px #0A0D121A;
+  --tv-shadow-sheet:0 -6px 32px rgba(0,0,0,.14);
+
+  --tv-h3:500 20px/28px var(--tv-font);
+  --tv-h4:500 18px/26px var(--tv-font);
+  --tv-h5:500 16px/24px var(--tv-font);
+  --tv-p1:400 16px/24px var(--tv-font);
+  --tv-p2:400 14px/20px var(--tv-font);
+  --tv-p3:400 12px/18px var(--tv-font);
+  --tv-l1:500 14px/20px var(--tv-font);
+  --tv-l2:500 12px/18px var(--tv-font);
+  --tv-n2:400 24px/36px var(--tv-font);
+
+  /* Minimum touch target: 48dp on Android, 44pt on iOS. 48 satisfies both. */
+  --tap:48px;
+}
+*,*::before,*::after{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{height:100%}
+body{margin:0;display:flex;flex-direction:row;font:var(--tv-p1);color:var(--tv-text-primary);background:var(--stage-bg);-webkit-font-smoothing:antialiased}
+button,select,input{font:inherit;color:inherit}
+.i{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round}
+.i.sm{width:16px;height:16px}
+.i.xs{width:13px;height:13px}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap}
+:focus-visible{outline:2px solid var(--tv-interactive-primary);outline-offset:2px}
+
+/* ---------- Stage + phone frame ---------- */
+.stage{position:relative;flex:1;min-width:0;min-height:0;overflow:hidden;padding-block:16px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+#phone{position:absolute;left:50%;top:50%;width:var(--pw);height:var(--ph);margin:calc(var(--ph) / -2) 0 0 calc(var(--pw) / -2);
+  transform:scale(var(--k,1));transform-origin:50% 50%;background:#000;border-radius:38px;
+  box-shadow:0 10px 50px rgba(0,0,0,.28),0 0 0 11px #18181b,0 0 0 12px #3f3f46;overflow:hidden}
+
+/* Browser chrome. Drawn because the blocked-permission steps point straight at it. */
+.sysbar{flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 18px;font:500 12px/1 var(--tv-font);color:var(--tv-text-primary);background:var(--tv-bg-surface)}
+.sysbar .sys-right{display:flex;align-items:center;gap:5px}
+.sysbar .bar{width:3px;border-radius:1px;background:currentColor}
+.notch{position:absolute;top:9px;left:50%;transform:translateX(-50%);width:108px;height:27px;border-radius:999px;background:#000;z-index:3}
+.urlbar{flex:none;display:flex;align-items:center;gap:8px;padding:6px 10px;background:var(--tv-bg-surface)}
+.urlbar.top{border-bottom:1px solid var(--tv-border-subtle)}
+.urlbar.bottom{border-top:1px solid var(--tv-border-subtle)}
+.url-field{flex:1;min-width:0;display:flex;align-items:center;gap:7px;height:34px;padding:0 10px;border-radius:999px;background:#f1f1f3;font:var(--tv-p3);color:var(--tv-text-tertiary)}
+.url-field .url{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* The permission affordance the recovery steps name: Chrome's lock, Safari's aA. */
+.url-btn{flex:none;width:28px;height:28px;margin:-3px 0;border:0;border-radius:8px;background:none;display:inline-flex;align-items:center;justify-content:center;color:var(--tv-text-tertiary);cursor:pointer}
+.url-btn.aa{width:auto;padding:0 7px;font:500 15px/1 var(--tv-font);letter-spacing:-.02em}
+.url-btn.aa b{font-size:11px;font-weight:500}
+.urlbar .chev-btn{flex:none;width:28px;height:28px;border:0;background:none;color:var(--tv-text-tertiary);display:inline-flex;align-items:center;justify-content:center}
+.navbar{flex:none;height:18px;background:var(--tv-bg-surface);display:flex;align-items:center;justify-content:center}
+.navbar span{width:106px;height:4px;border-radius:2px;background:#18181b;opacity:.75}
+.home-ind{flex:none;height:22px;background:var(--tv-bg-surface);display:flex;align-items:flex-start;justify-content:center;padding-top:4px}
+.home-ind span{width:134px;height:5px;border-radius:3px;background:#18181b;opacity:.85}
+
+/* The web page itself: app bar, view, sheet — a plain flex column, so the sheet
+   never overlays the view and nothing has to be scrolled out from under it. */
+#frame{position:absolute;inset:0;display:flex;flex-direction:column;background:var(--tv-bg-surface);overflow:hidden}
+#viewport{flex:1;min-height:0;display:flex;flex-direction:column;background:var(--tv-bg-surface)}
+.appbar{flex:none;height:52px;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:0 8px 0 14px;background:var(--tv-bg-surface);border-bottom:1px solid var(--tv-border-subtle)}
+.logo{display:flex;align-items:center;gap:7px;font:500 14px/1 var(--tv-font);letter-spacing:.06em;color:var(--tv-text-tertiary)}
+.logo svg{width:24px;height:24px}
+.appbar-right{display:flex;align-items:center;gap:2px}
+.icon-btn{width:var(--tap);height:var(--tap);border-radius:10px;border:0;background:none;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;color:var(--tv-text-tertiary)}
+.icon-btn:hover{background:var(--tv-border-subtle)}
+.icon-btn.ai{color:var(--tv-ai-purple)}
+#view{flex:1;min-height:0;position:relative;display:flex;flex-direction:column;background:var(--tv-bg-muted)}
+
+/* ---------- Buttons ---------- */
+.btn{font:var(--tv-l1);border-radius:10px;padding:12px 16px;min-height:var(--tap);border:1px solid transparent;background:none;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:8px}
+.btn:disabled{cursor:default;opacity:.45}
+.btn-primary{background:var(--tv-interactive-primary);color:var(--tv-text-on-primary)}
+.btn-primary:hover:not(:disabled){background:var(--tv-interactive-primary-hover)}
+.btn-secondary{background:var(--tv-bg-surface);border-color:var(--tv-border-primary);color:var(--tv-text-primary)}
+.btn-secondary:hover{background:var(--tv-bg-muted)}
+.btn-block{width:100%}
+.help-link{display:inline-flex;align-items:center;gap:6px;min-height:var(--tap);padding:4px 0;border:0;background:none;cursor:pointer;font:var(--tv-l1);color:var(--tv-interactive-link);text-align:left}
+.help-link:hover{text-decoration:underline}
+
+/* ---------- Full-bleed camera stage ---------- */
+.cam{position:relative;flex:1;min-height:0;background:var(--tv-video-bg);overflow:hidden;display:flex;flex-direction:column}
+.cam-media{position:absolute;inset:0}
+.cam-media video,.cam-media canvas{display:block;width:100%;height:100%;object-fit:cover}
+.cam-media video{transform:scaleX(-1)} /* mirrored, like a mirror */
+.sim-tag{position:absolute;top:10px;right:12px;z-index:2;font:var(--tv-l2);color:var(--tv-on-video);background:var(--tv-scrim);padding:4px 10px;border-radius:999px}
+.cam-msg{position:absolute;inset:0;z-index:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:24px;text-align:center;color:var(--tv-video-fg);font:var(--tv-p2)}
+.cam-msg .i{width:28px;height:28px}
+.rec-dot{width:8px;height:8px;border-radius:50%;background:var(--tv-error-strong);flex:none}
+.vchip:has(.rec-dot){font-variant-numeric:tabular-nums}
+
+/* Question over the preview. Scrollable, so a long question is never cut off or trapped. */
+.qpanel{position:relative;z-index:2;margin:12px 12px 0;padding:12px 14px;border-radius:12px;background:var(--tv-bg-surface);box-shadow:var(--tv-shadow-sm);max-height:42%;overflow:auto;-webkit-overflow-scrolling:touch}
+.qpanel.compact{max-height:30%}
+.qhead{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px}
+.qhead h1{margin:0;font:var(--tv-l2);text-transform:uppercase;letter-spacing:.05em;color:var(--tv-text-muted);display:flex;align-items:center;gap:8px}
+.tag{font:var(--tv-l2);text-transform:none;letter-spacing:0;padding:1px 8px;border-radius:4px;background:var(--tv-bg-accent);color:var(--tv-interactive-link)}
+.qhead .icon-btn{width:36px;height:36px;margin:-6px -8px -6px 0}
+.question{margin:0;font:var(--tv-h5);text-wrap:pretty}
+
+/* Controls floating over the bottom of the preview. */
+.cam-foot{position:relative;z-index:2;margin-top:auto;display:flex;flex-direction:column;gap:8px;padding:10px 12px 12px}
+.cam-status{display:flex;flex-wrap:wrap;align-items:center;gap:6px;min-height:28px}
+.vchip{display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:999px;background:var(--tv-scrim);color:var(--tv-on-video);font:var(--tv-l2);backdrop-filter:blur(6px)}
+.vchip.ok .i{color:#86efac}
+.vchip.warn{background:rgba(154,52,18,.88)}
+.vchip.bad{background:rgba(153,27,27,.9)}
+.vchip .spin{border-color:rgba(255,255,255,.35);border-top-color:#fff}
+.cam-devices{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.vselect{position:relative;display:flex;align-items:center;min-width:0;height:40px;border:1px solid rgba(255,255,255,.28);border-radius:10px;background:var(--tv-scrim);backdrop-filter:blur(6px)}
+.vselect select{appearance:none;-webkit-appearance:none;width:100%;min-width:0;height:100%;border:0;background:none;color:var(--tv-on-video);font:var(--tv-l2);padding:0 26px 0 32px;cursor:pointer;text-overflow:ellipsis}
+.vselect select:disabled{color:rgba(255,255,255,.55);cursor:default}
+.vselect option{color:#18181b}
+.vselect .i{position:absolute;pointer-events:none;color:var(--tv-on-video)}
+.vselect .lead{left:9px}.vselect .chev{right:7px}
+.cam-actions{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:var(--tap)}
+.toggle{display:inline-flex;align-items:center;gap:8px;min-height:var(--tap);padding:0 2px;background:none;border:0;cursor:pointer;font:var(--tv-l1);color:var(--tv-on-video)}
+.track{width:34px;height:18px;border-radius:9px;background:var(--tv-toggle-off);position:relative;transition:background .2s;flex:none}
+.track::after{content:"";position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:var(--tv-toggle-knob);transition:transform .2s}
+.toggle[aria-pressed="true"] .track{background:var(--tv-interactive-primary)}
+.toggle[aria-pressed="true"] .track::after{transform:translateX(16px)}
+.cam-note{font:var(--tv-p3);color:var(--tv-video-fg)}
+
+/* ---------- Level meter ---------- */
+.meter{display:inline-flex;align-items:flex-end;gap:2px;height:18px}
+.meter i{width:3px;height:3px;border-radius:2px;background:currentColor;opacity:.9}
+.meter.done i{height:11px!important}
+.meter.quiet i{height:3px!important}
+
+/* ---------- Bottom sheet: one tour step, always in flow ---------- */
+.sheet{flex:none;max-height:62%;overflow:auto;-webkit-overflow-scrolling:touch;background:var(--tv-bg-surface);
+  border-radius:18px 18px 0 0;box-shadow:var(--tv-shadow-sheet);padding:14px 16px 16px;position:relative;z-index:4}
+.sheet.tone-error{background:var(--tv-error-surface)}
+.sheet.tone-warning{background:var(--tv-warning-surface)}
+.grab{width:36px;height:4px;border-radius:2px;background:var(--tv-border-primary);margin:0 auto 10px}
+.step-no{margin:0 0 2px;font:var(--tv-l2);color:var(--tv-text-muted);letter-spacing:.04em}
+.sheet h2{margin:0 0 6px;font:var(--tv-h4);text-wrap:pretty}
+.sheet h2.tone-error{color:var(--tv-error-text)}
+.sheet h2.tone-warning{color:var(--tv-warning-text)}
+.sheet p{margin:0;font:var(--tv-p2);color:var(--tv-text-tertiary);text-wrap:pretty}
+.sheet .steps{margin:10px 0 0;padding-left:20px;display:grid;gap:7px;font:var(--tv-p2);color:var(--tv-text-tertiary)}
+.sheet .steps b{font-weight:500;color:var(--tv-text-primary)}
+.sheet-foot{margin-top:14px;display:grid;gap:8px}
+.foot-hint{font:var(--tv-p3);color:var(--tv-text-muted);text-align:center}
+.foot-hint.warn{color:var(--tv-warning-text)}
+.waiting{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:var(--tap);font:var(--tv-p2);color:var(--tv-text-muted)}
+.meter-row{display:flex;align-items:center;gap:10px;margin-top:12px;color:var(--tv-text-tertiary)}
+.meter-row .meter{color:var(--tv-interactive-primary)}
+.meter-row .label{font:var(--tv-p2)}
+.note{display:flex;align-items:flex-start;gap:8px;margin:12px 0 0;font:var(--tv-p3);color:var(--tv-text-muted)}
+.note .i{margin-top:1px}
+
+/* ---------- Centred modal (all set, countdown) ---------- */
+.modal-wrap{position:absolute;inset:0;z-index:45;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(24,24,27,.4)}
+.modal{width:100%;background:var(--tv-bg-surface);border-radius:16px;padding:22px 18px;box-shadow:0 16px 60px rgba(0,0,0,.2);text-align:left}
+.modal h2{margin:0 0 6px;font:var(--tv-h4)}
+.modal p{margin:0;font:var(--tv-p2);color:var(--tv-text-tertiary)}
+.modal .sheet-foot{margin-top:18px}
+.modal.count{text-align:center}
+.count-title{margin:0 0 14px;font:var(--tv-h5)}
+.count-ring{position:relative;width:104px;height:104px;margin:0 auto}
+.count-ring svg{width:100%;height:100%;transform:rotate(-90deg)}
+.count-ring circle{fill:none;stroke-width:5}
+.count-ring .bg{stroke:var(--tv-border-subtle)}
+.count-ring .fg{stroke:var(--tv-interactive-primary);stroke-linecap:round;stroke-dasharray:289;stroke-dashoffset:0}
+.count-ring .fg.run{animation:sweep 1s linear forwards}
+@keyframes sweep{to{stroke-dashoffset:289}}
+.count-num{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font:var(--tv-n2)}
+
+/* ---------- Wait screen ---------- */
+.waitscreen{flex:1;min-height:0;overflow:auto;display:flex;flex-direction:column;align-items:center;text-align:center;padding:40px 20px;background:var(--tv-bg-surface)}
+.wait-mark{width:44px;height:44px;display:flex;align-items:center;justify-content:center;color:var(--tv-text-tertiary)}
+.wait-mark.err{border-radius:50%;background:var(--tv-error-surface);color:var(--tv-error-text)}
+.waitscreen h1{font:var(--tv-h4);margin:14px 0 4px;text-wrap:balance}
+.waitscreen p{font:var(--tv-p2);color:var(--tv-text-tertiary);margin:0 0 18px}
+.checklist{list-style:none;margin:0 0 18px;padding:4px 16px;background:var(--tv-bg-muted);border:1px solid var(--tv-border-subtle);border-radius:10px;width:100%;text-align:left}
+.checklist li{display:flex;align-items:center;gap:10px;padding:9px 0;font:var(--tv-p2)}
+.checklist li.done .i{color:var(--tv-success-text)}
+.checklist li.pend{color:var(--tv-text-muted)}
+.checklist li.fail{color:var(--tv-error-text)}
+.spin{width:16px;height:16px;border:2px solid var(--tv-border-primary);border-top-color:var(--tv-interactive-primary);border-radius:50%;animation:spin .8s linear infinite;flex:none}
+.spin.xs{width:12px;height:12px}
+.spin.lg{width:26px;height:26px;border-width:3px}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ---------- Assessment skeleton (behind the modals) ---------- */
+.skel{flex:1;min-height:0;overflow:auto;padding:14px;background:var(--tv-bg-muted);display:flex;flex-direction:column;gap:12px}
+.sk{background:var(--tv-border-subtle);border-radius:4px;flex:none}
+.sk-head{width:62%;height:16px}
+.sk-media{border-radius:10px;background:var(--tv-bg-accent);aspect-ratio:4/3;width:100%}
+.sk-line{height:8px}
+.sk-lines{display:grid;gap:12px;margin-top:4px}
+.proto-note{display:grid;gap:10px;justify-items:start;margin-top:8px;padding:14px;border:1px dashed var(--tv-border-strong);border-radius:10px;background:var(--tv-bg-surface);font:var(--tv-p3);color:var(--tv-text-tertiary)}
+
+/* ---------- Simulated browser permission prompt ---------- */
+#prompt{position:absolute;z-index:60;font:var(--tv-p2)}
+/* Chrome on Android: a card under the address bar, as in the Figma mobile frames. */
+#prompt.android{left:10px;right:10px;top:calc(var(--chrome-top) + 6px);background:var(--tv-bg-surface);border-radius:12px;padding:14px 16px;box-shadow:0 10px 40px rgba(0,0,0,.26)}
+#prompt.android .rows{display:grid;gap:4px;margin:8px 0 2px}
+#prompt.android .acts{display:flex;justify-content:flex-end;gap:4px;margin-top:8px}
+/* Safari on iOS: a centred system alert. */
+#prompt.ios{left:50%;top:50%;transform:translate(-50%,-50%);width:272px;background:rgba(249,249,249,.97);border-radius:14px;text-align:center;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.3)}
+#prompt.ios .body{padding:18px 16px 14px}
+#prompt.ios .acts{display:flex;border-top:1px solid rgba(0,0,0,.14)}
+#prompt.ios .acts button{flex:1;min-height:44px;border:0;background:none;color:#0a7cff;font:400 17px/1 var(--tv-font);cursor:pointer}
+#prompt.ios .acts button+button{border-left:1px solid rgba(0,0,0,.14);font-weight:600}
+#prompt strong{display:block;font:var(--tv-l1);margin-bottom:4px}
+#prompt.ios strong{font:600 15px/20px var(--tv-font);margin-bottom:3px}
+#prompt .row{display:flex;align-items:center;gap:8px;color:var(--tv-text-tertiary);padding:2px 0}
+#prompt .sub{font:var(--tv-p3);color:var(--tv-text-muted)}
+#prompt small{display:block;font:var(--tv-p3);color:var(--tv-text-muted);margin-top:8px}
+#prompt.ios small{padding:0 16px 12px;margin:0}
+
+/* ---------- Spotlight ---------- */
+#overlay{position:absolute;inset:0;z-index:40;pointer-events:none}
+#overlay .dim{fill:var(--tv-bg-overlay-secondary)}
+#overlay .ring{fill:none;stroke:var(--tv-interactive-primary);stroke-width:2.5;animation:ring 1.8s ease-in-out infinite}
+@keyframes ring{50%{stroke-opacity:.35}}
+
+/* ---------- Chat with Alvy: a full-screen sheet on a phone ---------- */
+.alvy{position:absolute;inset:0;z-index:65;display:flex;flex-direction:column;background:var(--tv-bg-surface)}
+.alvy-head{flex:none;display:flex;align-items:center;gap:6px;padding:4px 8px;border-bottom:1px solid var(--tv-border-subtle)}
+.alvy-head h2{margin:0;font:var(--tv-h5)}
+.chat-log{flex:1;min-height:0;overflow:auto;display:flex;flex-direction:column;gap:14px;padding:16px 14px}
+.chat-log:before{content:"";margin-top:auto}
+.msg{display:grid;gap:6px}
+.msg .who{font:var(--tv-l2)}
+.msg.you .who{justify-self:end}
+.bubble{border-radius:10px;padding:10px 12px;font:var(--tv-p2)}
+.msg.bot .bubble{background:linear-gradient(171deg,var(--tv-ai-blue),var(--tv-ai-purple));color:var(--tv-on-video)}
+.msg.you .bubble{background:var(--tv-chat-you)}
+.bubble ol{margin:6px 0 0;padding-left:18px;display:grid;gap:5px}
+.bubble b{font-weight:500}
+.bubble .time{display:block;margin-top:6px;font:var(--tv-p3);opacity:.85;text-align:right}
+.msg.bot .bubble .time{text-align:left}
+.searching{display:flex;align-items:center;gap:8px;font:var(--tv-p2);color:var(--tv-text-muted)}
+.chat-form{flex:none;border-top:1px solid var(--tv-border-subtle);padding:8px 12px;display:flex;align-items:center;gap:8px}
+.chat-form input{flex:1;min-width:0;border:0;background:none;font:var(--tv-p2);padding:12px 2px;outline-offset:2px}
+.chat-form input::placeholder{color:var(--tv-text-muted)}
+.chat-form .send{border:0;background:none;color:var(--tv-interactive-primary);font:var(--tv-l1);min-height:var(--tap);padding:0 8px;cursor:pointer}
+
+/* ---------- Prototype controls (not part of the design) ---------- */
+.proto{flex:none;position:relative;z-index:70;width:300px;height:100%;overflow:auto;display:flex;flex-direction:column;background:var(--tv-bg-surface);border-left:1px solid var(--tv-border-strong);font:var(--tv-p3);color:var(--tv-text-tertiary)}
+.proto-head,.proto-body{padding-left:16px;padding-right:max(16px,env(safe-area-inset-right,0px))}
+.proto-head{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;padding-top:max(14px,env(safe-area-inset-top,0px));padding-bottom:12px;border-bottom:1px solid var(--tv-border-subtle)}
+.proto-title{flex:none;font:var(--tv-l2);color:var(--tv-text-primary);letter-spacing:.04em;text-transform:uppercase}
+.proto-head button{flex:none;margin-left:auto;font:var(--tv-l2);border:0;background:none;color:var(--tv-interactive-link);cursor:pointer;padding:4px 6px;border-radius:6px}
+.proto-ticket{order:3;flex-basis:100%;margin:0;padding:8px 10px;border-radius:8px;background:var(--tv-bg-muted);color:var(--tv-text-tertiary)}
+.proto-ticket b{font:var(--tv-l2);color:var(--tv-text-primary)}
+.proto-body{display:flex;flex-direction:column;gap:16px;padding-top:14px;padding-bottom:max(16px,env(safe-area-inset-bottom,0px))}
+.proto.collapsed{width:auto}
+.proto.collapsed .proto-body,.proto.collapsed .proto-ticket{display:none}
+.proto.collapsed .proto-head{flex-direction:column;align-items:flex-start;border-bottom:0}
+.proto.collapsed .proto-head button{margin-left:0}
+.proto-group{display:flex;flex-direction:column;align-items:flex-start;gap:6px}
+.proto-label{font:var(--tv-l2);color:var(--tv-text-muted)}
+.chips,.seg{display:flex;flex-wrap:wrap;gap:4px}
+.chips button,.seg button{white-space:nowrap;font:var(--tv-l2);border:1px solid var(--tv-border-primary);background:var(--tv-bg-surface);color:var(--tv-text-tertiary);border-radius:999px;padding:3px 10px;cursor:pointer}
+.chips button[aria-current="step"],.seg button[aria-pressed="true"]{border-color:var(--tv-interactive-primary);color:var(--tv-interactive-link);background:var(--tv-bg-accent)}
+@media (max-width:760px){
+  body{flex-direction:column}
+  .proto{width:auto;height:auto;max-height:45%;border-left:0;border-top:1px solid var(--tv-border-strong)}
+}
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{animation:none!important;transition:none!important}
+}
+</style>
+
+<div class="stage" id="stage">
+<div id="phone" role="region" aria-label="Candidate phone screen">
+  <div id="frame">
+    <div id="chromeTop"></div>
+    <div id="viewport">
+      <header class="appbar" id="appbar">
+        <div class="logo" aria-label="Talview">
+          <svg viewBox="0 0 32 32" aria-hidden="true" fill="none"><path d="M16 3 28 10v12L16 29 4 22V10z" stroke="#1d4ed8" stroke-width="2" stroke-linejoin="round"/><path d="m11 14 5 6 5-6" stroke="#1d4ed8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          TALVIEW
+        </div>
+        <div class="appbar-right">
+          <button class="icon-btn" id="langBtn" type="button" aria-label="Change language, currently English"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a15 15 0 0 1 0 18M12 3a15 15 0 0 0 0 18"/></svg></button>
+          <button class="icon-btn ai" id="alvyBtn" type="button" aria-label="Chat with Alvy" aria-expanded="false"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l1.8 4.7L18.5 9.5l-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8z"/><path d="M18 15.5l.9 2.3 2.3.9-2.3.9-.9 2.3-.9-2.3-2.3-.9 2.3-.9z"/></svg></button>
+        </div>
+      </header>
+      <main id="view"></main>
+      <section class="sheet" id="sheet" aria-live="polite" hidden><div id="sheetBody"></div></section>
+    </div>
+    <div id="chromeBottom"></div>
+  </div>
+
+  <svg id="overlay" aria-hidden="true" hidden preserveAspectRatio="none">
+    <defs><mask id="spotMask"><rect x="0" y="0" width="100%" height="100%" fill="#fff"/><g id="holes" fill="#000"></g></mask></defs>
+    <rect class="dim" x="0" y="0" width="100%" height="100%" mask="url(#spotMask)"/>
+    <g id="rings"></g>
+  </svg>
+
+  <div id="prompt" role="dialog" aria-label="Browser permission request" hidden></div>
+
+  <section class="alvy" id="alvy" aria-label="Chat with Alvy" hidden>
+    <div class="alvy-head">
+      <button class="icon-btn" data-act="alvy-close" type="button" aria-label="Back"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 19l-7-7 7-7"/></svg></button>
+      <h2>Chat with Alvy</h2>
+    </div>
+    <div class="chat-log" id="chatLog" aria-live="polite"></div>
+    <form class="chat-form" id="chatForm">
+      <input id="chatInput" placeholder="Ask a question…" aria-label="Ask Alvy a question" autocomplete="off">
+      <button class="send" type="submit">Send</button>
+    </form>
+  </section>
+</div>
+</div>
+
+<aside class="proto" id="proto" aria-label="Prototype controls">
+  <div class="proto-head">
+    <span class="proto-title">Prototype · Mobile</span>
+    <p class="proto-ticket" id="protoTicket" aria-live="polite"></p>
+    <button type="button" id="protoToggle" aria-expanded="true" aria-controls="protoBody">Hide controls</button>
+  </div>
+  <div class="proto-body" id="protoBody">
+    <div class="proto-group"><span class="proto-label">Variant</span>
+      <div class="seg"><button type="button" data-set="variant" data-val="A">A · Device check screen</button><button type="button" data-set="variant" data-val="B">B · Extra tour step</button></div>
+    </div>
+    <div class="proto-group"><span class="proto-label">Device</span>
+      <div class="seg"><button type="button" data-set="platform" data-val="android">Android · Chrome</button><button type="button" data-set="platform" data-val="ios">iPhone · Safari</button></div>
+    </div>
+    <div class="proto-group"><span class="proto-label">Jump to</span>
+      <div class="chips" id="jumpChips"></div>
+    </div>
+    <div class="proto-group"><span class="proto-label">Browser access</span>
+      <div class="seg"><button type="button" data-set="permMode" data-val="ask">Prompt</button><button type="button" data-set="permMode" data-val="granted">Already allowed</button><button type="button" data-set="permMode" data-val="inuse">Camera in use</button></div>
+    </div>
+    <div class="proto-group"><span class="proto-label">Voice check</span>
+      <div class="seg"><button type="button" data-set="voiceMode" data-val="heard">Voice heard</button><button type="button" data-set="voiceMode" data-val="silent">Silent</button></div>
+    </div>
+    <div class="proto-group"><span class="proto-label">Loading</span>
+      <div class="seg"><button type="button" data-set="loadMode" data-val="ok">Succeeds</button><button type="button" data-set="loadMode" data-val="fail">Fails</button></div>
+    </div>
+  </div>
+</aside>
+
+<script>
+(() => {
+  const ICON = {
+    video:'<path d="M15 10l4.553-2.276A1 1 0 0 1 21 8.618v6.764a1 1 0 0 1-1.447.894L15 14v-4z"/><rect x="3" y="6" width="12" height="12" rx="2"/>',
+    mic:'<rect x="9" y="2" width="6" height="11" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M8 21h8M12 17v4"/>',
+    micOff:'<path d="M3 3l18 18M9 9v1a3 3 0 0 0 5.12 2.12M15 9.34V5a3 3 0 0 0-5.94-.6M17 16.95A7 7 0 0 1 5 10M19 10a7 7 0 0 1-.11 1.23M8 21h8M12 17v4"/>',
+    chevron:'<path d="M6 9l6 6 6-6"/>',
+    check:'<path d="M5 12l5 5L20 7"/>',
+    clock:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/>',
+    info:'<circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v4h1"/>',
+    eyeOff:'<path d="M3 3l18 18M10.584 10.587a2 2 0 0 0 2.828 2.83M9.363 5.365A9.466 9.466 0 0 1 12 5c4 0 7.333 2.333 10 7-.778 1.361-1.612 2.524-2.503 3.488M17.357 17.349C15.726 18.449 13.942 19 12 19c-4 0-7.333-2.333-10-7 1.369-2.395 2.913-4.175 4.632-5.341"/>',
+    videoOff:'<path d="M3 3l18 18M15 11v-1l4.553-2.276A1 1 0 0 1 21 8.618v6.764a1 1 0 0 1-.675.946M10 6h3a2 2 0 0 1 2 2v3m0 4v1a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h1"/>',
+    circleCheck:'<circle cx="12" cy="12" r="9"/><path d="M9 12l2 2 4-4"/>',
+    circleX:'<circle cx="12" cy="12" r="9"/><path d="M15 9l-6 6M9 9l6 6"/>',
+    circle:'<circle cx="12" cy="12" r="9"/>',
+    alert:'<path d="M12 9v4M12 17h.01M10.24 3.957 2.389 17.06a2 2 0 0 0 1.71 3h15.802a2 2 0 0 0 1.71-3L13.76 3.957a2 2 0 0 0-3.52 0z"/>',
+    flag:'<path d="M5 21V4M5 4h11l-2 4 2 4H5"/>',
+    lock:'<rect x="5" y="10" width="14" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/>',
+    dots:'<circle cx="12" cy="5" r="1.4" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.4" fill="currentColor" stroke="none"/><circle cx="12" cy="19" r="1.4" fill="currentColor" stroke="none"/>',
+    share:'<path d="M12 16V4M8 8l4-4 4 4M5 14v5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-5"/>',
+    rec:'<circle cx="12" cy="12" r="5" fill="currentColor" stroke="none"/>',
+    square:'<rect x="7" y="7" width="10" height="10" rx="1.5" fill="currentColor" stroke="none"/>'
+  };
+  const ic = (n, cls = '') => `<svg class="i ${cls}" viewBox="0 0 24 24" aria-hidden="true">${ICON[n]}</svg>`;
+  const $ = id => document.getElementById(id);
+  const esc = s => s.replace(/[&<>]/g, c => ({'&':'&amp;', '<':'&lt;', '>':'&gt;'})[c]);
+
+  const phone = $('phone'), stage = $('stage'), view = $('view'), sheet = $('sheet'), sheetBody = $('sheetBody');
+  const overlay = $('overlay'), holesG = $('holes'), ringsG = $('rings'), promptEl = $('prompt');
+  const appbar = $('appbar'), chromeTop = $('chromeTop'), chromeBottom = $('chromeBottom');
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)');
+
+  /* ================= Phone frames ================= */
+  // Chrome heights are measured off the rendered chrome, so the prompt and the
+  // spotlight stay aligned whichever device is selected.
+  const PHONES = {
+    android:{w:360, h:800, label:'Android · Chrome', browser:'Chrome'},
+    ios:    {w:390, h:844, label:'iPhone · Safari', browser:'Safari'}
+  };
+  const SITE = 'cx-v2.talview.com';
+  const dev = () => PHONES[S.platform];
+
+  let K = 1;
+  function fit(){
+    const cs = getComputedStyle(stage);
+    const w = stage.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+    const h = stage.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
+    K = Math.max(.1, Math.min(1, (w - 26) / dev().w, (h - 26) / dev().h));
+    phone.style.setProperty('--k', K);
+  }
+
+  function renderChrome(){
+    const d = dev();
+    phone.style.setProperty('--pw', d.w + 'px');
+    phone.style.setProperty('--ph', d.h + 'px');
+    const sysIcons = '<span class="sys-right"><svg class="i xs" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 20h.01M6 20v-4M11 20v-9M16 20V8M21 20V4"/></svg><svg class="i xs" viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="7" width="17" height="10" rx="2.5"/><path d="M22 11v2"/><rect x="4" y="9" width="11" height="6" rx="1" fill="currentColor" stroke="none"/></svg></span>';
+    if (S.platform === 'android'){
+      chromeTop.innerHTML =
+        `<div class="sysbar" style="height:26px"><span>9:41</span>${sysIcons}</div>
+         <div class="urlbar top">
+           <div class="url-field">
+             <button class="url-btn" id="permIcon" type="button" aria-label="Site settings">${ic('lock', 'sm')}</button>
+             <span class="url">${SITE}</span>
+           </div>
+           <button class="chev-btn" type="button" aria-label="Browser menu">${ic('dots', 'sm')}</button>
+         </div>`;
+      chromeBottom.innerHTML = '<div class="navbar"><span></span></div>';
+    } else {
+      chromeTop.innerHTML = `<div class="notch"></div><div class="sysbar" style="height:46px;align-items:flex-end;padding-bottom:6px"><span>9:41</span>${sysIcons}</div>`;
+      chromeBottom.innerHTML =
+        `<div class="urlbar bottom">
+           <div class="url-field">
+             <button class="url-btn aa" id="permIcon" type="button" aria-label="Page settings">a<b>A</b></button>
+             <span class="url">${SITE}</span>
+           </div>
+           <button class="chev-btn" type="button" aria-label="Share">${ic('share', 'sm')}</button>
+         </div>
+         <div class="home-ind"><span></span></div>`;
+    }
+    phone.style.setProperty('--chrome-top', chromeTop.offsetHeight + 'px');
+    fit();
+  }
+
+  // Positioning: 6px spotlight padding around a target, matching the desktop prototype.
+  const PAD = 6;
+
+  /* ================= Flow ================= */
+  // Identical to the desktop prototype: the mic is checked once, so the recording step just records.
+  // A: a device check screen before the practice, so the tour has 3 steps.
+  // B: the same checks as tour steps 1–2, before the practice question.
+  const STEPS = {
+    A:{orient:1, start:2, talk:3},
+    B:{perm:1, blocked:1, devices:2, orient:3, start:4, talk:5}
+  };
+  const TOUR = ['orient', 'start', 'perm', 'blocked', 'devices', 'talk', 'quiet', 'stop'];
+  const stepInfo = () => [STEPS[S.variant][S.state], S.variant === 'A' ? 3 : 5];
+  const CAMS = ['Front camera', 'Back camera'];
+  const MICS = ['Phone microphone', 'AirPods Pro', 'Wired headset'];
+  const WAIT_LABELS = ['Email verified', 'Loading your assessment', 'Preparing a practice question'];
+
+  const S = {
+    state:'wait', variant:'A', chk:'idle', platform:'android',
+    permMode:'ask', voiceMode:'heard', loadMode:'ok', retest:'fixed',
+    alvyOpen:false, micFailed:false, permitted:false, inuseCleared:false, devicesOk:false,
+    blockedReason:'denied', permAuto:false, hidePreview:false, heard:false, qExpanded:false,
+    recSecs:0, cam:0, mic:0, waitItems:['done', 'act', 'pend'],
+    stream:null, audioCtx:null, analyser:null, abuf:null, level:0, realFailed:false,
+    count:5
+  };
+
+  let timers = [], intervals = [];
+  const later = (fn, ms) => timers.push(setTimeout(fn, ms));
+  const every = (fn, ms) => intervals.push(setInterval(fn, ms));
+  const clearTimers = () => { timers.forEach(clearTimeout); intervals.forEach(clearInterval); timers = []; intervals = []; };
+  const fmt = s => String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0');
+
+  const isLive = () => ['talk', 'quiet', 'stop'].includes(S.state);
+  const onPractice = () => ['orient', 'start'].includes(S.state) || isLive();
+  const checking = () => S.state === 'devices' || (S.state === 'check' && S.chk === 'live');
+  // Unlike the desktop frame, the preview keeps running from the device check onward:
+  // on a phone a full-bleed dark rectangle reads as a fault, and both variants already
+  // have permission by this point.
+  const showPreview = () => (checking() || isLive() || (onPractice() && S.devicesOk)) && !(isLive() && S.hidePreview);
+  const camScreen = () => !['wait', 'waitError', 'done', 'countdown', 'assessment'].includes(S.state);
+  const isCentered = () => S.state === 'done' || S.state === 'countdown';
+  const isPost = () => ['done', 'countdown', 'assessment'].includes(S.state);
+
+  function go(next){
+    clearTimers();
+    S.state = next;
+    S.heard = false;
+    S.micFailed = false;
+    S.qExpanded = false;
+    if (next === 'wait') S.waitItems = ['done', 'act', 'pend'];
+    if (next === 'orient' || next === 'start'){ S.recSecs = 0; S.hidePreview = false; }
+    if (next === 'perm'){ S.recSecs = 0; S.permAuto = S.permitted || S.permMode === 'granted'; }
+    if (['wait', 'blocked', 'done', 'countdown', 'assessment'].includes(next)) stopStream();
+    if (next === 'countdown') S.count = 5;
+    render(true);
+    enter(next);
+  }
+
+  function enter(st){
+    if (st === 'wait'){
+      // Prototype stand-in: production drives these from real loading milestones.
+      later(() => {
+        if (S.loadMode === 'fail'){ S.waitItems = ['done', 'fail', 'pend']; go('waitError'); return; }
+        S.waitItems = ['done', 'done', 'act']; renderWaitList();
+      }, 1400);
+      later(() => { S.waitItems = ['done', 'done', 'done']; renderWaitList(); }, 2600);
+      later(() => { S.chk = 'idle'; go(S.variant === 'A' ? 'check' : 'perm'); }, 3200);
+    }
+    if (st === 'perm'){
+      if (S.permAuto){
+        S.permitted = true;
+        if (canUseCamera() && !S.stream) acquire().catch(() => {});
+        later(resolveDevices, 1300);
+      } else if (canUseCamera()){
+        acquire().then(stream => {
+          if (!stream || S.state !== 'perm') return;
+          S.permitted = true; resolveDevices();
+        }).catch(err => {
+          if (S.state !== 'perm' || err?.stale) return;
+          if (err?.fallback){ showPrompt(); return; }
+          if (err && (err.name === 'NotReadableError' || err.name === 'AbortError')){ S.permitted = true; S.blockedReason = 'inuse'; }
+          else { S.permitted = false; S.blockedReason = 'denied'; }
+          go('blocked');
+        });
+      }
+    }
+    if (st === 'check'){
+      if (S.chk === 'asking') beginAsk();
+      if (S.chk === 'live') startMicCheck();
+    }
+    if (st === 'devices'){ S.permitted = true; S.devicesOk = true; startMicCheck(); }
+    if (isLive()){
+      if (canUseCamera() && !S.stream) acquire().catch(() => {});
+      every(() => { S.recSecs++; const t = $('recTime'); if (t) t.textContent = fmt(S.recSecs); }, 1000);
+      startLevel();
+    }
+    if (onPractice() && !isLive() && S.devicesOk && canUseCamera() && !S.stream) acquire().catch(() => {});
+    if (st === 'countdown'){
+      every(() => {
+        S.count--;
+        if (S.count <= 0){ go('assessment'); return; }
+        const n = $('countNum'); if (n) n.textContent = S.count;
+        restartRing();
+      }, 1000);
+      restartRing();
+    }
+    if (st === 'talk') S.devicesOk = true;
+  }
+
+  function resolveDevices(){
+    if (S.permMode === 'inuse' && !S.inuseCleared){ S.blockedReason = 'inuse'; go('blocked'); }
+    else if (S.variant === 'B'){ go('devices'); }
+    else { S.devicesOk = true; go('talk'); }
+  }
+
+  /* ---------- Device check (A: own screen, B: tour step 2) ---------- */
+  function setChk(v){
+    clearTimers();
+    S.chk = v; S.heard = false; S.micFailed = false;
+    if (v === 'live'){ S.permitted = true; S.devicesOk = true; }
+    render(true);
+    if (v === 'asking') beginAsk();
+    if (v === 'live') startMicCheck();
+  }
+  function beginAsk(){
+    if (S.permitted || S.permMode === 'granted'){ S.permitted = true; later(chkResolve, 900); return; }
+    if (!canUseCamera()){ showPrompt(); return; }
+    acquire().then(stream => {
+      if (!stream || S.state !== 'check') return;
+      S.permitted = true; chkResolve();
+    }).catch(err => {
+      if (S.state !== 'check' || err?.stale) return;
+      if (err?.fallback){ showPrompt(); return; }
+      S.blockedReason = (err.name === 'NotReadableError' || err.name === 'AbortError') ? 'inuse' : 'denied';
+      S.permitted = S.blockedReason === 'inuse';
+      setChk('blocked');
+    });
+  }
+  function chkResolve(){
+    hidePrompt();
+    if (S.permMode === 'inuse' && !S.inuseCleared){ S.blockedReason = 'inuse'; setChk('blocked'); }
+    else setChk('live');
+  }
+  function startMicCheck(){
+    if (canUseCamera() && !S.stream) acquire().catch(() => {});
+    startLevel();
+    if (S.voiceMode === 'heard' && !S.analyser) later(micOk, 3000);
+    later(() => { if (!S.heard) micNone(); }, 7000);
+  }
+  function micOk(){
+    if (S.heard || !checking()) return;
+    S.heard = true;
+    S.micFailed = false;
+    renderStatus();
+    // Announced as well as shown: the chip alone is silent to a screen reader.
+    say('Microphone working. You can continue.');
+  }
+  function micNone(){
+    if (S.heard || !checking()) return;
+    S.micFailed = true;
+    renderStatus();
+  }
+  function voiceHeard(){
+    if (S.heard || !(S.state === 'talk' || S.state === 'quiet')) return;
+    S.heard = true;
+    later(() => go('stop'), 1200);
+  }
+
+  // Simulated speech: syllable-like bursts with short pauses.
+  function simSpeech(){
+    const t = performance.now() / 1000;
+    const talking = (Math.sin(t * 1.7) + Math.sin(t * 0.63)) > -0.9;
+    return talking ? Math.min(1, 0.25 + 0.75 * Math.abs(Math.sin(t * 10.5 + Math.sin(t * 3.1) * 2))) : 0.03;
+  }
+  function realLevel(){
+    S.analyser.getByteTimeDomainData(S.abuf);
+    let sum = 0;
+    for (const v of S.abuf){ const d = (v - 128) / 128; sum += d * d; }
+    return Math.min(1, Math.sqrt(sum / S.abuf.length) * 5);
+  }
+  function startLevel(){
+    let loud = 0;
+    every(() => {
+      const st = S.state;
+      let lvl;
+      if (S.voiceMode === 'silent') lvl = 0;
+      else if (S.analyser) lvl = realLevel();
+      else lvl = st === 'quiet' && !(S.retesting && S.retest === 'fixed') ? 0 : simSpeech();
+      S.level = lvl;
+      if (!S.heard){
+        document.querySelectorAll('.meter:not(.done) i').forEach(b => b.style.height = Math.round(3 + lvl * 14 * (0.55 + 0.45 * Math.random())) + 'px');
+        if (S.analyser && S.voiceMode === 'heard'){
+          loud = lvl > 0.12 ? loud + 80 : Math.max(0, loud - 40);
+          if (loud >= 600){ if (checking()) micOk(); else if (st === 'quiet') voiceHeard(); }
+        }
+      }
+    }, 80);
+  }
+
+  /* ================= Camera ================= */
+  const canUseCamera = () => {
+    if (S.realFailed || !window.isSecureContext || !navigator.mediaDevices?.getUserMedia) return false;
+    const policy = document.permissionsPolicy || document.featurePolicy;
+    return policy?.allowsFeature ? policy.allowsFeature('camera') : true;
+  };
+  let acquireToken = 0;
+  function acquire(){
+    const tok = ++acquireToken, t0 = performance.now();
+    return navigator.mediaDevices.getUserMedia({video:true, audio:true}).then(stream => {
+      if (tok !== acquireToken){ stream.getTracks().forEach(t => t.stop()); return null; }
+      S.stream = stream;
+      setupAudio(stream);
+      if (showPreview()) refreshMedia();
+      return stream;
+    }, err => {
+      if (tok !== acquireToken) throw {stale:true};
+      // An instant refusal means this frame can't use the camera at all (e.g. an embedded
+      // viewer): fall back to the simulated prompt and the drawn sample preview.
+      if ((err.name === 'NotAllowedError' && performance.now() - t0 < 250) || err.name === 'SecurityError' || err.name === 'TypeError'){
+        S.realFailed = true;
+        throw {fallback:true};
+      }
+      throw err;
+    });
+  }
+  function setupAudio(stream){
+    try {
+      if (!stream.getAudioTracks().length) return;
+      const AC = window.AudioContext || window.webkitAudioContext;
+      S.audioCtx = new AC();
+      const an = S.audioCtx.createAnalyser();
+      an.fftSize = 512;
+      S.audioCtx.createMediaStreamSource(stream).connect(an);
+      S.analyser = an;
+      S.abuf = new Uint8Array(an.fftSize);
+      S.audioCtx.resume?.();
+    } catch (e){ S.analyser = null; }
+  }
+  function stopStream(){
+    acquireToken++;
+    S.stream?.getTracks().forEach(t => t.stop());
+    try { S.audioCtx?.close(); } catch (e){}
+    S.stream = null; S.audioCtx = null; S.analyser = null;
+  }
+  function mediaHTML(){
+    if (!showPreview()) return '';
+    return S.stream
+      ? '<video id="liveVideo" autoplay muted playsinline aria-label="Your camera preview"></video>'
+      : '<canvas id="simCam" role="img" aria-label="Sample camera preview"></canvas><span class="sim-tag">Sample preview</span>';
+  }
+  function attachMedia(){
+    const v = $('liveVideo');
+    if (v && S.stream){ v.srcObject = S.stream; v.play().catch(() => {}); }
+    const c = $('simCam');
+    if (c) startSim(c);
+  }
+  function refreshMedia(){
+    const m = $('vmedia');
+    if (!m) return;
+    m.innerHTML = mediaHTML();
+    attachMedia();
+  }
+
+  /* Sample preview for viewers whose frame blocks the camera: a drawn person who
+     sways, blinks and talks in time with the level meter. Scaled like object-fit:cover
+     so it fills a portrait frame the way a real phone camera would. */
+  let simRaf = 0;
+  function startSim(c){
+    cancelAnimationFrame(simRaf);
+    const ctx = c.getContext('2d');
+    const t0 = performance.now();
+    const frame = now => {
+      if (!c.isConnected) return;
+      const dpr = Math.min(window.devicePixelRatio || 1, 2), w = c.clientWidth, h = c.clientHeight;
+      if (!w || !h) { simRaf = requestAnimationFrame(frame); return; }
+      if (c.width !== Math.round(w * dpr) || c.height !== Math.round(h * dpr)){ c.width = Math.round(w * dpr); c.height = Math.round(h * dpr); }
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      drawPerson(ctx, w, h, (now - t0) / 1000, S.level);
+      if (!reduce.matches) simRaf = requestAnimationFrame(frame);
+    };
+    simRaf = requestAnimationFrame(frame);
+  }
+  function drawPerson(ctx, w, h, t, level){
+    const u = Math.max(w / 612, h / 443) * 0.92;
+    const wall = ctx.createLinearGradient(0, 0, 0, h);
+    wall.addColorStop(0, '#6b625a'); wall.addColorStop(1, '#433d38');
+    ctx.fillStyle = wall; ctx.fillRect(0, 0, w, h);
+    const glow = ctx.createRadialGradient(w * .92, h * .2, 10, w * .92, h * .2, w * .9);
+    glow.addColorStop(0, 'rgba(255,236,205,.42)'); glow.addColorStop(1, 'rgba(255,236,205,0)');
+    ctx.fillStyle = glow; ctx.fillRect(0, 0, w, h);
+    ctx.fillStyle = '#4f4740'; ctx.fillRect(w * .04, h * .1, 92 * u, 70 * u);
+    ctx.fillStyle = '#7d8c87'; ctx.fillRect(w * .04 + 6 * u, h * .1 + 6 * u, 80 * u, 58 * u);
+
+    const cx = w / 2 + Math.sin(t * .6) * 6 * u, cy = h * .42 + Math.sin(t * .9) * 3 * u;
+    ctx.save();
+    ctx.translate(cx, cy); ctx.rotate(Math.sin(t * .5) * .03);
+    ctx.fillStyle = '#2f4a6b';
+    ctx.beginPath();
+    ctx.moveTo(-210 * u, h);
+    ctx.bezierCurveTo(-200 * u, 140 * u, -120 * u, 118 * u, -40 * u, 112 * u);
+    ctx.lineTo(40 * u, 112 * u);
+    ctx.bezierCurveTo(120 * u, 118 * u, 200 * u, 140 * u, 210 * u, h);
+    ctx.closePath(); ctx.fill();
+    ctx.fillStyle = '#b97f5d';
+    ctx.beginPath(); ctx.ellipse(0, 100 * u, 30 * u, 36 * u, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#2f4a6b';
+    ctx.beginPath(); ctx.moveTo(-44 * u, 112 * u); ctx.quadraticCurveTo(0, 150 * u, 44 * u, 112 * u); ctx.lineTo(44 * u, 140 * u); ctx.lineTo(-44 * u, 140 * u); ctx.fill();
+    ctx.fillStyle = '#d29c78';
+    ctx.beginPath(); ctx.ellipse(0, 0, 62 * u, 78 * u, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(-62 * u, 8 * u, 10 * u, 16 * u, 0, 0, Math.PI * 2); ctx.ellipse(62 * u, 8 * u, 10 * u, 16 * u, 0, 0, Math.PI * 2); ctx.fill();
+    const light = ctx.createRadialGradient(24 * u, -24 * u, 4 * u, 24 * u, -24 * u, 90 * u);
+    light.addColorStop(0, 'rgba(255,230,205,.35)'); light.addColorStop(1, 'rgba(255,230,205,0)');
+    ctx.fillStyle = light; ctx.beginPath(); ctx.ellipse(0, 0, 62 * u, 78 * u, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#2b201b';
+    ctx.beginPath();
+    ctx.ellipse(0, -30 * u, 68 * u, 56 * u, 0, Math.PI, Math.PI * 2);
+    ctx.quadraticCurveTo(40 * u, -50 * u, 0, -46 * u);
+    ctx.quadraticCurveTo(-40 * u, -44 * u, -68 * u, -30 * u);
+    ctx.fill();
+    ctx.strokeStyle = '#2b201b'; ctx.lineWidth = 4 * u; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(-34 * u, -24 * u); ctx.lineTo(-14 * u, -26 * u); ctx.moveTo(14 * u, -26 * u); ctx.lineTo(34 * u, -24 * u); ctx.stroke();
+    const blink = (t % 4.2) < .14;
+    ctx.fillStyle = '#2b201b';
+    ctx.beginPath(); ctx.ellipse(-24 * u, -8 * u, 6 * u, blink ? 1 * u : 6 * u, 0, 0, Math.PI * 2); ctx.ellipse(24 * u, -8 * u, 6 * u, blink ? 1 * u : 6 * u, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = 'rgba(120,70,45,.55)'; ctx.lineWidth = 3 * u;
+    ctx.beginPath(); ctx.moveTo(0, -2 * u); ctx.quadraticCurveTo(-6 * u, 14 * u, 2 * u, 18 * u); ctx.stroke();
+    ctx.fillStyle = '#7a3b32';
+    ctx.beginPath(); ctx.ellipse(0, 40 * u, 15 * u, 2.5 * u + level * 9 * u, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+    const vig = ctx.createRadialGradient(w / 2, h / 2, h * .35, w / 2, h / 2, h * .95);
+    vig.addColorStop(0, 'rgba(0,0,0,0)'); vig.addColorStop(1, 'rgba(0,0,0,.45)');
+    ctx.fillStyle = vig; ctx.fillRect(0, 0, w, h);
+  }
+
+  /* ================= Permission recovery copy ================= */
+  const BROWSERS = {
+    android:{name:'Chrome', steps:['Tap the lock icon at the left of the address bar.', 'Tap <b>Permissions</b>.', 'Turn on <b>Camera</b> and <b>Microphone</b>, then tap <b>Try again</b>.']},
+    ios:{name:'Safari', steps:['Tap <b>aA</b> in the address bar at the bottom.', 'Tap <b>Website Settings</b>.', 'Set <b>Camera</b> and <b>Microphone</b> to <b>Allow</b>, then tap <b>Try again</b>.']}
+  };
+  const SHORT_STEPS = {
+    android:['Tap the lock icon in the address bar.', 'Tap <b>Permissions</b> and allow both.', 'Tap <b>Try again</b>.'],
+    ios:['Tap <b>aA</b>, then <b>Website Settings</b>.', 'Set Camera and Microphone to <b>Allow</b>.', 'Tap <b>Try again</b>.']
+  };
+  const osSettings = kind => S.platform === 'ios'
+    ? `Settings › Safari › ${kind} on your phone`
+    : `Settings › Apps › Chrome › Permissions on your phone`;
+
+  /* ================= Chat with Alvy ================= */
+  const alvyPanel = $('alvy'), chatLog = $('chatLog');
+  const nowTime = () => new Date().toLocaleTimeString([], {hour:'numeric', minute:'2-digit'});
+  function bubble(who, html){
+    const d = document.createElement('div');
+    d.className = 'msg ' + who;
+    d.innerHTML = `<span class="who">${who === 'you' ? 'You' : 'Alvy'}</span><div class="bubble">${html}<span class="time">${nowTime()}</span></div>`;
+    chatLog.append(d);
+    chatLog.scrollTop = chatLog.scrollHeight;
+  }
+  function openAlvy(){
+    if (S.alvyOpen) return;
+    S.alvyOpen = true; alvyPanel.hidden = false; $('alvyBtn').setAttribute('aria-expanded', 'true');
+    if (!chatLog.children.length) bubble('bot', 'Need help?<br>Type your question or describe the issue, and I’ll instantly find the right steps or guide you to support.');
+    spotlight();
+  }
+  function closeAlvy(){ S.alvyOpen = false; alvyPanel.hidden = true; $('alvyBtn').setAttribute('aria-expanded', 'false'); spotlight(); }
+  let chatTimers = [];
+  // Help-centre articles Alvy summarises (prototype copy; the real articles need confirming).
+  function article(topic){
+    const name = BROWSERS[S.platform].name;
+    if (topic === 'blocked') return {
+      ask:`Hi, my camera and microphone are blocked in ${name}. Can you help?`,
+      search:`${name} permission steps`,
+      title:`Allowing camera and microphone in ${name}`,
+      steps:[...BROWSERS[S.platform].steps, `Still blocked? Make sure ${name} is allowed in ${osSettings('Camera')}.`]
+    };
+    if (topic === 'inuse') return {
+      ask:'Hi, it says my camera is being used by another app. Can you help?',
+      search:'camera troubleshooting steps',
+      title:'Fixing “Camera in use”',
+      steps:['Close apps that use the camera, like Zoom, Teams, Google Meet or FaceTime.', 'Swipe them away so they fully quit, not just go to the background.', 'Tap <b>Try again</b>.', 'Still not working? Close the browser and open the link again.']
+    };
+    return {
+      ask:'Hi, you can’t hear my microphone. Can you help?',
+      search:'microphone troubleshooting steps',
+      title:'Fixing “Microphone not detected”',
+      steps:['Choose the right microphone from the list under your video.', 'Check that your phone or headset isn’t muted.', `Make sure ${name} can use your microphone in ${osSettings('Microphone')}.`, 'Close apps that may be using it, like Zoom, Teams or a call.', 'Tap <b>Try again</b>.']
+    };
+  }
+  function helpFlow(topic){
+    openAlvy();
+    chatTimers.forEach(clearTimeout); chatTimers = [];
+    const t = (fn, ms) => chatTimers.push(setTimeout(fn, ms));
+    const ar = article(topic);
+    let searching;
+    t(() => bubble('you', ar.ask), 500);
+    t(() => bubble('bot', `Absolutely, let me help you fix that.<br>I’m checking our help center for ${ar.search}.`), 1300);
+    t(() => { searching = document.createElement('div'); searching.className = 'searching'; searching.innerHTML = '<span class="spin xs" aria-hidden="true"></span>Searching…'; chatLog.append(searching); chatLog.scrollTop = chatLog.scrollHeight; }, 2000);
+    t(() => { searching?.remove(); bubble('bot', `I found an article that matches your issue. Here’s a quick summary of <b>${ar.title}</b>:<ol>${ar.steps.map(x => `<li>${x}</li>`).join('')}</ol>`); }, 3400);
+  }
+  $('chatForm').addEventListener('submit', e => {
+    e.preventDefault();
+    const inp = $('chatInput'), text = inp.value.trim();
+    if (!text) return;
+    bubble('you', esc(text));
+    inp.value = '';
+    chatTimers.push(setTimeout(() => bubble('bot', 'Thanks, I’m looking into that now.'), 900));
+  });
+
+  /* ================= Simulated permission prompt ================= */
+  function promptHTML(){
+    if (S.platform === 'ios') return `
+      <div class="body">
+        <strong>“${SITE}” Would Like to Access the Camera and Microphone</strong>
+        <span class="sub">You answer this assessment by recording video.</span>
+      </div>
+      <div class="acts"><button data-act="block" type="button">Don’t Allow</button><button data-act="allow" type="button">Allow</button></div>
+      <small>Simulated. The real alert is drawn by iOS.</small>`;
+    return `
+      <strong>${SITE} wants to</strong>
+      <div class="rows">
+        <div class="row">${ic('video', 'sm')}Use your camera</div>
+        <div class="row">${ic('mic', 'sm')}Use your microphone</div>
+      </div>
+      <div class="acts"><button class="btn btn-secondary" data-act="block" type="button">Block</button><button class="btn btn-primary" data-act="allow" type="button">Allow</button></div>
+      <small>Simulated. The real prompt is drawn by Chrome.</small>`;
+  }
+  function showPrompt(){ promptEl.className = S.platform; promptEl.innerHTML = promptHTML(); promptEl.hidden = false; spotlight(); }
+  function hidePrompt(){ promptEl.hidden = true; }
+
+  /* ================= View content ================= */
+  function listHTML(){
+    const SR = {done:'done', act:'in progress', pend:'not started', fail:'failed'};
+    return WAIT_LABELS.map((t, i) => {
+      const s = S.waitItems[i];
+      const mark = s === 'done' ? ic('circleCheck', 'sm') : s === 'act' ? '<span class="spin" aria-hidden="true"></span>' : s === 'fail' ? ic('circleX', 'sm') : ic('circle', 'sm');
+      return `<li class="${s}">${mark}<span>${t}</span><span class="sr-only">, ${SR[s]}</span></li>`;
+    }).join('');
+  }
+  function renderWaitList(){ const l = $('waitList'); if (l) l.innerHTML = listHTML(); }
+
+  function waitHTML(){
+    const err = S.state === 'waitError';
+    return `<section class="waitscreen" aria-labelledby="waitTitle">
+      <div class="wait-mark ${err ? 'err' : ''}">${err ? ic('alert') : '<span class="spin lg" aria-hidden="true"></span>'}</div>
+      <h1 id="waitTitle">${err ? 'We couldn’t load your assessment' : 'Getting your assessment ready…'}</h1>
+      <p>${err ? 'Check your internet connection, then try again.' : 'This can take up to 30 seconds. Keep this tab open.'}</p>
+      <ul class="checklist" id="waitList" aria-live="polite">${listHTML()}</ul>
+      ${err ? '<button class="btn btn-primary btn-block" id="reloadBtn" data-act="reload" type="button">Try again</button>' : ''}
+    </section>`;
+  }
+
+  function skeletonHTML(){
+    const end = S.state === 'assessment'
+      ? `<div class="proto-note" role="note"><strong>End of prototype</strong><span>The timer is running and the first assessment question loads here.</span><button class="btn btn-secondary" data-act="reload" type="button">Restart prototype</button></div>`
+      : '';
+    return `<div class="skel" aria-label="Loading assessment" aria-busy="${S.state !== 'assessment'}">
+      <span class="sk sk-head"></span>
+      <div class="sk-media"></div>
+      <div class="sk-lines">${'<span class="sk sk-line" style="width:88%"></span><span class="sk sk-line" style="width:72%"></span><span class="sk sk-line" style="width:80%"></span>'}</div>
+      ${end}
+    </div>`;
+  }
+
+  const vchip = (kind, label, id = '') => {
+    const icon = {ok:'check', bad:'videoOff', wait:'clock', warn:'micOff'}[kind];
+    return `<span class="vchip ${kind}"${id ? ` id="${id}"` : ''}>${ic(icon, 'xs')}${label}</span>`;
+  };
+  const meterHTML = (cls = '') => `<span class="meter ${cls}" aria-hidden="true">${'<i></i>'.repeat(12)}</span>`;
+
+  function selectHTML(id, kind, names, idx, known){
+    const opts = known
+      ? names.map((n, i) => `<option${i === idx ? ' selected' : ''}>${n}</option>`).join('')
+      : `<option>${kind === 'cam' ? 'Default camera' : 'Default microphone'}</option>`;
+    return `<div class="vselect">${ic(kind === 'cam' ? 'video' : 'mic', 'sm lead')}
+      <select id="${id}" aria-label="${kind === 'cam' ? 'Camera' : 'Microphone'}"${known ? '' : ' disabled'}>${opts}</select>${ic('chevron', 'xs chev')}</div>`;
+  }
+
+  // The dark message shown over the preview area when there is nothing to preview.
+  function camMsg(){
+    const st = S.state;
+    if (showPreview()) return '';
+    if (isLive() && S.hidePreview) return `${ic('eyeOff')}<span>Preview hidden. Your video is still recording.</span>`;
+    if (st === 'blocked' || (st === 'check' && S.chk === 'blocked'))
+      return `${ic('videoOff')}<span>${S.blockedReason === 'inuse' ? 'Another app is using your camera' : 'No camera access'}</span>`;
+    if (st === 'perm' || (st === 'check' && S.chk === 'asking'))
+      return `<span class="spin lg" aria-hidden="true"></span><span>Waiting for camera and microphone access…</span>`;
+    return `${ic('video')}<span>Your camera preview will appear here</span>`;
+  }
+
+  // Camera and mic state, shown right by the dropdowns they belong to.
+  function camStatus(){
+    const st = S.state;
+    if (st === 'blocked' || (st === 'check' && S.chk === 'blocked')){
+      return S.blockedReason === 'inuse'
+        ? vchip('bad', 'Camera in use') + vchip('ok', 'Microphone allowed')
+        : vchip('bad', 'Camera blocked') + vchip('bad', 'Microphone blocked');
+    }
+    if (st === 'perm' || (st === 'check' && S.chk === 'asking'))
+      return `<span class="vchip"><span class="spin xs" aria-hidden="true"></span>Waiting for access</span>`;
+    if (st === 'check' && S.chk === 'idle') return '';
+    if (checking()){
+      const cam = vchip('ok', 'Camera working');
+      // While listening the mic shows a live level; once it passes it becomes a chip.
+      const mic = S.heard ? vchip('ok', 'Microphone working', 'micChip')
+        : S.micFailed ? vchip('warn', 'No sound yet', 'micChip')
+        : `<span class="vchip" id="micChip">${meterHTML()}Say something…</span>`;
+      return cam + mic;
+    }
+    if (isLive()){
+      const rec = `<span class="vchip"><span class="rec-dot"></span>REC <span id="recTime">${fmt(S.recSecs)}</span></span>`;
+      return rec + (S.heard || S.state === 'stop' ? vchip('ok', 'Microphone working') : `<span class="vchip">${meterHTML()}Picking up sound</span>`);
+    }
+    if (onPractice() && S.devicesOk) return vchip('ok', 'Camera and microphone ready');
+    return '';
+  }
+
+  function camActions(){
+    const st = S.state;
+    if (isLive()) return `<button class="toggle" id="hideToggle" data-act="hide" aria-pressed="${S.hidePreview}" type="button"><span class="track" aria-hidden="true"></span>Hide preview</button>
+      <button class="btn btn-primary" id="stopBtn" data-act="stop" type="button">${ic('square', 'sm')}Stop recording</button>`;
+    if (st === 'orient' || st === 'start') return `<span class="cam-note">Nothing is saved or scored.</span>
+      <button class="btn btn-primary" id="startBtn" data-act="start-rec" type="button">${ic('rec', 'sm')}Start recording</button>`;
+    return '';
+  }
+
+  function questionHTML(){
+    if (!onPractice()) return '';
+    return `<section class="qpanel${isLive() && !S.qExpanded ? ' compact' : ''}" id="questionCard">
+      <div class="qhead">
+        <h1>Practice question <span class="tag">Not scored</span></h1>
+        <button class="icon-btn" type="button" aria-label="Report a problem with this question">${ic('flag', 'sm')}</button>
+      </div>
+      <p class="question">Tell us about a project you’re proud of and what you learned from it.</p>
+    </section>`;
+  }
+
+  function camHTML(){
+    const known = S.permitted || S.devicesOk;
+    const msg = camMsg(), status = camStatus(), actions = camActions();
+    const showDevices = !(S.state === 'check' && S.chk === 'idle');
+    return `<div class="cam" id="cam">
+      <div class="cam-media" id="vmedia">${mediaHTML()}</div>
+      ${msg ? `<div class="cam-msg">${msg}</div>` : ''}
+      ${questionHTML()}
+      <div class="cam-foot">
+        ${status ? `<div class="cam-status" id="camStatus">${status}</div>` : ''}
+        ${showDevices ? `<div class="cam-devices" id="devices">
+          ${selectHTML('camSelect', 'cam', CAMS, S.cam, known)}
+          ${selectHTML('micSelect', 'mic', MICS, S.mic, known)}
+        </div>` : ''}
+        ${actions ? `<div class="cam-actions" id="camActions">${actions}</div>` : ''}
+      </div>
+    </div>`;
+  }
+
+  /* ================= Sheet content ================= */
+  const waiting = t => `<span class="waiting"><span class="spin xs" aria-hidden="true"></span>${t}</span>`;
+  const alvyLink = (topic, label) => `<button class="help-link" data-act="help" data-topic="${topic}" type="button">${ic('info', 'sm')}${label}</button>`;
+
+  function blockedBody(){
+    return S.blockedReason === 'inuse'
+      ? {title:'Your camera is in use', body:'Another app is using your camera. Close apps like Zoom, Teams or FaceTime, then try again.',
+         extra:alvyLink('inuse', 'Still not working? Get help from Alvy')}
+      : {title:'Camera and microphone are blocked', body:`${BROWSERS[S.platform].name} is blocking access. To allow it:`,
+         extra:`<ol class="steps">${SHORT_STEPS[S.platform].map(x => `<li>${x}</li>`).join('')}</ol>${alvyLink('blocked', 'Still blocked? Get help from Alvy')}`};
+  }
+
+  // What a disabled Continue is waiting for. Never a silent dead button.
+  function footHint(){
+    if (S.heard) return null;
+    if (checking()) return S.micFailed ? ['warn', 'Fix your microphone to continue'] : ['', 'Say something to continue'];
+    return null;
+  }
+
+  function sheetContent(){
+    const st = S.state;
+    let step = null, title = '', body = '', extra = '', foot = '', tone = '';
+
+    if (st === 'check'){
+      // A's device check is a screen of its own, so it carries no step number.
+      if (S.chk === 'idle'){
+        title = 'Allow camera and microphone';
+        body = 'You answer this assessment by recording video, so we need access to your camera and microphone.';
+        foot = `<button class="btn btn-primary btn-block" data-act="chk-allow" id="chkAllow" type="button">Allow access</button>`;
+      } else if (S.chk === 'asking'){
+        title = 'Waiting for access';
+        body = 'Look for your browser’s prompt and tap Allow.';
+        foot = waiting('Waiting for access');
+      } else if (S.chk === 'blocked'){
+        tone = 'error';
+        ({title, body, extra} = blockedBody());
+        foot = `<button class="btn btn-primary btn-block" data-act="retry" type="button" data-focus>Try again</button>`;
+      } else {
+        if (S.micFailed){
+          tone = 'warning';
+          title = 'We can’t hear you';
+          body = 'Your microphone isn’t picking up any sound. Check it isn’t muted, or choose a different microphone above.';
+          extra = alvyLink('mic', 'Get help from Alvy');
+        } else {
+          title = 'Check your camera and microphone';
+          body = 'Make sure you can see yourself and the bar moves when you speak.';
+        }
+        foot = `<button class="btn btn-primary btn-block" id="chkContinue" data-act="chk-continue" type="button"${S.heard ? '' : ' disabled'}>Continue to practice question</button>`;
+      }
+      return {step, title, body, extra, foot, tone};
+    }
+
+    const [n, total] = stepInfo();
+    step = n ? `${n}/${total}` : null;
+    switch (st){
+      case 'perm':
+        if (S.permAuto){
+          title = 'Camera and microphone allowed';
+          body = 'Your browser already has access, so there’s nothing to allow.';
+          foot = waiting('Starting your camera');
+        } else {
+          title = 'Allow camera and microphone';
+          body = 'You answer by recording video. Tap Allow when your browser asks.';
+          foot = waiting('Waiting for access');
+        }
+        break;
+      case 'blocked':
+        tone = 'error';
+        ({title, body, extra} = blockedBody());
+        foot = `<button class="btn btn-primary btn-block" data-act="retry" type="button" data-focus>Try again</button>`;
+        break;
+      case 'devices':
+        if (S.micFailed){
+          tone = 'warning';
+          title = 'We can’t hear you';
+          body = 'Your microphone isn’t picking up any sound. Check it isn’t muted, or choose a different microphone above.';
+          extra = alvyLink('mic', 'Get help from Alvy');
+        } else {
+          title = 'Check your camera and microphone';
+          body = 'Make sure you can see yourself and the bar moves when you speak. Your practice question comes next.';
+        }
+        foot = `<button class="btn btn-primary btn-block" id="devOk" data-act="dev-ok" type="button"${S.heard ? '' : ' disabled'}>Continue</button>`;
+        break;
+      case 'orient':
+        title = 'Your practice question';
+        body = 'Use this practice question to try recording once. Nothing is saved or scored.';
+        foot = `<button class="btn btn-primary btn-block" data-act="next" type="button" data-focus>Next</button>`;
+        break;
+      case 'start':
+        title = 'Start recording';
+        body = 'Tap Start recording to try answering the question.';
+        foot = waiting('Waiting for you to start');
+        break;
+      case 'talk':
+        title = 'Answer out loud';
+        body = 'Say a sentence or two, then tap Stop recording. It doesn’t need to be perfect.';
+        extra = `<p class="note">${ic('eyeOff', 'sm')}Prefer not to watch yourself? Turn on Hide preview. Your video still records.</p>`;
+        foot = waiting('Waiting for you to stop');
+        break;
+      case 'quiet':
+        tone = 'warning';
+        title = 'We can’t hear you';
+        body = 'Check that the right microphone is selected and isn’t muted, then test again.';
+        extra = `<div class="meter-row">${meterHTML('quiet')}<span class="label">Still listening…</span></div>${alvyLink('mic', 'How to fix microphone problems')}`;
+        foot = `<button class="btn btn-secondary btn-block" data-act="retest" type="button" data-focus>Test again</button>`;
+        break;
+      case 'stop':
+        title = 'Stop recording';
+        body = 'Tap Stop recording when you’re done. It doesn’t need to be perfect.';
+        foot = waiting('Waiting for you to stop');
+        break;
+    }
+    return {step, title, body, extra, foot, tone};
+  }
+
+  function sheetHTML(){
+    const c = sheetContent();
+    if (!c.title) return '';
+    const hint = footHint();
+    return `<div class="grab" aria-hidden="true"></div>
+      ${c.step ? `<p class="step-no"><span aria-hidden="true">${c.step}</span><span class="sr-only">Step ${c.step.replace('/', ' of ')}</span></p>` : ''}
+      <h2 id="sheetTitle"${c.tone ? ` class="tone-${c.tone}"` : ''}>${c.title}</h2>
+      <p>${c.body}</p>
+      ${c.extra}
+      ${c.foot ? `<div class="sheet-foot">${c.foot}${hint ? `<span class="foot-hint ${hint[0]}">${hint[1]}</span>` : ''}</div>` : ''}`;
+  }
+
+  function modalHTML(){
+    if (S.state === 'countdown') return `<div class="modal count">
+      <h2 class="count-title" id="sheetTitle">Starting Assessment in</h2>
+      <div class="count-ring" aria-live="polite">
+        <svg viewBox="0 0 100 100" aria-hidden="true"><circle class="bg" cx="50" cy="50" r="46"/><circle class="fg" cx="50" cy="50" r="46"/></svg>
+        <span class="count-num" id="countNum">${S.count}</span>
+      </div></div>`;
+    return `<div class="modal">
+      <h2 id="sheetTitle">You’re all set!</h2>
+      <p>Great job practising. When you’re ready, tap Start Assessment to begin.</p>
+      <div class="sheet-foot">
+        <button class="btn btn-primary btn-block" data-act="begin" type="button" data-focus>Start Assessment</button>
+        <button class="btn btn-secondary btn-block" data-act="again" type="button">Practice again</button>
+      </div></div>`;
+  }
+  function restartRing(){
+    const fg = document.querySelector('.count-ring .fg');
+    if (!fg || reduce.matches) return;
+    fg.classList.remove('run'); void fg.getBoundingClientRect(); fg.classList.add('run');
+  }
+
+  /* ================= Render ================= */
+  let announcer = null;
+  function say(msg){
+    if (!announcer){
+      announcer = document.createElement('div');
+      announcer.className = 'sr-only';
+      announcer.setAttribute('role', 'status');
+      document.body.append(announcer);
+    }
+    announcer.textContent = '';
+    later(() => { announcer.textContent = msg; }, 60);
+  }
+
+  function render(stepChange){
+    updateProto();
+    const centered = isCentered();
+    // Where this frame cannot reach a camera there is no browser prompt to wait for,
+    // so the simulated one is driven from the state instead.
+    const needsPrompt = !canUseCamera() && (
+      (S.state === 'perm' && !S.permAuto) ||
+      (S.state === 'check' && S.chk === 'asking' && !S.permitted && S.permMode !== 'granted'));
+    if (needsPrompt) showPrompt(); else hidePrompt();
+
+    view.innerHTML = camScreen() ? camHTML() : isPost() ? skeletonHTML() : waitHTML();
+    if (centered) view.insertAdjacentHTML('beforeend', `<div class="modal-wrap">${modalHTML()}</div>`);
+    attachMedia();
+
+    paintSheet();
+
+    if (S.state === 'waitError') requestAnimationFrame(() => $('reloadBtn')?.focus({preventScroll:true}));
+    spotlight();
+    requestAnimationFrame(spotlight);   // second pass once web fonts have settled
+    if (stepChange) sheet.querySelector('[data-focus]')?.focus({preventScroll:true});
+  }
+
+  // Repaint the status chips and the sheet without touching the media element.
+  function renderStatus(){
+    const cs = $('camStatus');
+    if (!cs) return render();
+    cs.innerHTML = camStatus();
+    paintSheet();
+    spotlight();
+  }
+  function paintSheet(){
+    const body = camScreen() ? sheetHTML() : '';
+    sheet.hidden = !body;
+    sheet.className = 'sheet';
+    if (!body){ sheetBody.innerHTML = ''; return; }
+    const c = sheetContent();
+    if (c.tone) sheet.classList.add('tone-' + c.tone);
+    sheetBody.innerHTML = body;
+  }
+
+  /* ================= Spotlight ================= */
+  // Phone-local coordinates: the phone is transform-scaled, so divide by K.
+  function box(el, pad = PAD){
+    const r = el.getBoundingClientRect(), p = phone.getBoundingClientRect();
+    return {x:(r.left - p.left) / K - pad, y:(r.top - p.top) / K - pad, w:r.width / K + pad * 2, h:r.height / K + pad * 2};
+  }
+  function clearInert(){
+    phone.querySelectorAll('[data-inert]').forEach(e => { e.removeAttribute('inert'); e.removeAttribute('data-inert'); });
+  }
+  // Everything outside the lit areas stops taking taps and leaves the tab order.
+  function setInert(keep){
+    clearInert();
+    if (!keep || !keep.length) return;
+    const walk = node => {
+      for (const ch of node.children){
+        if (ch === overlay || ch === promptEl || ch === alvyPanel) continue;
+        if (keep.some(k => k && ch.contains(k))) walk(ch);
+        else { ch.setAttribute('inert', ''); ch.setAttribute('data-inert', ''); }
+      }
+    };
+    walk(phone);
+  }
+
+  // Which element this step is pointing at, if any.
+  function target(){
+    const st = S.state;
+    if (st === 'orient') return $('questionCard');
+    if (st === 'start') return $('startBtn');
+    if (st === 'talk' || st === 'stop' || st === 'quiet') return $('stopBtn');
+    if (st === 'devices' || (st === 'check' && S.chk === 'live')) return $('devices');
+    // A blocked step points at the browser affordance the steps actually name.
+    if (st === 'blocked' || (st === 'check' && S.chk === 'blocked')) return $('permIcon');
+    return null;
+  }
+
+  function spotlight(){
+    const touring = camScreen() && !sheet.hidden && !S.alvyOpen && !isCentered();
+    if (!touring || !promptEl.hidden){
+      // The browser's own prompt owns the screen while it is up.
+      overlay.toggleAttribute('hidden', true);
+      clearInert();
+      if (!promptEl.hidden) setInert([promptEl]);
+      return;
+    }
+    const t = target();
+    // The sheet and the app bar stay lit: the action, and help, are always reachable.
+    const keep = [sheet, appbar, t].filter(Boolean);
+    const holes = [{el:sheet, pad:0, rx:18}, {el:appbar, pad:0, rx:0}];
+    if (t) holes.push({el:t, pad:PAD, rx:12});
+
+    holesG.innerHTML = holes.map(h => {
+      const r = box(h.el, h.pad);
+      return `<rect x="${r.x.toFixed(1)}" y="${r.y.toFixed(1)}" width="${r.w.toFixed(1)}" height="${r.h.toFixed(1)}" rx="${h.rx}"/>`;
+    }).join('');
+    ringsG.innerHTML = t ? (() => {
+      const r = box(t, PAD);
+      return `<rect class="ring" x="${r.x.toFixed(1)}" y="${r.y.toFixed(1)}" width="${r.w.toFixed(1)}" height="${r.h.toFixed(1)}" rx="12"/>`;
+    })() : '';
+    overlay.setAttribute('viewBox', `0 0 ${dev().w} ${dev().h}`);
+    overlay.toggleAttribute('hidden', false);
+    setInert(keep);
+  }
+
+  /* ================= Events ================= */
+  phone.addEventListener('click', e => {
+    const b = e.target.closest('[data-act]');
+    if (!b) return;
+    const act = b.dataset.act;
+    switch (act){
+      case 'reload': location.reload(); break;
+      case 'help': helpFlow(b.dataset.topic); break;
+      case 'alvy-close': closeAlvy(); break;
+      case 'allow':
+        hidePrompt();
+        S.permitted = true;
+        if (S.state === 'check') chkResolve(); else resolveDevices();
+        break;
+      case 'block':
+        hidePrompt();
+        S.permitted = false; S.blockedReason = 'denied';
+        if (S.state === 'check') setChk('blocked'); else go('blocked');
+        break;
+      case 'chk-allow': setChk('asking'); break;
+      case 'chk-continue': if (S.heard) go('orient'); break;
+      case 'dev-ok': if (S.heard) go('orient'); break;
+      case 'next': go('start'); break;
+      case 'start-rec': go('talk'); break;
+      case 'stop': go('done'); break;
+      case 'retry':
+        S.inuseCleared = true;
+        S.permitted = false;
+        if (S.state === 'check') setChk('asking'); else go('perm');
+        break;
+      case 'retest':
+        S.retesting = true; S.micFailed = false;
+        go('talk');
+        break;
+      case 'hide':
+        S.hidePreview = !S.hidePreview;
+        render();
+        break;
+      case 'again': S.devicesOk = true; go('orient'); break;
+      case 'begin': go('countdown'); break;
+    }
+  });
+  $('alvyBtn').addEventListener('click', () => S.alvyOpen ? closeAlvy() : openAlvy());
+  // A long question stays readable while recording: tap to expand, tap to collapse.
+  phone.addEventListener('click', e => {
+    const q = e.target.closest('#questionCard');
+    if (q && isLive() && !e.target.closest('button')){ S.qExpanded = !S.qExpanded; q.classList.toggle('compact', !S.qExpanded); spotlight(); }
+  });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && S.alvyOpen) closeAlvy(); });
+  addEventListener('resize', () => { fit(); spotlight(); });
+
+  /* ================= Prototype controls ================= */
+  const proto = $('proto'), protoToggle = $('protoToggle');
+  function setCollapsed(c){ proto.classList.toggle('collapsed', c); protoToggle.textContent = c ? 'Show controls' : 'Hide controls'; protoToggle.setAttribute('aria-expanded', String(!c)); }
+  protoToggle.addEventListener('click', () => setCollapsed(!proto.classList.contains('collapsed')));
+
+  // UX-1224 points: 1 page after OTP feels stuck · 2 practice gives no direction · 3 tracker skips a step · 4 10–30s waits
+  const TICKET = {
+    wait:'#1 + #4: a wait screen with live loading steps replaces the blank page and skeletons.',
+    waitError:'#4: if loading fails, say so and offer Try again instead of an endless spinner.',
+    check:'#2 + review feedback: allow access, preview the camera, pick devices and test the mic on one familiar screen, the way a phone call check works, before practising.',
+    devices:'Review feedback: confirm or change the camera and mic before the practice question.',
+    orient:'#2: the tour opens by saying what the practice run is for.',
+    start:'#2: one clear action per step, spotlit, with the sheet below it.',
+    perm:'#2: camera and mic access is explained before the browser asks.',
+    blocked:'#2: blocked or busy camera gets a fix, pointed at the browser control that fixes it.',
+    talk:'#2 + #3: the mic was already checked, so this step just records. No step is skipped.',
+    quiet:'#3: if no voice is heard, the step helps fix the mic instead of skipping ahead.',
+    stop:'#3: the last step. Every step is reached by the candidate’s own action.',
+    done:'#3 + #4: the tour ends clearly, and the assessment loads behind this modal.',
+    countdown:'#4: a short countdown so the start of the timer is never a surprise.',
+    assessment:'End of the flow.'
+  };
+  const CHIPS = {
+    A:[['wait', 'Loading'], ['check', 'Device check'], ['check:blocked', 'Check: blocked'], ['orient', '1 Question'], ['start', '2 Start'], ['talk', '3 Answer'], ['done', 'All set'], ['countdown', 'Countdown']],
+    B:[['wait', 'Loading'], ['perm', '1 Allow'], ['blocked', '1 Blocked'], ['devices', '2 Devices'], ['orient', '3 Question'], ['start', '4 Start'], ['talk', '5 Answer'], ['done', 'All set'], ['countdown', 'Countdown']]
+  };
+  let chipsFor = null;
+  function updateProto(){
+    if (chipsFor !== S.variant){
+      chipsFor = S.variant;
+      $('jumpChips').innerHTML = CHIPS[S.variant].map(([k, l]) => `<button type="button" data-go="${k}">${l}</button>`).join('');
+    }
+    const tk = $('protoTicket');
+    if (tk) tk.innerHTML = `<b>UX-1224</b> ${TICKET[S.state] || ''}`;
+    const cur = S.state === 'waitError' ? 'wait' : S.state === 'check' && S.chk === 'blocked' ? 'check:blocked' : S.state;
+    proto.querySelectorAll('[data-go]').forEach(b => b.dataset.go === cur ? b.setAttribute('aria-current', 'step') : b.removeAttribute('aria-current'));
+    proto.querySelectorAll('[data-set]').forEach(b => b.setAttribute('aria-pressed', String(S[b.dataset.set] === b.dataset.val)));
+  }
+
+  function jump(st){
+    S.inuseCleared = false;
+    hidePrompt();
+    if (st === 'check' || st === 'check:blocked'){
+      S.permitted = false; S.devicesOk = false; S.chk = 'idle';
+      if (st === 'check:blocked'){
+        S.blockedReason = S.permMode === 'inuse' ? 'inuse' : 'denied';
+        S.permitted = S.blockedReason === 'inuse';
+        S.chk = 'blocked';
+      }
+      return go('check');
+    }
+    if (st === 'devices'){ S.permitted = true; S.devicesOk = false; return go('devices'); }
+    if (['orient', 'start'].includes(st)){ S.permitted = true; S.devicesOk = true; return go(st); }
+    if (['wait', 'perm'].includes(st)){ S.permitted = false; S.devicesOk = false; }
+    if (['talk', 'quiet', 'stop', 'done', 'countdown'].includes(st)){ S.permitted = true; S.devicesOk = true; }
+    if (st === 'blocked'){
+      S.devicesOk = false;
+      S.blockedReason = S.permMode === 'inuse' ? 'inuse' : 'denied';
+      S.permitted = S.blockedReason === 'inuse';
+    }
+    go(st);
+  }
+
+  proto.addEventListener('click', e => {
+    const g = e.target.closest('[data-go]');
+    if (g) return jump(g.dataset.go);
+    const s = e.target.closest('[data-set]');
+    if (!s) return;
+    S[s.dataset.set] = s.dataset.val;
+    if (s.dataset.set === 'platform'){ renderChrome(); updateProto(); render(); return; }
+    if (s.dataset.set === 'variant'){
+      S.permitted = false; S.devicesOk = false; S.chk = 'idle';
+      updateProto();
+      return go(S.variant === 'A' ? 'check' : 'perm');
+    }
+    if (s.dataset.set === 'permMode'){ S.permitted = false; S.inuseCleared = false; }
+    if (s.dataset.set === 'voiceMode' && s.dataset.val === 'heard'){
+      if (checking()) later(micOk, 600);
+      else if (S.state === 'talk' || S.state === 'quiet') later(voiceHeard, 600);
+    }
+    updateProto();
+  });
+
+  renderChrome();
+  go('wait');
+})();
+</script>
