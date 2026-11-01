@@ -25,41 +25,58 @@ level metering, and a Chat with Alvy panel for help.
 
 ## Mobile
 
-`async-practice-walkthrough-mobile.html` is a separate file carrying the
-same two variants and the same copy, redesigned for a phone. It is not a
-port of the desktop tour: there is no spotlight, no coach mark and no
-step sheet floating over the page. The onboarding is a linear run of
-full screens —
+`async-practice-walkthrough-mobile.html` is a separate file. It is not a port
+of the desktop tour — no spotlight, no coach marks, no step sheet over the
+page. One flow, four candidate screens:
 
-    loading -> allow (priming) -> the browser's own permission dialogs
-    -> device check -> question -> get ready -> record -> all set
-    -> countdown
+    loading -> practice question -> [the browser's own permission dialogs]
+    -> record -> review -> countdown
 
-Light screens carry the instructions. The camera takes the whole screen
-only where the camera is the point: the device check, getting ready, and
-recording. During recording the question sits one tap away behind a
-"View question" chip rather than covering the preview.
+Four decisions it rests on:
+
+- **The question comes before the permission ask.** The ask then arrives with
+  its reason attached ("to answer this we need your camera"), which is the
+  largest single lever on grant rates.
+- **Checking and recording are one screen** with three phases. The round
+  shutter, bottom-centre where a phone camera puts it, is both the gate and
+  the action: it unlocks when the microphone is heard. No step can be skipped
+  and none is spent on navigation.
+- **The clip plays back afterwards.** The device check only proves the live
+  preview works; playback is the only thing that proves the recording
+  captured them. Recorded with MediaRecorder, falling back to the last frame
+  where that API is unavailable.
+- **The review screen says answers save by themselves.** Saving is per
+  answer and automatic, so the candidate meets that fact once, in practice,
+  with nothing at stake.
 
 ### Permission dialogs
 
-Drawn the way each platform really draws them, because this is the
-single biggest drop-off point in the flow.
+Drawn the way each platform really draws them, because this is the single
+biggest drop-off point in the flow.
 
-- **Android** asks twice. Chrome's own modal handles the site, and then
-  Android's runtime dialogs handle Chrome itself — camera and microphone
-  separately, so a candidate who has never used the camera in Chrome
-  sees three dialogs in a row. The OS ask only happens once the site is
-  allowed. The prototype panel can start with the OS permission already
-  held, which is the common case for daily phone users.
-- **iOS** shows one Safari alert. Safari asks again on every page load
-  unless the candidate sets it in Website Settings, so the priming
-  screen says so.
+- **Android** asks twice. Chrome's own modal handles the site, then Android's
+  runtime dialogs handle Chrome itself — camera and microphone separately, so
+  a candidate who has never used the camera in Chrome sees three dialogs in a
+  row. The OS ask only happens once the site is allowed. The prototype panel
+  can start with the OS permission already held, which is the common case.
+- **iOS** shows one Safari alert. Safari asks again on every page load unless
+  the candidate sets it in Website Settings, so the question screen says so.
 
-Three distinct blocked screens follow from this: the site blocked the
-request, Chrome lacks the OS permission, or another app holds the
-camera. Each carries the steps for that phone, and the site-blocked one
-draws a small mock of the address bar showing which control to tap —
-Chrome's lock icon at the top, Safari's aA at the bottom.
+Three distinct blocked screens follow: the site blocked the request, Chrome
+lacks the OS permission, or another app holds the camera. Each carries the
+steps for that phone, and the site-blocked one draws a small mock of the
+address bar showing which control to tap — Chrome's lock icon at the top,
+Safari's aA at the bottom.
+
+### Known gaps
+
+Not yet handled, and the most consequential open work: an incoming call or a
+backgrounded tab killing a recording mid-answer, and a failed save on patchy
+mobile data. Both are routine on a phone rather than edge cases.
+
+The microphone gate has no bypass. If the mic genuinely cannot be heard the
+candidate cannot proceed, which is deliberate on desktop but riskier on a
+phone.
 
 ## Running it
 

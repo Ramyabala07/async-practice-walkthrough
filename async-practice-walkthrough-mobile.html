@@ -4,19 +4,27 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
-/* Mobile companion to async-practice-walkthrough.html.
+/* Mobile flow for the Tessera async interview practice run (UX-1224).
 
-   Not a port of the desktop tour. On a phone the onboarding is a linear run of full
-   screens — no spotlight, no coach marks, no step sheet floating over the page:
-     loading → allow (priming) → the browser's own permission dialogs → device check
-     → question → get ready → record → all set → countdown
-   Light screens carry the instructions. The camera takes the whole screen only where
-   the camera is the point: the device check, getting ready, and recording.
+   One flow, four candidate screens:
+     loading → practice question → [the browser's own permission dialogs]
+     → record (check and record on one screen) → review → countdown
+
+   Decisions this build rests on:
+   - The question is shown BEFORE any permission is asked. The ask then arrives with
+     its reason attached ("to answer this we need your camera"), which is the biggest
+     single lever on grant rates.
+   - Checking and recording are one screen with three phases, not three screens. The
+     round record button is both the gate and the action: it unlocks when the mic is
+     heard. Phones put the shutter bottom-centre; so do we.
+   - The clip is played back afterwards. The device check only proves the live preview
+     works; playback is the only thing that proves the RECORDING captured them.
+   - Answers save per answer, automatically. The review screen says so, quietly, so the
+     candidate meets that fact once with nothing at stake.
 
    Permission dialogs are drawn the way each platform really draws them:
-   - Android: Chrome's own modal, and then ANDROID's runtime dialogs, which is the second
-     ask candidates actually hit. Chrome asks the OS only after the site itself is allowed,
-     and the OS asks for camera and microphone separately.
+   - Android: Chrome's own modal, then ANDROID's runtime dialogs — camera and microphone
+     asked separately, and only once the site itself is allowed.
    - iOS: one centred Safari alert. Safari re-asks on every page load unless the candidate
      sets it in Website Settings, so "Allow" does not stick the way it does on desktop.
 
@@ -42,8 +50,8 @@
   --tv-interactive-link:#1d4ed8;
   --tv-error-strong:#dc2626;
   --tv-error-surface:#fef2f2; --tv-error-border:#fca5a5; --tv-error-text:#b91c1c;         /* not in Figma */
-  --tv-warning-surface:#fff7ed; --tv-warning-border:#fdba74; --tv-warning-text:#c2410c;   /* not in Figma */
-  --tv-success-surface:#f0fdf4; --tv-success-border:#86efac; --tv-success-text:#15803d;   /* not in Figma */
+  --tv-warning-surface:#fff7ed; --tv-warning-text:#c2410c;                                /* not in Figma */
+  --tv-success-surface:#f0fdf4; --tv-success-text:#15803d;                                /* not in Figma */
   --tv-ai-blue:#1d4ed8;
   --tv-ai-purple:#7e22ce;
 
@@ -119,22 +127,16 @@ button,select,input{font:inherit;color:inherit}
 .icon-btn{width:var(--tap);height:var(--tap);border-radius:10px;border:0;background:none;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;color:var(--tv-text-tertiary)}
 .icon-btn:hover{background:var(--tv-border-subtle)}
 .icon-btn.ai{color:var(--tv-ai-purple)}
-.screen-body{flex:1;min-height:0;overflow:auto;-webkit-overflow-scrolling:touch;padding:24px 20px 8px;display:flex;flex-direction:column}
-.screen-foot{flex:none;padding:12px 20px 20px;display:grid;gap:8px;border-top:1px solid transparent}
-.screen-foot.divided{border-top-color:var(--tv-border-subtle)}
-.step-no{margin:0 0 6px;font:var(--tv-l2);color:var(--tv-text-muted);letter-spacing:.04em}
+.screen-body{flex:1;min-height:0;overflow:auto;-webkit-overflow-scrolling:touch;padding:22px 20px 8px;display:flex;flex-direction:column}
+.screen-foot{flex:none;padding:12px 20px 20px;display:grid;gap:8px}
 .screen h1{margin:0 0 8px;font:var(--tv-h3);text-wrap:pretty}
 .screen h1.tone-error{color:var(--tv-error-text)}
 .screen .lede{margin:0;font:var(--tv-p1);color:var(--tv-text-tertiary);text-wrap:pretty}
 .screen .sub{margin:16px 0 0;font:var(--tv-p2);color:var(--tv-text-muted)}
 
-/* The mark at the top of a light screen: says what the screen is about at a glance. */
-.mark{flex:none;width:60px;height:60px;border-radius:18px;display:flex;align-items:center;justify-content:center;margin-bottom:20px;position:relative;background:var(--tv-bg-accent);color:var(--tv-interactive-primary)}
-.mark .i{width:28px;height:28px}
+.mark{flex:none;width:56px;height:56px;border-radius:16px;display:flex;align-items:center;justify-content:center;margin-bottom:18px;position:relative;background:var(--tv-bg-accent);color:var(--tv-interactive-primary)}
+.mark .i{width:26px;height:26px}
 .mark.err{background:var(--tv-error-surface);color:var(--tv-error-text)}
-.mark.ok{background:var(--tv-success-surface);color:var(--tv-success-text)}
-.mark .badge{position:absolute;right:-8px;bottom:-8px;width:28px;height:28px;border-radius:50%;background:var(--tv-bg-surface);border:1px solid var(--tv-border-subtle);display:flex;align-items:center;justify-content:center;color:var(--tv-interactive-primary)}
-.mark .badge .i{width:15px;height:15px}
 
 /* Why each device is needed: two rows, not a paragraph. */
 .needs{list-style:none;margin:18px 0 0;padding:0;display:grid;gap:12px}
@@ -147,16 +149,17 @@ button,select,input{font:inherit;color:inherit}
 .help-link{display:inline-flex;align-items:center;gap:6px;min-height:var(--tap);padding:4px 0;border:0;background:none;cursor:pointer;font:var(--tv-l1);color:var(--tv-interactive-link);text-align:left}
 .help-link:hover{text-decoration:underline}
 
-/* Where to tap, drawn instead of pointed at: a small mock of this browser's own bar. */
-.card{margin:18px 0 0;padding:12px;border:1px solid var(--tv-border-subtle);border-radius:12px;background:var(--tv-bg-muted)}
+.card{margin:0 0 4px;padding:14px;border:1px solid var(--tv-border-subtle);border-radius:12px;background:var(--tv-bg-muted)}
 .card .cap{display:flex;align-items:center;gap:8px;font:var(--tv-l2);text-transform:uppercase;letter-spacing:.05em;color:var(--tv-text-muted);margin-bottom:10px}
+.tag{font:var(--tv-l2);text-transform:none;letter-spacing:0;padding:1px 8px;border-radius:4px;background:var(--tv-bg-accent);color:var(--tv-interactive-link)}
+.question-big{margin:0;font:var(--tv-h4);text-wrap:pretty;color:var(--tv-text-primary)}
+
+/* Where to tap, drawn instead of pointed at: a small mock of this browser's own bar. */
 .mockbar{display:flex;align-items:center;gap:7px;height:38px;padding:0 10px;border-radius:999px;background:var(--tv-bg-surface);border:1px solid var(--tv-border-primary);font:var(--tv-p3);color:var(--tv-text-muted)}
 .mockbar .url{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .mockbar .spot{flex:none;display:inline-flex;align-items:center;justify-content:center;min-width:28px;height:28px;padding:0 6px;border-radius:8px;background:var(--tv-bg-accent);
   color:var(--tv-interactive-primary);box-shadow:0 0 0 2px var(--tv-interactive-primary);font:500 14px/1 var(--tv-font)}
 .mockbar .spot b{font-size:10px;font-weight:500}
-.question-big{margin:0;font:var(--tv-h4);text-wrap:pretty;color:var(--tv-text-primary)}
-.tag{font:var(--tv-l2);text-transform:none;letter-spacing:0;padding:1px 8px;border-radius:4px;background:var(--tv-bg-accent);color:var(--tv-interactive-link)}
 
 /* ---------- Buttons ---------- */
 .btn{font:var(--tv-l1);border-radius:10px;padding:12px 16px;min-height:var(--tap);border:1px solid transparent;background:none;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:8px}
@@ -166,66 +169,85 @@ button,select,input{font:inherit;color:inherit}
 .btn-secondary{background:var(--tv-bg-surface);border-color:var(--tv-border-primary);color:var(--tv-text-primary)}
 .btn-secondary:hover{background:var(--tv-bg-muted)}
 .btn-ghost{color:var(--tv-interactive-link)}
+.btn-onvideo{border-color:rgba(255,255,255,.4);color:#fff;background:var(--tv-scrim);backdrop-filter:blur(6px)}
+.btn-onvideo:hover{background:rgba(24,24,27,.78)}
 .btn-block{width:100%}
-.btn-rec{background:var(--tv-error-strong);color:#fff}
-.btn-rec:hover:not(:disabled){background:#b91c1c}
-.foot-hint{font:var(--tv-p3);color:var(--tv-text-muted);text-align:center}
 
-/* ---------- Camera screen: the camera owns the screen ---------- */
+/* ---------- Camera screen ---------- */
 .camscreen{flex:1;min-height:0;position:relative;background:var(--tv-video-bg);overflow:hidden}
 .cam-media{position:absolute;inset:0}
+.cam-media.hidden{visibility:hidden}
 .cam-media video,.cam-media canvas{display:block;width:100%;height:100%;object-fit:cover}
-.cam-media video{transform:scaleX(-1)} /* mirrored, like a mirror */
+.cam-media video.mirror{transform:scaleX(-1)} /* the live preview is mirrored, the replay is not */
 .cam-msg{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:24px;text-align:center;color:var(--tv-video-fg);font:var(--tv-p2)}
 .cam-msg .i{width:30px;height:30px}
-.sim-tag{position:absolute;top:92px;right:12px;z-index:3;font:var(--tv-l2);color:var(--tv-on-video);background:var(--tv-scrim);padding:3px 9px;border-radius:999px}
+.sim-tag{position:absolute;top:60px;right:12px;z-index:3;font:var(--tv-l2);color:var(--tv-on-video);background:var(--tv-scrim);padding:3px 9px;border-radius:999px}
 
 .cam-top{position:absolute;left:0;right:0;top:0;z-index:2;padding:0 6px 10px 14px;
-  background:linear-gradient(to bottom,rgba(9,9,11,.78),rgba(9,9,11,0))}
+  background:linear-gradient(to bottom,rgba(9,9,11,.8),rgba(9,9,11,0))}
 .cam-top .row1{height:52px;display:flex;align-items:center;justify-content:space-between;gap:8px}
-.cam-top .row2{display:flex;align-items:center;gap:8px;padding-right:8px}
-.cam-top .row2:empty{display:none}
 .cam-top .logo,.cam-top .icon-btn{color:rgba(255,255,255,.94)}
 .cam-top .icon-btn:hover{background:rgba(255,255,255,.14)}
 .cam-top .icon-btn.ai{color:#d8b4fe}
-.rec-pill{display:inline-flex;align-items:center;gap:7px;padding:7px 12px;border-radius:999px;background:rgba(220,38,38,.94);color:#fff;font:var(--tv-l2);font-variant-numeric:tabular-nums}
-.rec-dot{width:8px;height:8px;border-radius:50%;background:#fff;flex:none;animation:pulse 1.6s ease-in-out infinite}
-@keyframes pulse{50%{opacity:.3}}
-.qchip{display:inline-flex;align-items:center;gap:6px;min-height:36px;padding:0 13px;border-radius:999px;border:1px solid rgba(255,255,255,.32);
-  background:var(--tv-scrim);color:var(--tv-on-video);font:var(--tv-l2);cursor:pointer;backdrop-filter:blur(6px)}
-.qchip:hover{background:rgba(24,24,27,.8)}
 
-.cam-bottom{position:absolute;left:0;right:0;bottom:0;z-index:2;padding:48px 14px 16px;display:grid;gap:10px;
-  background:linear-gradient(to top,rgba(9,9,11,.92) 46%,rgba(9,9,11,0))}
-.cam-bottom .step-no{margin:0;color:rgba(255,255,255,.74)}
-.cam-bottom h2{margin:0;font:var(--tv-h5);color:var(--tv-on-video);text-wrap:pretty}
-.cam-bottom .say{margin:0;font:var(--tv-p2);color:rgba(255,255,255,.82);text-wrap:pretty}
-.cam-bottom .help-link{color:#93c5fd;min-height:40px}
-.cam-bottom .foot-hint{color:rgba(255,255,255,.74)}
-.cam-status{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+.cam-bottom{position:absolute;left:0;right:0;bottom:0;z-index:2;padding:52px 14px 14px;display:grid;gap:10px;justify-items:stretch;
+  background:linear-gradient(to top,rgba(9,9,11,.94) 50%,rgba(9,9,11,0))}
+.cam-bottom .say{margin:0;font:var(--tv-p2);color:rgba(255,255,255,.84);text-align:center;text-wrap:pretty}
+.cam-bottom .say.warn{color:#fdba74}
+.cam-bottom .help-link{color:#93c5fd;justify-self:center;min-height:40px}
+
+/* The question stays legible on the recording screen — it is not hidden behind a chip. */
+.qblock{border-radius:12px;padding:10px 12px;background:var(--tv-scrim);backdrop-filter:blur(6px);cursor:pointer;text-align:left;border:0;width:100%;color:var(--tv-on-video)}
+.qblock .cap{display:flex;align-items:center;gap:8px;font:var(--tv-l2);text-transform:uppercase;letter-spacing:.05em;color:rgba(255,255,255,.7);margin-bottom:5px}
+.qblock .cap .tag{background:rgba(255,255,255,.16);color:#fff}
+.qblock p{margin:0;font:var(--tv-p2);color:#fff;text-wrap:pretty}
+.qblock p.clamp{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.qblock .more{display:block;margin-top:4px;font:var(--tv-l2);color:#93c5fd}
+
+.cam-status{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:6px;min-height:28px}
 .vchip{display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:999px;background:var(--tv-scrim);color:var(--tv-on-video);font:var(--tv-l2);backdrop-filter:blur(6px)}
 .vchip.ok .i{color:#86efac}
 .vchip.warn{background:rgba(154,52,18,.92)}
-.vchip .spin{border-color:rgba(255,255,255,.35);border-top-color:#fff}
+.vchip.rec{background:rgba(220,38,38,.94)}
+.rec-dot{width:8px;height:8px;border-radius:50%;background:#fff;flex:none;animation:pulse 1.6s ease-in-out infinite}
+@keyframes pulse{50%{opacity:.3}}
+.vchip.rec span{font-variant-numeric:tabular-nums}
+
 .cam-devices{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
-.vselect{position:relative;display:flex;align-items:center;min-width:0;height:42px;border:1px solid rgba(255,255,255,.32);border-radius:10px;background:var(--tv-scrim);backdrop-filter:blur(6px)}
+.vselect{position:relative;display:flex;align-items:center;min-width:0;height:40px;border:1px solid rgba(255,255,255,.3);border-radius:10px;background:var(--tv-scrim);backdrop-filter:blur(6px)}
 .vselect select{appearance:none;-webkit-appearance:none;width:100%;min-width:0;height:100%;border:0;background:none;color:var(--tv-on-video);font:var(--tv-l2);padding:0 26px 0 32px;cursor:pointer;text-overflow:ellipsis}
 .vselect option{color:#18181b}
 .vselect .i{position:absolute;pointer-events:none;color:var(--tv-on-video)}
 .vselect .lead{left:9px}.vselect .chev{right:7px}
-.cam-actions{display:flex;align-items:center;gap:10px}
-.cam-actions .btn{flex:1}
-.toggle{display:inline-flex;align-items:center;gap:8px;min-height:var(--tap);padding:0 2px;background:none;border:0;cursor:pointer;font:var(--tv-l1);color:var(--tv-on-video);white-space:nowrap}
-.track{width:34px;height:18px;border-radius:9px;background:var(--tv-toggle-off);position:relative;transition:background .2s;flex:none}
-.track::after{content:"";position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:var(--tv-toggle-knob);transition:transform .2s}
+
+/* The shutter: where a phone camera puts it, and the gate at the same time. */
+.shutter-row{display:flex;align-items:center;justify-content:center;gap:16px;min-height:76px}
+.shutter-row .side{flex:1;display:flex;align-items:center}
+.shutter-row .side.right{justify-content:flex-end}
+.shutter{position:relative;width:68px;height:68px;border-radius:50%;border:3px solid rgba(255,255,255,.9);background:none;padding:0;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;flex:none;transition:border-color .2s}
+.shutter .core{width:52px;height:52px;border-radius:50%;background:var(--tv-error-strong);transition:width .22s ease,height .22s ease,border-radius .22s ease}
+.shutter.recording .core{width:26px;height:26px;border-radius:7px}
+.shutter:disabled{cursor:default;border-color:rgba(255,255,255,.35)}
+.shutter:disabled .core{background:rgba(255,255,255,.35)}
+.toggle{display:inline-flex;align-items:center;gap:7px;min-height:var(--tap);padding:0 2px;background:none;border:0;cursor:pointer;font:var(--tv-l2);color:var(--tv-on-video);white-space:nowrap}
+.track{width:32px;height:17px;border-radius:9px;background:var(--tv-toggle-off);position:relative;transition:background .2s;flex:none}
+.track::after{content:"";position:absolute;top:2px;left:2px;width:13px;height:13px;border-radius:50%;background:var(--tv-toggle-knob);transition:transform .2s}
 .toggle[aria-pressed="true"] .track{background:var(--tv-interactive-primary)}
-.toggle[aria-pressed="true"] .track::after{transform:translateX(16px)}
+.toggle[aria-pressed="true"] .track::after{transform:translateX(15px)}
 
 .meter{display:inline-flex;align-items:flex-end;gap:2px;height:16px}
 .meter i{width:3px;height:3px;border-radius:2px;background:currentColor;opacity:.9}
-.meter.done i{height:10px!important}
 
-/* ---------- The browser's own permission dialogs ---------- */
+/* ---------- Review: full-bleed playback, the way a camera app reviews a clip ---------- */
+.replay-tap{position:absolute;inset:0;z-index:1;border:0;background:none;cursor:pointer}
+.play-badge{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:2;width:64px;height:64px;border-radius:50%;
+  background:var(--tv-scrim);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;color:#fff;pointer-events:none}
+.play-badge .i{width:28px;height:28px}
+.saved-chip{display:inline-flex;align-items:center;gap:7px;padding:6px 12px;border-radius:999px;background:rgba(21,128,61,.92);color:#fff;font:var(--tv-l2);justify-self:center}
+.cam-bottom h2{margin:0;font:var(--tv-h5);color:var(--tv-on-video);text-align:center;text-wrap:pretty}
+
+/* ---------- Browser permission dialogs ---------- */
 .scrim{position:absolute;inset:0;z-index:50;display:flex;align-items:center;justify-content:center;padding:22px;background:rgba(0,0,0,.45)}
 /* Chrome on Android: a Material modal, centred, text buttons bottom-right. */
 .dlg-site{width:100%;max-width:300px;background:var(--tv-bg-surface);border-radius:28px;padding:22px 22px 12px;box-shadow:0 16px 48px rgba(0,0,0,.3)}
@@ -252,7 +274,7 @@ button,select,input{font:inherit;color:inherit}
 .dlg-ios .acts button+button{border-left:1px solid rgba(60,60,67,.29);font-weight:600}
 .dlg-note{margin:10px auto 0;max-width:300px;font:var(--tv-p3);color:rgba(255,255,255,.88);text-align:center}
 
-/* ---------- Question sheet: opened by the candidate, not pushed at them ---------- */
+/* ---------- Question sheet (expanded from the recording screen) ---------- */
 .qsheet-wrap{position:absolute;inset:0;z-index:55;display:flex;align-items:flex-end;background:rgba(0,0,0,.45)}
 .qsheet{width:100%;max-height:72%;overflow:auto;background:var(--tv-bg-surface);border-radius:18px 18px 0 0;padding:12px 18px 18px}
 .grab{width:36px;height:4px;border-radius:2px;background:var(--tv-border-primary);margin:0 auto 12px}
@@ -367,9 +389,6 @@ button,select,input{font:inherit;color:inherit}
     <button type="button" id="protoToggle" aria-expanded="true" aria-controls="protoBody">Hide controls</button>
   </div>
   <div class="proto-body" id="protoBody">
-    <div class="proto-group"><span class="proto-label">Variant</span>
-      <div class="seg"><button type="button" data-set="variant" data-val="A">A · Check is its own screen</button><button type="button" data-set="variant" data-val="B">B · Check is step 2 of 5</button></div>
-    </div>
     <div class="proto-group"><span class="proto-label">Device</span>
       <div class="seg"><button type="button" data-set="platform" data-val="android">Android · Chrome</button><button type="button" data-set="platform" data-val="ios">iPhone · Safari</button></div>
     </div>
@@ -398,7 +417,6 @@ button,select,input{font:inherit;color:inherit}
     mic:'<rect x="9" y="2" width="6" height="11" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M8 21h8M12 17v4"/>',
     micOff:'<path d="M3 3l18 18M9 9v1a3 3 0 0 0 5.12 2.12M15 9.34V5a3 3 0 0 0-5.94-.6M17 16.95A7 7 0 0 1 5 10M19 10a7 7 0 0 1-.11 1.23M8 21h8M12 17v4"/>',
     chevron:'<path d="M6 9l6 6 6-6"/>',
-    chevUp:'<path d="M18 15l-6-6-6 6"/>',
     check:'<path d="M5 12l5 5L20 7"/>',
     info:'<circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v4h1"/>',
     eyeOff:'<path d="M3 3l18 18M10.584 10.587a2 2 0 0 0 2.828 2.83M9.363 5.365A9.466 9.466 0 0 1 12 5c4 0 7.333 2.333 10 7-.778 1.361-1.612 2.524-2.503 3.488M17.357 17.349C15.726 18.449 13.942 19 12 19c-4 0-7.333-2.333-10-7 1.369-2.395 2.913-4.175 4.632-5.341"/>',
@@ -412,8 +430,7 @@ button,select,input{font:inherit;color:inherit}
     share:'<path d="M12 16V4M8 8l4-4 4 4M5 14v5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-5"/>',
     globe:'<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a15 15 0 0 1 0 18M12 3a15 15 0 0 0 0 18"/>',
     alvy:'<path d="M12 3l1.8 4.7L18.5 9.5l-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8z"/><path d="M18 15.5l.9 2.3 2.3.9-2.3.9-.9 2.3-.9-2.3-2.3-.9 2.3-.9z"/>',
-    rec:'<circle cx="12" cy="12" r="5" fill="currentColor" stroke="none"/>',
-    square:'<rect x="7" y="7" width="10" height="10" rx="1.5" fill="currentColor" stroke="none"/>',
+    play:'<path d="M8 5.5v13l11-6.5z" fill="currentColor" stroke="none"/>',
     sig:'<path d="M2 20h.01M6 20v-4M11 20v-9M16 20V8M21 20V4"/>',
     batt:'<rect x="2" y="7" width="17" height="10" rx="2.5"/><path d="M22 11v2"/><rect x="4" y="9" width="11" height="6" rx="1" fill="currentColor" stroke="none"/>'
   };
@@ -464,29 +481,23 @@ button,select,input{font:inherit;color:inherit}
   }
 
   /* ================= Flow =================
-     A: allow and check are screens of their own, so the practice itself is 3 steps.
-     B: the same screens, numbered into one run of 5. */
-  const STEPNO = {
-    A:{orient:1, start:2, talk:3},
-    B:{intro:1, blocked:1, check:2, orient:3, start:4, talk:5}
-  };
-  const TOTAL = {A:3, B:5};
-  const stepOf = st => STEPNO[S.variant][st] || null;
-
+     question → [dialogs] → record (check / ready / recording) → review → countdown */
   const CAMS = ['Front camera', 'Back camera'];
   const MICS = ['Phone microphone', 'AirPods Pro', 'Wired headset'];
   const WAIT_LABELS = ['Email verified', 'Loading your assessment', 'Preparing a practice question'];
   const QUESTION = 'Tell us about a project you’re proud of and what you learned from it.';
 
   const S = {
-    state:'wait', variant:'A', platform:'android',
+    state:'wait', platform:'android',
     dialog:null,                 // 'site' | 'os-cam' | 'os-mic' — the browser's own UI
     osGranted:false,             // whether Chrome already holds Android's camera/mic permission
     permMode:'ask', voiceMode:'heard', loadMode:'ok',
     permitted:false, blockedReason:'denied', inuseCleared:false,
-    heard:false, micFailed:false, hidePreview:false, qOpen:false, alvyOpen:false,
+    heard:false, micFailed:false, recording:false, hidePreview:false,
+    qOpen:false, qExpanded:false, alvyOpen:false,
     recSecs:0, cam:0, mic:0, count:5, waitItems:['done', 'act', 'pend'],
-    stream:null, audioCtx:null, analyser:null, abuf:null, level:0, realFailed:false
+    stream:null, audioCtx:null, analyser:null, abuf:null, level:0, realFailed:false,
+    recorder:null, chunks:[], clipURL:null, poster:null, replayOK:false
   };
 
   let timers = [], intervals = [];
@@ -495,20 +506,21 @@ button,select,input{font:inherit;color:inherit}
   const clearTimers = () => { timers.forEach(clearTimeout); intervals.forEach(clearInterval); timers = []; intervals = []; };
   const fmt = s => String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0');
 
-  const isLive = () => S.state === 'talk';
-  const camScreen = () => ['check', 'start', 'talk'].includes(S.state);
-  const showPreview = () => camScreen() && S.permitted && !(isLive() && S.hidePreview);
+  const camScreen = () => S.state === 'record' || S.state === 'review';
+  const showPreview = () => S.state === 'record' && S.permitted;
 
   function go(next){
     clearTimers();
+    stopRecorder(true);
     S.state = next;
-    S.heard = false;
-    S.micFailed = false;
+    S.recording = false;
     S.qOpen = false;
+    S.qExpanded = false;
     S.dialog = null;
+    if (next !== 'review') dropClip();
     if (next === 'wait') S.waitItems = ['done', 'act', 'pend'];
-    if (next === 'start'){ S.recSecs = 0; S.hidePreview = false; }
-    if (['wait', 'waitError', 'intro', 'blocked', 'done', 'countdown', 'assessment'].includes(next)) stopStream();
+    if (next === 'record'){ S.recSecs = 0; S.hidePreview = false; S.heard = false; S.micFailed = false; }
+    if (['wait', 'waitError', 'question', 'blocked', 'countdown', 'assessment'].includes(next)) stopStream();
     if (next === 'countdown') S.count = 5;
     render();
     enter(next);
@@ -522,13 +534,13 @@ button,select,input{font:inherit;color:inherit}
         S.waitItems = ['done', 'done', 'act']; renderWaitList();
       }, 1400);
       later(() => { S.waitItems = ['done', 'done', 'done']; renderWaitList(); }, 2600);
-      later(() => go('intro'), 3200);
+      later(() => go('question'), 3200);
     }
-    if (camScreen() && canUseCamera() && !S.stream) acquire().catch(() => {});
-    if (st === 'check') startMicCheck();
-    if (st === 'talk'){
-      every(() => { S.recSecs++; const t = $('recTime'); if (t) t.textContent = fmt(S.recSecs); }, 1000);
+    if (st === 'record'){
+      if (canUseCamera() && !S.stream) acquire().catch(() => {});
       startLevel();
+      if (S.voiceMode === 'heard' && !S.analyser) later(micOk, 2600);
+      later(() => { if (!S.heard) micNone(); }, 7000);
     }
     if (st === 'countdown'){
       every(() => {
@@ -541,17 +553,17 @@ button,select,input{font:inherit;color:inherit}
     }
   }
 
-  /* ---------- Permission: the priming screen, then the platform's own dialogs ---------- */
+  /* ---------- Permission: the question screen primes it, the platform asks ---------- */
   function askPermission(){
     if (S.permMode === 'granted'){ S.permitted = true; return granted(); }
     if (canUseCamera()){
       // A real camera is reachable (the file opened directly in a browser): let the real
       // browser ask, so what the candidate sees is genuinely their own prompt.
       acquire().then(stream => {
-        if (!stream || S.state !== 'intro') return;
+        if (!stream || S.state !== 'question') return;
         S.permitted = true; granted();
       }).catch(err => {
-        if (S.state !== 'intro' || err?.stale) return;
+        if (S.state !== 'question' || err?.stale) return;
         if (err?.fallback){ S.dialog = 'site'; return render(); }
         S.blockedReason = (err.name === 'NotReadableError' || err.name === 'AbortError') ? 'inuse' : 'denied';
         S.permitted = S.blockedReason === 'inuse';
@@ -562,8 +574,8 @@ button,select,input{font:inherit;color:inherit}
     S.dialog = 'site';
     render();
   }
-  // Allow on whichever dialog is up. Chrome asks the OS only once the site itself is
-  // allowed, and Android asks for camera and microphone one at a time.
+  // Chrome asks the OS only once the site itself is allowed, and Android asks for
+  // camera and microphone one at a time.
   function dialogAllow(){
     if (S.dialog === 'site'){
       if (S.platform === 'android' && !S.osGranted){ S.dialog = 'os-cam'; return render(); }
@@ -581,31 +593,26 @@ button,select,input{font:inherit;color:inherit}
   }
   function granted(){
     if (S.permMode === 'inuse' && !S.inuseCleared){ S.blockedReason = 'inuse'; S.permitted = true; return go('blocked'); }
-    go('check');
+    go('record');
   }
 
-  /* ---------- Device check ---------- */
-  function startMicCheck(){
-    startLevel();
-    if (S.voiceMode === 'heard' && !S.analyser) later(micOk, 2800);
-    later(() => { if (!S.heard) micNone(); }, 7000);
-  }
+  /* ---------- Mic gate: the shutter unlocks when we hear something ---------- */
   function micOk(){
-    if (S.heard || S.state !== 'check') return;
+    if (S.heard || S.state !== 'record' || S.recording) return;
     S.heard = true; S.micFailed = false;
-    paintCheck();
-    say('Microphone working. You can continue.');
+    paintPanel();
+    say('Microphone working. You can record your answer now.');
   }
   function micNone(){
-    if (S.heard || S.state !== 'check') return;
+    if (S.heard || S.state !== 'record' || S.recording) return;
     S.micFailed = true;
-    paintCheck();
+    paintPanel();
   }
   // Repaint only the panel over the camera, so the preview never flashes.
-  function paintCheck(){
+  function paintPanel(){
     const p = $('camBottom');
     if (!p) return render();
-    p.innerHTML = checkPanelHTML();
+    p.innerHTML = recordPanelHTML();
   }
 
   function simSpeech(){
@@ -624,12 +631,10 @@ button,select,input{font:inherit;color:inherit}
     every(() => {
       const lvl = S.voiceMode === 'silent' ? 0 : S.analyser ? realLevel() : simSpeech();
       S.level = lvl;
-      if (!S.heard){
-        document.querySelectorAll('.meter:not(.done) i').forEach(b => b.style.height = Math.round(3 + lvl * 13 * (0.55 + 0.45 * Math.random())) + 'px');
-        if (S.analyser && S.voiceMode === 'heard' && S.state === 'check'){
-          loud = lvl > 0.12 ? loud + 80 : Math.max(0, loud - 40);
-          if (loud >= 600) micOk();
-        }
+      document.querySelectorAll('.meter i').forEach(b => b.style.height = Math.round(3 + lvl * 13 * (0.55 + 0.45 * Math.random())) + 'px');
+      if (!S.heard && S.analyser && S.voiceMode === 'heard' && S.state === 'record'){
+        loud = lvl > 0.12 ? loud + 80 : Math.max(0, loud - 40);
+        if (loud >= 600) micOk();
       }
     }, 80);
   }
@@ -680,9 +685,12 @@ button,select,input{font:inherit;color:inherit}
     S.stream = null; S.audioCtx = null; S.analyser = null;
   }
   function mediaHTML(){
+    if (S.state === 'review') return S.replayOK && S.clipURL
+      ? `<video id="clip" playsinline loop autoplay${S.stream ? '' : ' muted'} aria-label="Your practice recording" src="${S.clipURL}"></video>`
+      : S.poster ? `<img id="clip" src="${S.poster}" alt="The last frame of your practice recording">` : '';
     if (!showPreview()) return '';
     return S.stream
-      ? '<video id="liveVideo" autoplay muted playsinline aria-label="Your camera preview"></video>'
+      ? '<video id="liveVideo" class="mirror" autoplay muted playsinline aria-label="Your camera preview"></video>'
       : '<canvas id="simCam" role="img" aria-label="Sample camera preview"></canvas><span class="sim-tag">Sample preview</span>';
   }
   function attachMedia(){
@@ -690,12 +698,68 @@ button,select,input{font:inherit;color:inherit}
     if (v && S.stream){ v.srcObject = S.stream; v.play().catch(() => {}); }
     const c = $('simCam');
     if (c) startSim(c);
+    const clip = $('clip');
+    if (clip && clip.tagName === 'VIDEO') clip.play().catch(() => { const b = $('playBadge'); if (b) b.hidden = false; });
   }
   function refreshMedia(){
     const m = $('vmedia');
     if (!m) return;
     m.innerHTML = mediaHTML();
     attachMedia();
+  }
+
+  /* ---------- Recording the clip, so the candidate can watch it back ----------
+     The device check only proves the live preview works. Playing the clip back is the
+     only thing that proves the RECORDING captured them. Where MediaRecorder is missing
+     or refuses the source, we keep the last frame instead and say playback is unavailable. */
+  function recorderSource(){
+    if (S.stream) return S.stream;
+    const c = $('simCam');
+    try { return c?.captureStream ? c.captureStream(30) : null; } catch (e){ return null; }
+  }
+  function startRecorder(){
+    S.chunks = []; S.replayOK = false;
+    const src = recorderSource();
+    if (!src || !window.MediaRecorder) return;
+    try {
+      const type = ['video/mp4', 'video/webm;codecs=vp9', 'video/webm'].find(t => MediaRecorder.isTypeSupported?.(t));
+      const mime = type || 'video/webm';
+      const rec = new MediaRecorder(src, type ? {mimeType:type} : undefined);
+      rec.ondataavailable = e => { if (e.data && e.data.size) S.chunks.push(e.data); };
+      rec.onstop = () => {
+        if (!S.chunks.length) return;
+        S.clipURL = URL.createObjectURL(new Blob(S.chunks, {type:mime}));
+        S.replayOK = true;
+        if (S.state === 'review') render();
+      };
+      S.recorder = rec;
+      rec.start();
+    } catch (e){ S.recorder = null; }
+  }
+  function stopRecorder(discard){
+    try { if (S.recorder && S.recorder.state !== 'inactive') S.recorder.stop(); } catch (e){}
+    if (discard) S.recorder = null;
+  }
+  function dropClip(){
+    if (S.clipURL){ URL.revokeObjectURL(S.clipURL); S.clipURL = null; }
+    S.replayOK = false; S.poster = null; S.chunks = [];
+  }
+  // A still of the last frame, used when playback is not available in this frame.
+  function grabPoster(){
+    const src = $('liveVideo') || $('simCam');
+    if (!src) return null;
+    const sw = src.videoWidth || src.width, sh = src.videoHeight || src.height;
+    if (!sw || !sh) return null;
+    try {
+      const cv = document.createElement('canvas');
+      cv.width = 360; cv.height = 640;
+      const ctx = cv.getContext('2d');
+      const scale = Math.max(cv.width / sw, cv.height / sh);
+      const w = sw * scale, h = sh * scale;
+      if (src.tagName === 'VIDEO'){ ctx.translate(cv.width, 0); ctx.scale(-1, 1); }
+      ctx.drawImage(src, (cv.width - w) / 2, (cv.height - h) / 2, w, h);
+      return cv.toDataURL('image/jpeg', 0.82);
+    } catch (e){ return null; }
   }
 
   /* Sample preview for viewers whose frame blocks the camera: a drawn person who
@@ -774,7 +838,6 @@ button,select,input{font:inherit;color:inherit}
     android:['Tap the lock icon at the left of the address bar, at the top of the screen.', 'Tap <b>Permissions</b>.', 'Turn on <b>Camera</b> and <b>Microphone</b>.', 'Come back here and tap <b>Try again</b>.'],
     ios:['Tap <b>aA</b> in the address bar, at the bottom of the screen.', 'Tap <b>Website Settings</b>.', 'Set <b>Camera</b> and <b>Microphone</b> to <b>Allow</b>.', 'Tap <b>Done</b>, then <b>Try again</b> here.']
   };
-  // Android's own permission, refused at the OS layer rather than in the browser.
   const OS_STEPS = ['Open your phone’s <b>Settings</b>.', 'Go to <b>Apps › Chrome › Permissions</b>.', 'Allow <b>Camera</b> and <b>Microphone</b>.', 'Come back here and tap <b>Try again</b>.'];
   const INUSE_STEPS = ['Close any app using your camera — a video call, the camera app, or a recorder.', 'Swipe it away so it fully quits, not just goes to the background.', 'Tap <b>Try again</b>.'];
 
@@ -795,12 +858,11 @@ button,select,input{font:inherit;color:inherit}
       steps:SITE_STEPS[S.platform], topic:'blocked', hint:true
     };
   }
-  // Where to tap, drawn as a small mock of this browser's own bar.
   function hintBar(){
     return S.platform === 'android'
-      ? `<div class="card"><span class="cap">Look at the top of your screen</span>
+      ? `<div class="card" style="margin-top:18px"><span class="cap">Look at the top of your screen</span>
            <div class="mockbar"><span class="spot">${ic('lock', 'sm')}</span><span class="url">${SITE}</span>${ic('dots', 'sm')}</div></div>`
-      : `<div class="card"><span class="cap">Look at the bottom of your screen</span>
+      : `<div class="card" style="margin-top:18px"><span class="cap">Look at the bottom of your screen</span>
            <div class="mockbar"><span class="spot">a<b>A</b></span><span class="url">${SITE}</span>${ic('share', 'sm')}</div></div>`;
   }
 
@@ -841,7 +903,7 @@ button,select,input{font:inherit;color:inherit}
       ask:'Hi, you can’t hear my microphone. Can you help?',
       search:'microphone troubleshooting steps',
       title:'Fixing “Microphone not detected”',
-      steps:['Choose a different microphone from the list on the check screen.', 'Check your phone isn’t muted and nothing is covering the mic.', 'Unplug your headset and try the phone microphone instead.', `Make sure ${name} can use your microphone in your phone’s settings.`]
+      steps:['Choose a different microphone from the list on the recording screen.', 'Check your phone isn’t muted and nothing is covering the mic.', 'Unplug your headset and try the phone microphone instead.', `Make sure ${name} can use your microphone in your phone’s settings.`]
     };
   }
   function helpFlow(topic){
@@ -865,10 +927,6 @@ button,select,input{font:inherit;color:inherit}
   });
 
   /* ================= Screens ================= */
-  const stepLine = st => {
-    const n = stepOf(st);
-    return n ? `<p class="step-no"><span aria-hidden="true">${n}/${TOTAL[S.variant]}</span><span class="sr-only">Step ${n} of ${TOTAL[S.variant]}</span></p>` : '';
-  };
   const logoHTML = () => `<div class="logo" aria-label="Talview">
       <svg viewBox="0 0 32 32" aria-hidden="true" fill="none"><path d="M16 3 28 10v12L16 29 4 22V10z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="m11 14 5 6 5-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
       TALVIEW</div>`;
@@ -901,14 +959,16 @@ button,select,input{font:inherit;color:inherit}
     </section>`;
   }
 
-  // Priming: say what is about to be asked for, and why, before the browser asks.
-  function introScreen(){
+  // The question comes first, so the permission ask arrives with its reason attached.
+  function questionScreen(){
     return `<section class="screen">${appbar()}
       <div class="screen-body">
-        <div class="mark" aria-hidden="true">${ic('video')}<span class="badge">${ic('mic')}</span></div>
-        ${stepLine('intro')}
-        <h1>Allow camera and microphone</h1>
-        <p class="lede">You answer this assessment by recording video, so ${BROWSER()} will ask for permission next.</p>
+        <h1>Here’s your practice question</h1>
+        <p class="lede">You’ll answer out loud on camera. This one isn’t scored — it’s so you know exactly how the real thing works.</p>
+        <div class="card" style="margin-top:18px">
+          <span class="cap">Practice question <span class="tag">Not scored</span></span>
+          <p class="question-big">${QUESTION}</p>
+        </div>
         <ul class="needs">
           <li><span class="ti">${ic('video', 'sm')}</span><span><b>Camera</b>So your answer is recorded.</span></li>
           <li><span class="ti">${ic('mic', 'sm')}</span><span><b>Microphone</b>So we can hear what you say.</span></li>
@@ -918,7 +978,7 @@ button,select,input{font:inherit;color:inherit}
           : 'Safari asks again each time you open the assessment. That’s normal.'}</p>
       </div>
       <div class="screen-foot">
-        <button class="btn btn-primary btn-block" data-act="ask" type="button" data-focus>Allow access</button>
+        <button class="btn btn-primary btn-block" data-act="ask" type="button" data-focus>Set up camera and mic</button>
       </div>
     </section>`;
   }
@@ -928,48 +988,14 @@ button,select,input{font:inherit;color:inherit}
     return `<section class="screen">${appbar()}
       <div class="screen-body">
         <div class="mark err" aria-hidden="true">${ic('videoOff')}</div>
-        ${stepLine('blocked')}
         <h1 class="tone-error">${c.title}</h1>
         <p class="lede">${c.lede}</p>
         ${c.hint ? hintBar() : ''}
         <ol class="steps">${c.steps.map(x => `<li>${x}</li>`).join('')}</ol>
         <button class="help-link" data-act="help" data-topic="${c.topic}" type="button">${ic('info', 'sm')}Still stuck? Get help from Alvy</button>
       </div>
-      <div class="screen-foot divided">
+      <div class="screen-foot">
         <button class="btn btn-primary btn-block" data-act="retry" type="button" data-focus>Try again</button>
-      </div>
-    </section>`;
-  }
-
-  function questionScreen(){
-    return `<section class="screen">${appbar()}
-      <div class="screen-body">
-        ${stepLine('orient')}
-        <h1>Your practice question</h1>
-        <p class="lede">Read it, then record a short answer so you know how it works.</p>
-        <div class="card">
-          <span class="cap">Practice question <span class="tag">Not scored</span></span>
-          <p class="question-big">${QUESTION}</p>
-        </div>
-        <p class="sub">Nothing here is saved or scored, and you can take as long as you like.</p>
-      </div>
-      <div class="screen-foot">
-        <button class="btn btn-primary btn-block" data-act="to-start" type="button" data-focus>Continue</button>
-      </div>
-    </section>`;
-  }
-
-  function doneScreen(){
-    return `<section class="screen">${appbar()}
-      <div class="screen-body">
-        <div class="mark ok" aria-hidden="true">${ic('circleCheck')}</div>
-        <h1>You’re all set</h1>
-        <p class="lede">That’s the practice done. The real assessment works exactly the same way — those answers are saved.</p>
-        <p class="sub">Your practice recording isn’t kept.</p>
-      </div>
-      <div class="screen-foot">
-        <button class="btn btn-primary btn-block" data-act="begin" type="button" data-focus>Start assessment</button>
-        <button class="btn btn-ghost btn-block" data-act="again" type="button">Practise again</button>
       </div>
     </section>`;
   }
@@ -1004,7 +1030,7 @@ button,select,input{font:inherit;color:inherit}
     </section>`;
   }
 
-  /* ---------- Camera screens ---------- */
+  /* ---------- Record screen: check, ready and recording are one screen ---------- */
   const vchip = (kind, label) => {
     const icon = {ok:'check', warn:'micOff'}[kind] || 'circle';
     return `<span class="vchip ${kind}">${ic(icon, 'xs')}${label}</span>`;
@@ -1014,55 +1040,66 @@ button,select,input{font:inherit;color:inherit}
     return `<div class="vselect">${ic(kind === 'cam' ? 'video' : 'mic', 'sm lead')}
       <select id="${id}" aria-label="${kind === 'cam' ? 'Camera' : 'Microphone'}">${names.map((n, i) => `<option${i === idx ? ' selected' : ''}>${n}</option>`).join('')}</select>${ic('chevron', 'xs chev')}</div>`;
   }
+  function questionBlock(){
+    return `<button class="qblock" data-act="qopen" type="button" aria-expanded="false">
+      <span class="cap">Practice question <span class="tag">Not scored</span></span>
+      <p class="clamp">${QUESTION}</p>
+      <span class="more">Read full question</span>
+    </button>`;
+  }
 
-  function checkPanelHTML(){
+  function recordPanelHTML(){
+    if (S.recording) return `${questionBlock()}
+      <div class="cam-status">
+        <span class="vchip rec"><span class="rec-dot"></span>REC <span id="recTime">${fmt(S.recSecs)}</span></span>
+        <span class="vchip">${meterHTML()}Picking up sound</span>
+      </div>
+      <p class="say">Say a sentence or two, then tap to stop.</p>
+      <div class="shutter-row">
+        <span class="side"></span>
+        <button class="shutter recording" data-act="stop-rec" type="button" aria-label="Stop recording"><span class="core"></span></button>
+        <span class="side right"><button class="toggle" data-act="hide" aria-pressed="${S.hidePreview}" type="button"><span class="track" aria-hidden="true"></span>Hide</button></span>
+      </div>`;
+
     const mic = S.heard ? vchip('ok', 'Microphone working')
       : S.micFailed ? vchip('warn', 'No sound yet')
       : `<span class="vchip">${meterHTML()}Say something…</span>`;
-    return `${stepLine('check')}
-      <h2>${S.micFailed ? 'We can’t hear you' : 'Check your camera and microphone'}</h2>
-      <p class="say">${S.micFailed
-        ? 'Your microphone isn’t picking up sound. Check your phone isn’t muted, or pick a different microphone below.'
-        : 'You should see yourself, and the bars should move when you speak.'}</p>
+    const say = S.heard
+      ? 'Tap to record your answer. Nothing here is scored.'
+      : S.micFailed
+        ? 'We can’t hear you. Check your phone isn’t muted, or pick a different microphone.'
+        : 'Say something so we can check your microphone.';
+    return `${questionBlock()}
       <div class="cam-status">${vchip('ok', 'Camera working')}${mic}</div>
       <div class="cam-devices">${selectHTML('camSelect', 'cam', CAMS, S.cam)}${selectHTML('micSelect', 'mic', MICS, S.mic)}</div>
       ${S.micFailed ? `<button class="help-link" data-act="help" data-topic="mic" type="button">${ic('info', 'sm')}Get help from Alvy</button>` : ''}
-      <button class="btn btn-primary btn-block" data-act="to-question" type="button"${S.heard ? '' : ' disabled'}>Continue</button>
-      ${S.heard ? '' : `<span class="foot-hint">${S.micFailed ? 'Fix your microphone to continue' : 'Say something to continue'}</span>`}`;
+      <p class="say${S.micFailed ? ' warn' : ''}">${say}</p>
+      <div class="shutter-row">
+        <span class="side"></span>
+        <button class="shutter" data-act="start-rec" type="button" aria-label="Start recording"${S.heard ? '' : ' disabled'}><span class="core"></span></button>
+        <span class="side right"></span>
+      </div>`;
+  }
+
+  function reviewPanelHTML(){
+    return `<span class="saved-chip">${ic('check', 'xs')}Saved automatically</span>
+      <h2>That’s exactly how the real one works</h2>
+      <p class="say">Your answers save as you go — there’s nothing to upload or submit.${S.replayOK ? '' : ' Playback isn’t available in this preview.'}</p>
+      <button class="btn btn-primary btn-block" data-act="begin" type="button" data-focus>Start assessment</button>
+      <button class="btn btn-onvideo btn-block" data-act="again" type="button">Record again</button>`;
   }
 
   function camScreenHTML(){
-    const st = S.state;
-    const msg = showPreview() ? '' : (isLive() && S.hidePreview)
-      ? `${ic('eyeOff')}<span>Preview hidden. You’re still recording.</span>`
+    const review = S.state === 'review';
+    const msg = S.hidePreview ? `${ic('eyeOff')}<span>Preview hidden. You’re still recording.</span>`
+      : (review || showPreview()) ? ''
       : `<span class="spin lg" aria-hidden="true"></span><span>Starting your camera…</span>`;
-
-    let bottom;
-    if (st === 'check') bottom = checkPanelHTML();
-    else if (st === 'start') bottom = `${stepLine('start')}
-      <h2>Ready when you are</h2>
-      <p class="say">Tap below to start recording. Take a breath first if you need to — nothing here is saved.</p>
-      <button class="btn btn-rec btn-block" data-act="start-rec" type="button" data-focus>${ic('rec', 'sm')}Start recording</button>`;
-    else bottom = `${stepLine('talk')}
-      <h2>Answer out loud</h2>
-      <p class="say">Say a sentence or two, then stop. It doesn’t need to be perfect.</p>
-      <div class="cam-actions">
-        <button class="toggle" data-act="hide" aria-pressed="${S.hidePreview}" type="button"><span class="track" aria-hidden="true"></span>Hide preview</button>
-        <button class="btn btn-primary" data-act="stop" type="button">${ic('square', 'sm')}Stop recording</button>
-      </div>`;
-
-    const showQ = st === 'start' || st === 'talk';
     return `<section class="camscreen">
-      <div class="cam-media" id="vmedia">${mediaHTML()}</div>
-      ${msg ? `<div class="cam-msg">${msg}</div>` : ''}
-      <div class="cam-top">
-        <div class="row1">${logoHTML()}${barButtons()}</div>
-        <div class="row2">
-          ${isLive() ? `<span class="rec-pill"><span class="rec-dot"></span>REC <span id="recTime">${fmt(S.recSecs)}</span></span>` : ''}
-          ${showQ ? `<button class="qchip" data-act="qopen" type="button">${ic('chevUp', 'xs')}View question</button>` : ''}
-        </div>
-      </div>
-      <div class="cam-bottom" id="camBottom">${bottom}</div>
+      <div class="cam-media${S.hidePreview ? ' hidden' : ''}" id="vmedia">${mediaHTML()}</div>
+      ${review && S.replayOK ? '<button class="replay-tap" data-act="replay" type="button" aria-label="Play or pause your recording"></button><span class="play-badge" id="playBadge" hidden>' + ic('play') + '</span>' : ''}
+      <div class="cam-msg" id="camMsg"${msg ? '' : ' hidden'}>${msg}</div>
+      <div class="cam-top"><div class="row1">${logoHTML()}${barButtons()}</div></div>
+      <div class="cam-bottom" id="camBottom">${review ? reviewPanelHTML() : recordPanelHTML()}</div>
     </section>`;
   }
 
@@ -1093,7 +1130,6 @@ button,select,input{font:inherit;color:inherit}
       </div>
       <p class="dlg-note">Simulated. Chrome draws this dialog, not the page.</p>
     </div></div>`;
-    // Android asks for its own permissions after the site is allowed, one device at a time.
     const cam = S.dialog === 'os-cam';
     return `<div class="scrim"><div>
       <div class="dlg-os" role="dialog" aria-label="Android permission request">
@@ -1125,10 +1161,8 @@ button,select,input{font:inherit;color:inherit}
   function screenHTML(){
     switch (S.state){
       case 'wait': case 'waitError': return waitScreen();
-      case 'intro': return introScreen();
+      case 'question': return questionScreen();
       case 'blocked': return blockedScreen();
-      case 'orient': return questionScreen();
-      case 'done': return doneScreen();
       case 'countdown': return countdownScreen();
       case 'assessment': return assessmentScreen();
       default: return camScreenHTML();
@@ -1140,6 +1174,23 @@ button,select,input{font:inherit;color:inherit}
     view.innerHTML = screenHTML() + (S.qOpen ? qsheetHTML() : '') + (S.dialog ? dialogHTML() : '');
     attachMedia();
     view.querySelector('[data-focus]')?.focus({preventScroll:true});
+  }
+
+  /* ---------- Recording ---------- */
+  function beginRecording(){
+    if (!S.heard) return;
+    S.recording = true;
+    S.recSecs = 0;
+    render();
+    startRecorder();
+    every(() => { S.recSecs++; const t = $('recTime'); if (t) t.textContent = fmt(S.recSecs); }, 1000);
+  }
+  function endRecording(){
+    S.poster = grabPoster();
+    stopRecorder(false);
+    clearTimers();
+    S.recording = false;
+    go('review');
   }
 
   /* ================= Events ================= */
@@ -1154,18 +1205,34 @@ button,select,input{font:inherit;color:inherit}
       case 'ask': askPermission(); break;
       case 'allow': dialogAllow(); break;
       case 'deny': dialogDeny(); break;
-      case 'retry': S.inuseCleared = true; S.permitted = false; go('intro'); break;
-      case 'to-question': if (S.heard) go('orient'); break;
-      case 'to-start': go('start'); break;
-      case 'start-rec': go('talk'); break;
-      case 'stop': go('done'); break;
+      case 'retry': S.inuseCleared = true; S.permitted = false; go('question'); break;
+      case 'start-rec': beginRecording(); break;
+      case 'stop-rec': endRecording(); break;
+      case 'hide': {
+        // Repaint around the media, never through it: a re-render would drop the stream.
+        S.hidePreview = !S.hidePreview;
+        $('vmedia')?.classList.toggle('hidden', S.hidePreview);
+        const cm = $('camMsg');
+        if (cm){
+          cm.innerHTML = S.hidePreview ? `${ic('eyeOff')}<span>Preview hidden. You’re still recording.</span>` : '';
+          cm.hidden = !S.hidePreview;
+        }
+        paintPanel();
+        break;
+      }
       case 'qopen': S.qOpen = true; render(); break;
       // Tapping the scrim closes it; tapping inside the sheet does not.
       case 'qclose':
         if (b.classList.contains('qsheet-wrap') && e.target.closest('.qsheet')) return;
         S.qOpen = false; render(); break;
-      case 'hide': S.hidePreview = !S.hidePreview; render(); break;
-      case 'again': go('orient'); break;
+      case 'replay': {
+        const v = $('clip'), badge = $('playBadge');
+        if (!v || v.tagName !== 'VIDEO') return;
+        if (v.paused){ v.play().catch(() => {}); if (badge) badge.hidden = true; }
+        else { v.pause(); if (badge) badge.hidden = false; }
+        break;
+      }
+      case 'again': go('record'); break;
       case 'begin': go('countdown'); break;
     }
   });
@@ -1185,26 +1252,17 @@ button,select,input{font:inherit;color:inherit}
   const TICKET = {
     wait:'#1 + #4: a wait screen with live loading steps replaces the blank page.',
     waitError:'#4: if loading fails, say so and offer Try again instead of an endless spinner.',
-    intro:'#2: the ask is explained on its own screen before the browser prompts, so Allow is not a surprise. On Android it warns that two dialogs are coming.',
+    question:'#2: the question comes before the permission ask, so Allow arrives with its reason attached — the biggest lever on grant rates.',
     blocked:'#2: a blocked or busy camera gets its own screen, with the steps for this phone and a drawing of where to tap.',
-    check:'Review feedback: see yourself and test the mic on one screen, the way a video call does, before practising.',
-    orient:'#2: the practice question gets a screen of its own, so it is read before anything records.',
-    start:'#2: one action per screen. The camera is already live, so starting is the only thing left.',
-    talk:'#2 + #3: the mic was checked already, so this screen just records. The question stays one tap away.',
-    done:'#3: the practice ends clearly, and says what changes in the real thing.',
+    record:'#2 + #3: checking and recording are one screen. The shutter is the gate — it unlocks when the mic is heard, so no step can be skipped and none is wasted.',
+    review:'The device check only proves the preview worked. Playing the clip back proves the RECORDING did, and is where the candidate learns answers save by themselves.',
     countdown:'#4: a short countdown so the start of the timer is never a surprise.',
     assessment:'End of the flow.'
   };
-  const CHIPS = {
-    A:[['wait', 'Loading'], ['intro', 'Allow'], ['blocked', 'Blocked'], ['check', 'Device check'], ['orient', '1 Question'], ['start', '2 Ready'], ['talk', '3 Answer'], ['done', 'All set'], ['countdown', 'Countdown']],
-    B:[['wait', 'Loading'], ['intro', '1 Allow'], ['blocked', '1 Blocked'], ['check', '2 Check'], ['orient', '3 Question'], ['start', '4 Ready'], ['talk', '5 Answer'], ['done', 'All set'], ['countdown', 'Countdown']]
-  };
-  let chipsFor = null;
+  const CHIPS = [['wait', 'Loading'], ['question', 'Question'], ['blocked', 'Blocked'], ['record', 'Record'], ['review', 'Review'], ['countdown', 'Countdown']];
   function updateProto(){
-    if (chipsFor !== S.variant){
-      chipsFor = S.variant;
-      $('jumpChips').innerHTML = CHIPS[S.variant].map(([k, l]) => `<button type="button" data-go="${k}">${l}</button>`).join('');
-    }
+    const jc = $('jumpChips');
+    if (jc && !jc.children.length) jc.innerHTML = CHIPS.map(([k, l]) => `<button type="button" data-go="${k}">${l}</button>`).join('');
     $('osGroup').hidden = S.platform !== 'android';
     const tk = $('protoTicket');
     if (tk) tk.innerHTML = `<b>UX-1224</b> ${TICKET[S.state] || ''}`;
@@ -1218,12 +1276,13 @@ button,select,input{font:inherit;color:inherit}
 
   function jump(st){
     S.inuseCleared = false;
-    if (['check', 'start', 'talk'].includes(st)) S.permitted = true;
-    else if (['wait', 'intro'].includes(st)) S.permitted = false;
+    if (st === 'record' || st === 'review') S.permitted = true;
+    else if (st === 'wait' || st === 'question') S.permitted = false;
     if (st === 'blocked'){
       S.permitted = S.permMode === 'inuse';
       S.blockedReason = S.permMode === 'inuse' ? 'inuse' : 'denied';
     }
+    if (st === 'review'){ S.poster = S.poster || grabPoster(); }
     go(st);
   }
 
@@ -1236,9 +1295,8 @@ button,select,input{font:inherit;color:inherit}
     if (key === 'osGranted') S.osGranted = s.dataset.val === 'yes';
     else S[key] = s.dataset.val;
     if (key === 'platform'){ renderChrome(); render(); return; }
-    if (key === 'variant'){ S.permitted = false; updateProto(); return go('intro'); }
     if (key === 'permMode'){ S.permitted = false; S.inuseCleared = false; }
-    if (key === 'voiceMode' && s.dataset.val === 'heard' && S.state === 'check') later(micOk, 600);
+    if (key === 'voiceMode' && s.dataset.val === 'heard' && S.state === 'record' && !S.recording) later(micOk, 600);
     updateProto();
   });
 
