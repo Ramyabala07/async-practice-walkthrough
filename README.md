@@ -32,6 +32,11 @@ page. One flow, four candidate screens:
     loading -> practice question -> [the browser's own permission dialogs]
     -> record -> review -> countdown
 
+plus the states a phone actually produces: an in-app browser, an interrupted
+recording, and a save that has not landed. Those are in **What the numbers
+changed** below, and they are not edge cases — they are where the funnel
+leaks.
+
 Four decisions it rests on:
 
 - **The question comes before the permission ask.** The ask then arrives with
@@ -68,15 +73,71 @@ steps for that phone, and the site-blocked one draws a small mock of the
 address bar showing which control to tap — Chrome's lock icon at the top,
 Safari's aA at the bottom.
 
-### Known gaps
+### What the analytics changed
 
-Not yet handled, and the most consequential open work: an incoming call or a
-backgrounded tab killing a recording mid-answer, and a failed save on patchy
-mobile data. Both are routine on a phone rather than edge cases.
+Three readings from the product funnel drove this work. The figures are
+internal — they live on the analytics board linked from UX-1224, not in this
+public repo.
 
-The microphone gate has no bypass. If the mic genuinely cannot be heard the
-candidate cannot proceed, which is deliberate on desktop but riskier on a
-phone.
+1. **Mobile is roughly half of candidate traffic**, and iPhone is the large
+   majority of it. This is the main surface, not a slice.
+2. **iPhone finishes at well under half the desktop rate**, and loses people
+   twice: at the camera permission ask, and again between allowing the camera
+   and submitting.
+3. **Most of the drop at the permission step produces no event at all.**
+   Explicit refusals are a small minority of it, and the instrumentation
+   tracks only successes and refusals. So the largest leak in the funnel is
+   currently invisible — and it is a failure, not a persuasion problem.
+
+Three states follow from that:
+
+- **In-app browser.** A link tapped inside Gmail, LinkedIn or WhatsApp opens
+  in a webview where `getUserMedia` is often unavailable and fails without
+  drawing a prompt — which is the shape of the silent drop. Caught on load,
+  before the candidate spends a step on it, with the steps to reopen in the
+  real browser and a copy-link fallback. Detection is a user-agent heuristic
+  and is treated as one: the screen always offers "my camera works —
+  continue", because a false positive costs one screen and a false negative
+  costs the candidate. **Validate `detectWebview()` against real UA data
+  before trusting any number it produces.**
+- **Interrupted recording.** A call, a tapped notification, the screen
+  locking or an app switch suspends the page and ends the camera track. Real
+  `visibilitychange` and track `ended`/`mute` listeners stop the take, hold
+  the last frame, and say what was kept — with "watch what we kept" to prove
+  the partial answer survived. This is aimed at the second iOS gap: a large
+  share of iPhone candidates who allow the camera still never submit.
+- **Save that has not landed.** Saving is per answer and invisible when it
+  works, which is right — and carries the risk that a stalled write lets a
+  candidate walk on to question 2 with question 1 still in flight. One chip
+  carries four truths (saving / saved / still saving / not saved), and
+  **Start assessment is held until the write lands**. That hold is the
+  feature. An offline review screen waits rather than failing, and resumes
+  on reconnect.
+
+A connection bar lives outside the rendered screen so it can appear
+mid-recording without a re-render dropping the stream.
+
+### Open questions and known gaps
+
+- **Is the in-app-browser hypothesis right?** Segment the permission funnel
+  by user agent for webview signatures (`FBAN`, `FBAV`, `Instagram`,
+  `LinkedInApp`, `GSA`, `Line`). If a meaningful share of the silent drop is
+  in-app, this screen is the highest-value change in the project.
+- **Instrumentation gap.** Today nothing distinguishes "dialog never shown"
+  from "device error" from "abandoned". Until it does, the drop at the
+  permission step can only be guessed at. This is a product ask, not a
+  design one.
+- **Retention contract.** The interrupted screen tells the candidate the
+  partial answer is kept. Confirm that is what the backend actually does
+  before this copy ships.
+- **The microphone gate still has no bypass.** Deliberate: we genuinely hear
+  nothing, so the gate's judgment is certain. The counter-argument on a phone
+  is that a silent device failure traps the candidate behind a wall that
+  fires no event. If that is a real risk, the shape to add after a second
+  failure is not "Skip" but "Continue anyway — we'll note we couldn't test
+  your mic."
+- Retake policy on real questions, and the number and length of questions,
+  are still open with product.
 
 ## Running it
 
@@ -90,3 +151,9 @@ sample preview so the flow still demonstrates.
 The frame is fixed at 1440×960 and scaled to fit the window. Prototype
 controls sit in the panel on the right — jump to any step, switch
 variant, or force a blocked state.
+
+The mobile file scales a 360×800 (Android) or 390×844 (iPhone) frame the same
+way, and draws the browser's own chrome because the recovery screens point at
+it. Its panel can switch device, force any permission outcome, open the flow
+as if from inside another app, drop the connection, make the save slow or
+fail, and interrupt a recording in progress.
