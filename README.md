@@ -37,31 +37,33 @@ recording, and a save that has not landed. Those are in **What the analytics
 changed** below, and they are not edge cases — they are where the funnel
 leaks.
 
-It is built on the real Tessera components (`window.TesseraDS`) and follows the
-V8 Test Taker Experience mobile frames: the Talview top bar with the language
-and Alvy actions, a grey canvas with white bordered cards, device rows with a
-status, a video card with a dark control strip, and a right-aligned footer of
-36px buttons. Alvy's chat is Tessera's `ChatPanel`, the offline state is
-`CandidateBanner`, the prep and countdown rings are `ProgressIndicator`, and the
-level and playback bars are `CandidateSoundwave`. Only the simulated browser
-chrome and the browser's own permission dialogs are drawn by hand.
+The structure is the approved wireframe. The V8 Test Taker Experience mobile
+frames are used as a style reference (type, colour, the top bar, the device
+status chips, the video strip), not copied as a layout. Every call to action is
+full width and sits at the foot of the screen.
+
+It is built on the real Tessera components (`window.TesseraDS`). Alvy's chat is
+Tessera's `ChatPanel`, the offline state is `CandidateBanner`, the countdown ring
+is `ProgressIndicator`, and the level and playback bars are `CandidateSoundwave`.
+The prototype panel uses `Tabs` as segmented controls and a vertical screen list.
+Only the simulated browser chrome and the browser's own permission dialogs are
+drawn by hand.
 
 What the flow rests on:
 
 - **Same order as web.** A candidate practises in the sequence they will meet
   for the scored questions, and there is one flow to spec and QA rather than
-  two. The permission screen reuses the desktop step's title and lede.
+  two. The allow-access screen reuses the desktop step's title and lede.
 - **The permission button says Continue, not Allow.** The browser's own Allow
   comes next, and two Allows in a row reads as being asked twice.
-- **The device check is its own screen, gated by Next.** Next stays locked
-  until the microphone is heard, so nobody records without having proved the
-  mic works.
-- **The question is read with the camera off, with a preparation countdown.**
-  Recording starts by itself when the prep time ends, as it does in the real
-  assessment, or on Start now. The web onboarding never explains the prep time;
-  this screen does.
+- **The camera and mic test is its own screen, gated by Continue.** Continue
+  stays locked until the microphone is heard, so nobody records without having
+  proved the mic works.
+- **The question is read with the camera off,** and recording starts on the
+  candidate's tap. The real assessment adds preparation time before it starts
+  recording; the onboarding does not, so none is shown here.
 - **Stop recording saves the answer.** There is no Submit and no upload step.
-  Retake and Next are the two actions, as on web, and Next is held until the
+  Next and Retake are the two actions, as on web, and Next is held until the
   save has landed.
 - **The clip plays back afterwards.** The device check only proves the live
   preview works; playback is the only thing that proves the recording
@@ -150,15 +152,15 @@ mid-recording without a re-render dropping the stream.
   costs taps on the platform that already loses people. The test screen's
   success state is a pure Next screen with no decision on it, so it is the
   candidate to fold if the funnel says so.
-- **The prep time is a placeholder.** It is 10 seconds here (5, 10 and 30 in the
-  prototype panel). Confirm the real value, and whether it varies by question.
-- **Touch targets.** Tessera's Button and IconButton are 36px. That passes WCAG
-  2.2 AA (24px minimum) and matches the Figma frames, but it is under the 44pt
-  iOS and 48dp Android guidance. Worth raising with the design system team
-  rather than overriding per screen.
+- **Touch targets.** Tessera's Button is 36px tall. Full-width calls to action
+  make them easy to hit, and 36px passes WCAG 2.2 AA (24px minimum), but the
+  height is under the 44pt iOS and 48dp Android guidance. Worth raising with
+  the design system team rather than overriding per screen.
+- **The red dot on the camera test** follows the wireframe, but a red dot reads
+  as "recording". If candidates mistake it for that, label it.
 - **No speaker check.** The existing system check tests camera, microphone and
-  speaker. An async answer needs only the first two, so the speaker row is
-  left out. Confirm that is intended.
+  speaker. The wireframe and an async answer need only the first two, so the
+  speaker row is left out.
 - **Dropdown panels** open in a layer above the page, so inside the scaled
   phone frame their position is slightly off when the window is small.
 - **The real camera path is untested here.** The recorder, the level meter and

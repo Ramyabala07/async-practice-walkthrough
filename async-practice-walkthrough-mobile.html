@@ -3,14 +3,17 @@
 <link rel="stylesheet" href="tessera/tokens.css">
 <link rel="stylesheet" href="tessera/bundle.css">
 <style>
-/* Mobile flow for the Tessera async interview practice run (UX-1224), built on the real
-   Tessera components (window.TesseraDS) and the V8 Test Taker Experience mobile frames.
+/* Mobile flow for the Tessera async interview practice run (UX-1224).
 
-   Layout concept: the phone is a scaled frame on a neutral stage. Inside it, every screen is
-   the Figma pattern — top nav, a grey canvas, white bordered cards, and a right-aligned
-   footer of 36px Tessera buttons. Nothing here uses a colour or size that is not a Tessera
-   token, except the simulated browser chrome and the browser's own permission dialogs,
-   which are drawn after Chrome, Android and Safari and are not part of the product UI.
+   Structure follows the approved wireframe: loading, allow access, the browser's dialog,
+   camera and mic test, the practice question, recording, review. The V8 Test Taker
+   Experience frames are a STYLE reference only (type, colour, the top bar, the device
+   status, the video strip), not a layout to copy. On a phone every call to action is full
+   width and sits at the foot of the screen.
+
+   Built on the real Tessera components (window.TesseraDS). Nothing here uses a colour or
+   size that is not a Tessera token, except the simulated browser chrome and the browser's
+   own permission dialogs, which are drawn after Chrome, Android and Safari.
 
    Light mode only: the app sits under data-theme="light", so a viewer's dark setting
    cannot flip the tokens. */
@@ -52,58 +55,62 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
 .i-home{height:22px;display:flex;align-items:flex-start;justify-content:center;padding-top:4px}
 .i-home span{width:134px;height:5px;border-radius:3px;background:#18181b;opacity:.85}
 
-/* ---------- Screen layout: the Figma candidate pattern ---------- */
-.pg{flex:1;min-height:0;display:flex;flex-direction:column;background:var(--bg-muted)}
-.pg-body{flex:1;min-height:0;overflow:auto;padding:var(--space-4);display:flex;flex-direction:column;gap:var(--space-3)}
-.pg-foot{flex:none;display:flex;justify-content:flex-end;align-items:center;gap:var(--space-2);padding:var(--space-3) var(--space-4) var(--space-4)}
-.pg-foot.col{flex-direction:column;align-items:stretch}
-.card{background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-xl);padding:var(--space-4);display:flex;flex-direction:column;gap:var(--space-3);min-height:0}
-.card.grow{flex:1}
-.card h1,.card h2,.card h3,.card h4,.card h5,.card p{margin:0}
-.card .ttl{color:var(--text-primary)}
-.card .ttl.err{color:var(--error-emphasis)}
+/* ---------- Screen layout: the wireframe's structure ---------- */
+.pg{flex:1;min-height:0;display:flex;flex-direction:column;background:var(--bg-surface)}
+.pg-body{flex:1;min-height:0;overflow:auto;padding:var(--space-4) var(--space-4) var(--space-2);display:flex;flex-direction:column;gap:var(--space-4)}
+.pg-body.mid{justify-content:center}
+.pg-body.flush{overflow:hidden}
+.pg-foot{flex:none;display:grid;gap:var(--space-2);padding:var(--space-2) var(--space-4) var(--space-4)}
+.pg-foot .note{margin:0;text-align:center}
+.head{display:grid;gap:var(--space-2)}
+.head h1,.head p,.pg-body p{margin:0}
+.ttl{margin:0;color:var(--text-primary)}
+.ttl.err{color:var(--error-emphasis)}
 .muted{color:var(--text-subtle)}
-.cap{display:flex;align-items:center;gap:var(--space-2)}
-.centre{flex:1;min-height:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:var(--space-3);text-align:center;padding:var(--space-4)}
+.sr-only-live{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+.centre{display:flex;flex-direction:column;align-items:center;gap:var(--space-3);text-align:center}
 .mark{flex:none;width:48px;height:48px;border-radius:var(--radius-full);display:flex;align-items:center;justify-content:center;background:var(--bg-accent);color:var(--interactive-link)}
 .mark.err{background:var(--error-surface);color:var(--error-emphasis)}
-.mark svg{width:24px;height:24px}
 .steps{margin:0;padding-left:var(--space-5);display:grid;gap:var(--space-2);color:var(--text-body)}
 .steps b{font-weight:500;color:var(--text-primary)}
-.checklist{list-style:none;margin:0;padding:var(--space-2) var(--space-3);width:100%;text-align:left;background:var(--bg-muted);border:1px solid var(--border-subtle);border-radius:var(--radius-lg)}
-.checklist li{display:flex;align-items:center;gap:var(--space-2);padding:var(--space-2) 0;color:var(--text-primary)}
+.checklist{list-style:none;margin:0;padding:0;width:100%;text-align:left}
+.checklist li{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-2) 0;color:var(--text-primary)}
 .checklist li.pend{color:var(--text-subtle)}
 .checklist li.done svg{color:var(--success-strong)}
 .checklist li.fail{color:var(--error-emphasis)}
 .dot{flex:none;width:16px;height:16px;border-radius:50%;border:1.5px solid var(--border-primary)}
-.hint{background:var(--bg-accent);border-radius:var(--radius-lg);padding:var(--space-4);text-align:center;color:var(--text-body);display:flex;flex-direction:column;align-items:center;gap:var(--space-2)}
-.hint .pair{display:flex;gap:var(--space-2);color:var(--interactive-link)}
 
-/* Device rows: Tessera underline Dropdown plus a status, as in the Figma system checks. */
+/* The wireframe's big picture area on Allow access. */
+.illus{flex:1;min-height:132px;max-height:260px;display:flex;align-items:center;justify-content:center;gap:var(--space-4);border-radius:var(--radius-xl);background:var(--bg-accent)}
+.illus .ib{width:72px;height:72px;border-radius:var(--radius-2xl);background:var(--bg-surface);color:var(--interactive-link);display:flex;align-items:center;justify-content:center;box-shadow:var(--shadow-sm)}
+
+/* Device rows: a Tessera underline Dropdown with its status, as in the Figma system checks. */
 .drows{display:grid;gap:var(--space-1)}
 .drow{display:grid;grid-template-columns:20px minmax(0,1fr) auto;align-items:center;gap:var(--space-2)}
 .drow>svg{color:var(--text-tertiary)}
-.dstat{display:inline-flex;align-items:center;gap:6px;min-width:84px;justify-content:flex-end;font:500 12px/18px var(--font-sans);color:var(--text-subtle);white-space:nowrap}
-.dstat.ok{color:var(--success-strong)}
-.dstat.warn{color:var(--warning-emphasis)}
 
-/* Video card: the Figma recorder, a rounded frame with a dark control strip at the foot. */
-.vcard{position:relative;flex:1;min-height:176px;border-radius:var(--radius-lg);overflow:hidden;background:var(--bg-tooltip)}
+/* Video card with an optional dark strip, taken from the Figma recorder. */
+.vcard{position:relative;flex:1;min-height:176px;border-radius:var(--radius-xl);overflow:hidden;background:var(--bg-tooltip)}
 .vmedia{position:absolute;inset:0}
 .vmedia.hidden{visibility:hidden}
 .vmedia video,.vmedia canvas,.vmedia img{display:block;width:100%;height:100%;object-fit:cover}
 .vmedia video.mirror{transform:scaleX(-1)}
 .vmedia.frozen video,.vmedia.frozen img,.vmedia.frozen canvas{filter:grayscale(.55) brightness(.55)}
 .vmsg{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:var(--space-2);padding:var(--space-6);text-align:center;color:var(--text-on-primary)}
-.vtop{position:absolute;left:var(--space-2);right:var(--space-2);top:var(--space-2);display:flex;justify-content:space-between;align-items:center;gap:var(--space-2);z-index:2}
-.pill{display:inline-flex;align-items:center;background:var(--bg-surface);border-radius:var(--radius-full);padding:0 var(--space-2)}
-/* Strip over the video. Re-pointing these tokens keeps the components themselves unmodified. */
+.vtop{position:absolute;left:var(--space-3);right:var(--space-3);top:var(--space-3);display:flex;justify-content:space-between;align-items:center;gap:var(--space-2);z-index:2}
+.pill{display:inline-flex;align-items:center;background:var(--bg-surface);border-radius:var(--radius-full);padding:0 var(--space-2);min-height:28px}
+.livedot{display:inline-block;width:10px;height:10px;border-radius:50%;background:var(--error-strong);box-shadow:0 0 0 3px rgba(255,255,255,.55)}
 .vstrip{position:absolute;left:0;right:0;bottom:0;z-index:2;display:flex;align-items:center;justify-content:space-between;gap:var(--space-3);padding:var(--space-2) var(--space-3);
   background:var(--bg-overlay-primary);color:var(--text-on-primary);
   --text-tertiary:var(--text-on-primary);--text-primary:var(--text-on-primary);--interactive-link:var(--blue-300)}
 .vstrip .say{font:500 14px/20px var(--font-sans);min-width:0}
-.vstrip .grp{display:flex;align-items:center;gap:var(--space-2);min-width:0}
-
+.vcenter{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;z-index:2;pointer-events:none}
+.vcenter>*{pointer-events:auto}
+/* The question over the camera while recording: legible, and one tap from the full text. */
+.qover{position:absolute;left:var(--space-2);right:var(--space-2);bottom:var(--space-2);z-index:2;display:grid;gap:var(--space-1);padding:var(--space-3);
+  background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-lg)}
+.qover p{margin:0}
+.qover button{justify-self:start;text-align:left}
 .qline{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;color:var(--text-primary)}
 .status-line{display:flex;align-items:flex-start;gap:var(--space-2);font:500 14px/20px var(--font-sans);color:var(--text-body)}
 .status-line.ok{color:var(--success-strong)}
@@ -118,8 +125,6 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
   color:var(--interactive-link);box-shadow:0 0 0 2px var(--interactive-link);font:500 14px/1 var(--font-sans)}
 .mockbar .spot b{font-size:10px;font-weight:500}
 .hintbox{background:var(--bg-muted);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);padding:var(--space-3);display:grid;gap:var(--space-2)}
-
-/* Skeleton for the end of the prototype. */
 .skel{display:grid;gap:var(--space-3)}
 
 /* ---------- The browser's own permission dialogs (not Tessera: drawn after the platform) ---------- */
@@ -150,18 +155,21 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
 .alvy>*{flex:1;min-height:0}
 
 /* ---------- Prototype controls (not part of the design) ---------- */
-.proto{flex:none;position:relative;z-index:70;width:300px;height:100%;overflow:auto;display:flex;flex-direction:column;background:var(--bg-surface);border-left:1px solid var(--border-primary);color:var(--text-body)}
-.proto-head,.proto-body{padding-left:16px;padding-right:max(16px,env(safe-area-inset-right,0px))}
-.proto-head{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;padding-top:max(14px,env(safe-area-inset-top,0px));padding-bottom:12px;border-bottom:1px solid var(--border-subtle)}
-.proto-title{flex:1;font:500 12px/18px var(--font-sans);color:var(--text-primary);letter-spacing:.04em;text-transform:uppercase}
-.proto-ticket{flex-basis:100%;margin:0;padding:8px 10px;border-radius:8px;background:var(--bg-muted);color:var(--text-body)}
+.proto{flex:none;position:relative;z-index:70;width:300px;height:100%;overflow:auto;display:flex;flex-direction:column;background:var(--bg-surface);border-left:1px solid var(--border-subtle);color:var(--text-body)}
+.proto-head,.proto-body{padding-left:var(--space-4);padding-right:max(var(--space-4),env(safe-area-inset-right,0px))}
+.proto-head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:var(--space-2);padding-top:max(var(--space-4),env(safe-area-inset-top,0px));padding-bottom:var(--space-3);border-bottom:1px solid var(--border-subtle)}
+.proto-title{font:500 14px/20px var(--font-sans);color:var(--text-primary)}
+.proto-ticket{flex-basis:100%;margin:0;color:var(--text-subtle)}
 .proto-ticket b{font-weight:500;color:var(--text-primary)}
-.proto-body{display:flex;flex-direction:column;gap:16px;padding-top:14px;padding-bottom:max(16px,env(safe-area-inset-bottom,0px))}
+.proto-body{display:flex;flex-direction:column;gap:var(--space-5);padding-top:var(--space-4);padding-bottom:max(var(--space-4),env(safe-area-inset-bottom,0px))}
 .proto.collapsed{width:auto}
 .proto.collapsed .proto-body,.proto.collapsed .proto-ticket{display:none}
-.proto-group{display:flex;flex-direction:column;align-items:flex-start;gap:6px}
-.proto-label{font:500 12px/18px var(--font-sans);color:var(--text-subtle)}
-.seg{display:flex;flex-wrap:wrap;gap:4px}
+.proto-group{display:flex;flex-direction:column;gap:var(--space-2);width:100%}
+.proto-label{font:500 12px/18px var(--font-sans);color:var(--text-subtle);text-transform:uppercase;letter-spacing:.04em}
+.proto-group [role="tablist"]{width:100%}
+.proto-group [role="tablist"]:not([aria-orientation="vertical"]){display:flex}
+.proto-group [role="tablist"]:not([aria-orientation="vertical"]) [role="tab"]{flex:1;justify-content:center;padding-left:var(--space-2);padding-right:var(--space-2)}
+.proto-actions{display:grid;gap:var(--space-2)}
 @media (max-width:760px){
   body{flex-direction:column}
   .app{flex-direction:column}
@@ -180,7 +188,7 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
   const { useState, useEffect, useRef, Fragment } = React;
   const DS = window.TesseraDS;
   const html = htm.bind(React.createElement);
-  const { Button, IconButton, Icon, Spinner, Toggle, Dropdown, Chip, Tag, TextLink, Modal,
+  const { Button, IconButton, Icon, Spinner, Toggle, Dropdown, Chip, Tabs, TabList, Tab, TextLink, Modal,
     CandidateTopNavigation, CandidateClock, CandidateSoundwave, CandidateBanner,
     ProgressIndicator, SkeletonLoader, ChatPanel } = DS;
 
@@ -231,7 +239,6 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
     appMode:detectWebview() ? 'inapp' : 'browser',
     netMode:'online', online:navigator.onLine !== false,
     saveMode:'ok', save:'saving',
-    prepSecs:10, prepLeft:10,
     permitted:false, blockedReason:'denied', inuseCleared:false,
     heard:false, micFailed:false, recording:false, hidePreview:false,
     interruptReason:'away', keptSecs:0, takeSecs:0, pendingInterrupt:false, lastFrame:null,
@@ -267,7 +274,6 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
     if (!KEEP_CLIP.includes(next)) dropClip();
     if (next === 'wait') S.waitItems = ['done', 'act', 'pend'];
     if (next === 'test'){ S.heard = false; S.micFailed = false; }
-    if (next === 'question') S.prepLeft = S.prepSecs;
     if (next === 'record'){ S.recSecs = 0; S.hidePreview = false; S.lastFrame = null; }
     if (NO_CAMERA.includes(next)) stopStream();
     if (next === 'countdown') S.count = 5;
@@ -294,14 +300,6 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
       startLevel();
       if (S.voiceMode === 'heard' && !S.analyser) later(micOk, 2600);
       later(() => { if (!S.heard) micNone(); }, 7000);
-    }
-    if (st === 'question'){
-      // The prep time: the system starts recording by itself when it runs out.
-      every(() => {
-        S.prepLeft--;
-        if (S.prepLeft <= 0){ beginTake(); return; }
-        render();
-      }, 1000);
     }
     if (st === 'review') startSave();
     if (st === 'countdown'){
@@ -770,26 +768,26 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
       <//>`} />`;
   }
 
-  const Page = ({foot, footClass, children}) => html`<div class="pg">
-    <div class="pg-body">${children}</div>
-    ${foot ? html`<div class=${'pg-foot ' + (footClass || '')}>${foot}</div>` : null}
+  // The screen frame: content from the top, every call to action full width at the foot.
+  const Page = ({foot, mid, flush, children}) => html`<div class="pg">
+    <div class=${'pg-body' + (mid ? ' mid' : '') + (flush ? ' flush' : '')}>${children}</div>
+    ${foot ? html`<div class="pg-foot">${foot}</div>` : null}
   </div>`;
-
+  const Head = ({title, err, children}) => html`<div class="head"><h1 class=${'h4 ttl' + (err ? ' err' : '')}>${title}</h1>${children}</div>`;
   const Steps = ({items}) => html`<ol class="steps p2">${items.map((x, i) => html`<li key=${i} dangerouslySetInnerHTML=${{__html:x}} />`)}</ol>`;
+  const Cta = props => html`<${Button} fullWidth ...${props} />`;
 
-  /* ---- device rows, as in the Figma system checks ---- */
+  /* ---- device rows: a Tessera underline Dropdown plus a status chip ---- */
   function DevStatus({s}){
-    if (s === 'ok') return html`<span class="dstat ok"><${Icon} name="check" size=${16} />Working</span>`;
-    if (s === 'quiet') return html`<span class="dstat warn"><${Icon} name="mic-off" size=${16} />No sound yet</span>`;
-    if (s === 'testing') return html`<span class="dstat"><${Spinner} size=${12} color="blue" label=${null} />Testing</span>`;
-    if (s === 'req') return html`<span class="dstat"><${Spinner} size=${12} color="blue" label=${null} />Requesting permission</span>`;
-    return html`<span class="dstat">Waiting for permission</span>`;
+    if (s === 'ok') return html`<${Chip} color="green" variant="secondary" size="md" icon=${html`<${Icon} name="check" size=${12} />`}>Working<//>`;
+    if (s === 'quiet') return html`<${Chip} color="orange" variant="secondary" size="md" icon=${html`<${Icon} name="mic-off" size=${12} />`}>No sound yet<//>`;
+    return html`<${Chip} color="gray" variant="secondary" size="md" icon=${html`<${Spinner} size=${12} color="blue" label=${null} />`}>Testing<//>`;
   }
-  function DeviceRow({kind, status, disabled}){
+  function DeviceRow({kind, status}){
     const cam = kind === 'cam', names = cam ? CAMS : MICS, idx = cam ? S.cam : S.mic;
     return html`<div class="drow">
       <${Icon} name=${cam ? 'video-camera' : 'microphone'} size=${16} />
-      <${Dropdown} variant="underline" aria-label=${cam ? 'Camera' : 'Microphone'} disabled=${disabled}
+      <${Dropdown} variant="underline" aria-label=${cam ? 'Camera' : 'Microphone'}
         options=${names.map((n, i) => ({value:String(i), label:n}))} value=${String(idx)}
         onValueChange=${v => { if (cam) S.cam = +v; else S.mic = +v; render(); }} />
       <${DevStatus} s=${status} />
@@ -829,44 +827,44 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
   }
 
   /* ================= Screens ================= */
+  // 1. Loading: a spinner, then the steps it is working through.
   function WaitScreen(){
     const err = S.state === 'waitError';
     const SR = {done:'done', act:'in progress', pend:'not started', fail:'failed'};
-    return html`<${Page} foot=${err ? html`<${Button} onClick=${() => location.reload()}>Try again<//>` : null}>
-      <section class="card grow centre">
+    return html`<${Page} mid foot=${err ? html`<${Cta} onClick=${() => location.reload()}>Try again<//>` : null}>
+      <div class="centre">
         ${err ? html`<span class="mark err"><${Icon} name="circle-exclamation" size=${24} /></span>` : html`<${Spinner} size=${48} color="blue" label="Loading your assessment" />`}
         <h1 class="h4 ttl">${err ? 'We couldn’t load your assessment' : 'Getting your assessment ready…'}</h1>
         <p class="p2">${err ? 'Check your internet connection, then try again.' : 'This can take up to 30 seconds. Keep this page open.'}</p>
-        <ul class="checklist p2" aria-live="polite">
-          ${WAIT_LABELS.map((t, i) => {
-            const s = S.waitItems[i];
-            const mark = s === 'done' ? html`<${Icon} name="circle-check" size=${16} />`
-              : s === 'act' ? html`<${Spinner} size=${16} color="blue" label=${null} />`
-              : s === 'fail' ? html`<${Icon} name="circle-xmark" size=${16} />`
-              : html`<span class="dot"></span>`;
-            return html`<li key=${i} class=${s}>${mark}<span>${t}</span><span class="sr-only">, ${SR[s]}</span></li>`;
-          })}
-        </ul>
-      </section><//>`;
+      </div>
+      <ul class="checklist p2" aria-live="polite">
+        ${WAIT_LABELS.map((t, i) => {
+          const s = S.waitItems[i];
+          const mark = s === 'done' ? html`<${Icon} name="circle-check" size=${16} />`
+            : s === 'act' ? html`<${Spinner} size=${16} color="blue" label=${null} />`
+            : s === 'fail' ? html`<${Icon} name="circle-xmark" size=${16} />`
+            : html`<span class="dot"></span>`;
+          return html`<li key=${i} class=${s}>${mark}<span>${t}</span><span class="sr-only">, ${SR[s]}</span></li>`;
+        })}
+      </ul><//>`;
   }
 
   // Caught before the permission ask, not after: being wrong costs one screen, being right
   // saves a candidate from a camera that never starts and never explains itself.
   function WebviewScreen(){
     const ios = S.platform === 'ios', name = BROWSER();
-    return html`<${Page} footClass="col" foot=${html`<${Fragment}>
-        <${Button} variant="secondary-gray" fullWidth onClick=${() => go('permission')}>My camera works — continue<//>
-        <p class="p3 muted" style=${{margin:0, textAlign:'center'}}>We can’t always tell which app you’re in. If recording works for you, carry on.</p>
+    return html`<${Page} foot=${html`<${Fragment}>
+        <${Cta} variant="secondary-gray" onClick=${() => go('permission')}>My camera works — continue<//>
+        <p class="p3 muted note">We can’t always tell which app you’re in. If recording works for you, carry on.</p>
       <//>`}>
-      <section class="card grow">
-        <span class="mark err"><${Icon} name="open-link" size=${24} /></span>
-        <h1 class="h4 ttl">Open this in ${name}</h1>
+      <span class="mark err"><${Icon} name="open-link" size=${24} /></span>
+      <${Head} title=${`Open this in ${name}`}>
         <p class="p2">You’ve opened the assessment from inside another app. Recording usually doesn’t work there, and when it doesn’t, it fails without saying anything.</p>
-        <${Steps} items=${ios
-          ? ['Tap the <b>⋯</b> or share button, usually at the bottom of the screen.', 'Choose <b>Open in Safari</b>.', 'Sign in again if you’re asked. You’ll land right back here.']
-          : ['Tap the <b>⋮</b> menu at the top right of the screen.', 'Choose <b>Open in Chrome</b>.', 'Sign in again if you’re asked. You’ll land right back here.']} />
-        <${CopyLink} name=${name} />
-      </section><//>`;
+      <//>
+      <${Steps} items=${ios
+        ? ['Tap the <b>⋯</b> or share button, usually at the bottom of the screen.', 'Choose <b>Open in Safari</b>.', 'Sign in again if you’re asked. You’ll land right back here.']
+        : ['Tap the <b>⋮</b> menu at the top right of the screen.', 'Choose <b>Open in Chrome</b>.', 'Sign in again if you’re asked. You’ll land right back here.']} />
+      <${CopyLink} name=${name} /><//>`;
   }
   function CopyLink({name}){
     const [msg, setMsg] = useState('');
@@ -878,87 +876,74 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
     return html`<${TextLink} as="button" leadingIcon=${html`<${Icon} name="link" />`} onClick=${copy}>${msg || `Or copy the link and paste it into ${name}`}<//>`;
   }
 
-  // Permissions first, as on web. The Figma system check shows this same moment: a calm
-  // panel explaining the ask, and the device rows waiting on permission.
+  // 2. Allow access: the picture, the reason, Continue. The browser's own dialog comes next.
   function PermissionScreen(){
-    const req = !!S.dialog;
-    return html`<${Page} foot=${html`<${Button} onClick=${askPermission}>Continue<//>`}>
-      <section class="card grow">
-        <h1 class="h4 ttl">Allow camera and microphone</h1>
+    return html`<${Page} foot=${html`<${Cta} onClick=${askPermission}>Continue<//>`}>
+      <div class="illus" aria-hidden="true">
+        <span class="ib"><${Icon} name="video-camera" size=${32} /></span>
+        <span class="ib"><${Icon} name="microphone" size=${32} /></span>
+      </div>
+      <${Head} title="Allow camera and microphone">
         <p class="p2">You answer this assessment by recording video, so we need your camera and microphone. Your browser will ask for permission.</p>
-        <div class="hint">
-          <span class="pair"><${Icon} name="video-camera" size=${24} /><${Icon} name="microphone" size=${24} /></span>
-          <p class="p2">${S.platform === 'android'
-            ? 'Chrome asks twice: once for this site, then once for Chrome itself. Choose Allow both times.'
-            : 'Safari will ask. Choose Allow. It asks again each time you open the assessment, and that’s normal.'}</p>
-        </div>
-        <div class="drows">
-          <${DeviceRow} kind="cam" status=${req ? 'req' : 'ask'} disabled />
-          <${DeviceRow} kind="mic" status=${req ? 'req' : 'ask'} disabled />
-        </div>
-      </section><//>`;
+      <//>
+      <p class="p3 muted">${S.platform === 'android'
+        ? 'Chrome asks twice: once for this site, then once for Chrome itself. Choose Allow both times.'
+        : 'Safari will ask. Choose Allow. It asks again each time you open the assessment, and that’s normal.'}</p><//>`;
   }
 
-  // Test device: the same step as web, as its own screen. Next stays locked until the mic is heard.
+  // 4 and 5. Camera and mic test. Continue stays locked until the mic is heard.
   function TestScreen(){
     const mic = S.heard ? 'ok' : S.micFailed ? 'quiet' : 'testing';
-    return html`<${Page} foot=${html`<${Button} disabled=${!S.heard} onClick=${() => go('question')}>Next<//>`}>
-      <section class="card grow">
-        <h1 class="h4 ttl">Check your camera and microphone</h1>
+    return html`<${Page} foot=${html`<${Cta} disabled=${!S.heard} onClick=${() => go('question')}>Continue<//>`}>
+      <${Head} title="Check your camera and microphone">
         <p class="p2">We’ll make sure we can see and hear you before you start.</p>
-        <div class="vcard">
-          <${VideoLayer} />
-          ${showPreview() ? null : html`<div class="vmsg"><${Spinner} size=${24} color="white" label=${null} /><span>Starting your camera…</span></div>`}
-          <div class="vtop"><${Chip} color="gray" size="sm">Not recording<//>${simChip()}</div>
-          <div class="vstrip">
-            <span class="say">${S.heard ? 'We can hear you' : 'Say ‘Testing 123’ out loud'}</span>
-            <${LiveWave} />
-          </div>
+      <//>
+      <div class="vcard">
+        <${VideoLayer} />
+        ${showPreview() ? null : html`<div class="vmsg"><${Spinner} size=${24} color="white" label=${null} /><span>Starting your camera…</span></div>`}
+        <div class="vtop"><span class="livedot" role="img" aria-label="Live preview, not recording"></span>${simChip()}</div>
+        <div class="vstrip">
+          <span class="say">${S.heard ? 'We can hear you' : 'Say ‘Testing 123’ out loud'}</span>
+          <${LiveWave} />
         </div>
-        <div class="drows">
-          <${DeviceRow} kind="cam" status="ok" />
-          <${DeviceRow} kind="mic" status=${mic} />
-        </div>
-        ${S.micFailed ? html`<div class="status-line late" role="status"><${Icon} name="mic-off" size=${16} />
-          <span>We can’t hear you. Check your phone isn’t muted, or pick a different microphone.</span></div>
-          <${TextLink} as="button" leadingIcon=${html`<${Icon} name="help-circle" />`} onClick=${() => helpFlow('mic')}>Get help from Alvy<//>` : null}
-      </section><//>`;
+      </div>
+      <div class="drows">
+        <${DeviceRow} kind="cam" status="ok" />
+        <${DeviceRow} kind="mic" status=${mic} />
+      </div>
+      ${S.micFailed ? html`<div class="status-line late" role="status"><${Icon} name="mic-off" size=${16} />
+        <span>We can’t hear you. Check your phone isn’t muted, or pick a different microphone.</span></div>
+        <${TextLink} as="button" leadingIcon=${html`<${Icon} name="help-circle" />`} onClick=${() => helpFlow('mic')}>Get help from Alvy<//>` : null}<//>`;
   }
 
-  // The preparation time: the system starts recording on its own when it runs out. The
-  // onboarding on web never explains this, so this screen does.
+  // 6. The practice question, read with the camera off. Recording starts on the tap.
+  // (The real assessment gives preparation time before it starts recording; the onboarding does not.)
   function QuestionScreen(){
-    return html`<${Page} foot=${html`<${Button} onClick=${beginTake}>Start now<//>`}>
-      <section class="card grow">
-        <div class="cap"><${Chip} color="blue" variant="secondary" size="sm">Practice · not scored<//></div>
-        <h1 class="h3 ttl">${QUESTION}</h1>
-        <div class="centre">
-          <${ProgressIndicator} type="circular" value=${S.prepSecs - S.prepLeft} max=${S.prepSecs} valueText=${S.prepLeft}
-            label=${`Recording starts in ${S.prepLeft} seconds`} />
-          <p class="p2">Take a moment to think. Recording starts by itself when the timer ends, or tap Start now.</p>
-        </div>
-      </section><//>`;
+    return html`<${Page} foot=${html`<${Cta} onClick=${beginTake}>Start recording<//>`}>
+      <div><${Chip} color="blue" variant="secondary" size="sm">Practice · not scored<//></div>
+      <${Head} title=${QUESTION}>
+        <p class="p2">Take a moment to think, then tap Start recording. Nothing here is scored, and you can record it again.</p>
+      <//><//>`;
   }
 
-  // Recording: Start and Stop are the same labelled button in the same place.
+  // 7. Recording: the camera fills the screen, the question rides over it, Stop sits where Start was.
   function RecordScreen(){
     // The recorder needs the canvas to exist, so it starts once this screen has mounted.
     useEffect(() => { startRecorder(); runRecClock(); startLevel(); }, []);
     const close = () => { S.qOpen = false; render(); };
     return html`<${Fragment}>
-      <${Page}>
-        <section class="card">
-          <div class="cap"><${Chip} color="blue" variant="secondary" size="sm">Practice · not scored<//></div>
-          <p class="p2 qline">${QUESTION}</p>
-          <${TextLink} as="button" onClick=${() => { S.qOpen = true; render(); }}>Read full question<//>
-        </section>
+      <${Page} flush foot=${html`<${Cta} onClick=${endRecording}>Stop recording<//>`}>
         <div class="vcard">
           <${VideoLayer} />
           ${S.hidePreview ? html`<div class="vmsg"><${Icon} name="eye-closed-regular" size=${24} /><span>Preview hidden. You’re still recording.</span></div>` : null}
-          <div class="vtop"><span class="pill"><${CandidateClock} live seconds=${S.recSecs} size="sm" /></span>${simChip()}</div>
-          <div class="vstrip">
-            <${Toggle} size="sm" label="Hide preview" checked=${S.hidePreview} onCheckedChange=${v => { S.hidePreview = v; render(); }} />
-            <${Button} onClick=${endRecording}>Stop recording<//>
+          <div class="vtop">
+            <span class="pill"><${CandidateClock} live seconds=${S.recSecs} size="sm" /></span>
+            <span class="pill"><${Toggle} size="sm" label="Hide preview" checked=${S.hidePreview} onCheckedChange=${v => { S.hidePreview = v; render(); }} /></span>
+          </div>
+          <div class="qover">
+            <span class="p3 muted">Practice question · not scored</span>
+            <p class="p2 qline">${QUESTION}</p>
+            <${TextLink} as="button" size="sm" onClick=${() => { S.qOpen = true; render(); }}>Read more<//>
           </div>
         </div>
       <//>
@@ -970,21 +955,19 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
   // An interruption stops the take and keeps it, and says so.
   function InterruptedScreen(){
     const away = S.interruptReason === 'away', kept = fmt(S.keptSecs);
-    return html`<${Page} footClass="col" foot=${html`<${Fragment}>
-        <${Button} fullWidth onClick=${() => go('test')}>Check my camera and retake<//>
-        ${S.keptSecs ? html`<${Button} variant="secondary-gray" fullWidth onClick=${() => go('review')}>Watch what we kept<//>` : null}
+    return html`<${Page} foot=${html`<${Fragment}>
+        <${Cta} onClick=${() => go('test')}>Check my camera and retake<//>
+        ${S.keptSecs ? html`<${Cta} variant="secondary-gray" onClick=${() => go('review')}>Watch what we kept<//>` : null}
       <//>`}>
-      <section class="card grow">
-        <h1 class="h4 ttl">Recording stopped at ${kept}</h1>
-        <div class="vcard">
-          <${VideoLayer} frozen />
-          ${S.poster ? null : html`<div class="vmsg"><${Icon} name="camera-blocked" size=${24} /><span>Your camera is off</span></div>`}
-        </div>
-        <p class="p2">${away
-          ? 'Switching apps, locking the screen or opening a notification turns the camera off, so we can’t keep recording once that happens.'
-          : 'A call, or another app opening the camera, takes it away from this page, and recording stops there.'}</p>
-        <p class="p2">We kept the ${kept} you’d already recorded. In the real assessment that part of your answer is saved, so the question isn’t lost.</p>
-      </section><//>`;
+      <${Head} title=${`Recording stopped at ${kept}`} />
+      <div class="vcard">
+        <${VideoLayer} frozen />
+        ${S.poster ? null : html`<div class="vmsg"><${Icon} name="camera-blocked" size=${24} /><span>Your camera is off</span></div>`}
+      </div>
+      <p class="p2">${away
+        ? 'Switching apps, locking the screen or opening a notification turns the camera off, so we can’t keep recording once that happens.'
+        : 'A call, or another app opening the camera, takes it away from this page, and recording stops there.'}
+        We kept the ${kept} you’d already recorded. In the real assessment that part of your answer is saved, so the question isn’t lost.</p><//>`;
   }
 
   function SaveLine(){
@@ -1014,30 +997,26 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
       <div class="vmedia">${clip
         ? html`<video ref=${ref} src=${S.clipURL} playsInline loop autoPlay muted=${!S.stream} aria-label="Your practice recording"></video>`
         : S.poster ? html`<img src=${S.poster} alt="The last frame of your practice recording" />` : null}</div>
-      ${clip ? null : html`<div class="vtop"><${Chip} color="gray" size="sm">Playback isn’t available in this preview<//></div>`}
+      ${clip ? html`<div class="vcenter"><${IconButton} variant="overlay" shape="round" aria-label=${playing ? 'Pause' : 'Play'} aria-pressed=${playing}
+        icon=${playing ? 'pause' : html`<${Fragment}>${svg('play', 16)}<//>`} onClick=${toggle} /></div>` : html`<div class="vtop"><${Chip} color="gray" size="sm">Playback isn’t available in this preview<//></div>`}
       <div class="vstrip">
-        <div class="grp">
-          ${clip ? html`<${IconButton} variant="tertiary-gray" aria-label=${playing ? 'Pause' : 'Play'} aria-pressed=${playing}
-            icon=${playing ? 'pause' : html`<${Fragment}>${svg('play', 16)}<//>`} onClick=${toggle} />` : null}
-          <${CandidateClock} seconds=${Math.floor(t)} total=${total} mutedTotal size="sm" />
-        </div>
+        <${CandidateClock} seconds=${Math.floor(t)} total=${total} mutedTotal size="sm" />
         <${CandidateSoundwave} mode="playback" barCount=${20} progress=${total ? Math.min(1, t / total) : 0} label="Playback progress" />
       </div>
     </div>`;
   }
-  // Stop recording saved the answer. Retake and Next are the two actions, as on web; Next is
-  // held until the save has landed, because an invisible save that fails is worse than a visible one.
+  // 8. Stop recording saved the answer. Next and Retake are the two actions; Next is held
+  // until the save has landed, because an invisible save that fails is worse than a visible one.
   function ReviewScreen(){
     return html`<${Page} foot=${html`<${Fragment}>
-        <${Button} variant="secondary-gray" onClick=${() => go('question')}>Retake<//>
-        <${Button} disabled=${S.save !== 'saved'} onClick=${() => go('countdown')}>Next<//>
+        <${Cta} disabled=${S.save !== 'saved'} onClick=${() => go('countdown')}>Next<//>
+        <${Cta} variant="secondary-gray" onClick=${() => go('question')}>Retake<//>
       <//>`}>
-      <section class="card grow">
-        <h1 class="h4 ttl">Review your answer</h1>
+      <${Head} title="Review your answer">
         <p class="p2">Play it back to check we captured you clearly. Your answers save as you go, so there’s nothing to submit.</p>
-        <${ReviewPlayer} />
-        <${SaveLine} />
-      </section><//>`;
+      <//>
+      <${ReviewPlayer} />
+      <${SaveLine} /><//>`;
   }
 
   const MockBar = () => S.platform === 'android'
@@ -1047,34 +1026,30 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
         <div class="mockbar"><span class="spot">a<b>A</b></span><span class="url">${SITE}</span>${svg('share', 16)}</div></div>`;
   function BlockedScreen(){
     const c = blockedCopy();
-    return html`<${Page} foot=${html`<${Button} onClick=${() => { S.inuseCleared = true; S.permitted = false; go('permission'); }}>Try again<//>`}>
-      <section class="card grow">
-        <span class="mark err"><${Icon} name="camera-blocked" size=${24} /></span>
-        <h1 class="h4 ttl err">${c.title}</h1>
-        <p class="p2">${c.lede}</p>
-        ${c.hint ? html`<${MockBar} />` : null}
-        <${Steps} items=${c.steps} />
-        <${TextLink} as="button" leadingIcon=${html`<${Icon} name="help-circle" />`} onClick=${() => helpFlow(c.topic)}>Still stuck? Get help from Alvy<//>
-      </section><//>`;
+    return html`<${Page} foot=${html`<${Cta} onClick=${() => { S.inuseCleared = true; S.permitted = false; go('permission'); }}>Try again<//>`}>
+      <span class="mark err"><${Icon} name="camera-blocked" size=${24} /></span>
+      <${Head} title=${c.title} err><p class="p2">${c.lede}</p><//>
+      ${c.hint ? html`<${MockBar} />` : null}
+      <${Steps} items=${c.steps} />
+      <${TextLink} as="button" leadingIcon=${html`<${Icon} name="help-circle" />`} onClick=${() => helpFlow(c.topic)}>Still stuck? Get help from Alvy<//><//>`;
   }
 
   function CountdownScreen(){
-    return html`<${Page}><section class="card grow centre">
-      <h1 class="h4 ttl">Starting your assessment</h1>
-      <p class="p2">Get comfortable. The timer starts when the first question appears.</p>
-      <${ProgressIndicator} type="circular" value=${S.count} max=${5} valueText=${S.count} label="Starting your assessment in" />
-    <//><//>`;
+    return html`<${Page} mid>
+      <div class="centre">
+        <h1 class="h4 ttl">Starting your assessment</h1>
+        <p class="p2">Get comfortable. The timer starts when the first question appears.</p>
+        <${ProgressIndicator} type="circular" value=${S.count} max=${5} valueText=${S.count} label="Starting your assessment in" />
+      </div><//>`;
   }
   function AssessmentScreen(){
-    return html`<${Page} foot=${html`<${Button} variant="secondary-gray" onClick=${() => location.reload()}>Restart prototype<//>`}>
-      <section class="card grow">
-        <div class="skel" aria-label="Loading assessment">
-          <${SkeletonLoader} shape="heading" level="h4" width="62%" />
-          <${SkeletonLoader} shape="rectangle" width="100%" height=${120} />
-          <${SkeletonLoader} shape="paragraph" lines=${3} width="100%" />
-        </div>
-        <p class="p2"><b>End of prototype.</b> The timer is running and the first assessment question loads here.</p>
-      </section><//>`;
+    return html`<${Page} foot=${html`<${Cta} variant="secondary-gray" onClick=${() => location.reload()}>Restart prototype<//>`}>
+      <div class="skel" aria-label="Loading assessment">
+        <${SkeletonLoader} shape="heading" level="h4" width="62%" />
+        <${SkeletonLoader} shape="rectangle" width="100%" height=${120} />
+        <${SkeletonLoader} shape="paragraph" lines=${3} width="100%" />
+      </div>
+      <p class="p2"><b>End of prototype.</b> The timer is running and the first assessment question loads here.</p><//>`;
   }
 
   function Screen(){
@@ -1138,16 +1113,16 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
     webview:'Most of the drop at the permission step fires no event at all, not even a refusal. An in-app browser that silently has no camera fits that shape. Caught here, before it costs them a step.',
     permission:'Same order as web. Continue hands off to the browser’s own dialog, so it says Continue, not Allow: the real Allow comes next and two in a row reads as being asked twice.',
     blocked:'#2: a blocked or busy camera gets its own screen, with the steps for this phone and a drawing of where to tap.',
-    test:'Same step as web, as its own screen. Next stays locked until the mic is heard, so nobody records without having proved the mic works.',
-    question:'The question is read with the camera off. Recording starts by itself when the prep time ends, as in the real assessment, or on Start now.',
-    record:'Start and Stop are the same labelled button in the same place, so the thumb never moves. The question stays one tap away.',
+    test:'Same step as web. Continue stays locked until the mic is heard, so nobody records without having proved the mic works.',
+    question:'The question is read with the camera off. Recording starts on the tap. The real assessment adds preparation time here; the onboarding does not.',
+    record:'Start and Stop are the same full-width button in the same place, so the thumb never moves. The question rides over the camera.',
     interrupted:'A call or a tapped notification ends the camera track. Stop, keep the take, and say what was kept.',
-    review:'Stop recording saves the answer. Retake and Next are the two actions, as on web. Next is held until the save lands.',
+    review:'Stop recording saves the answer. Next and Retake are the two actions, as on web. Next is held until the save lands.',
     countdown:'#4: a short countdown so the start of the timer is never a surprise.',
     assessment:'End of the flow.'
   };
-  const CHIPS = [['wait', 'Loading'], ['webview', 'In-app browser'], ['permission', 'Permissions'], ['blocked', 'Blocked'], ['test', 'Test device'],
-    ['question', 'Question'], ['record', 'Record'], ['interrupted', 'Interrupted'], ['review', 'Review'], ['countdown', 'Countdown']];
+  const SCREENS = [['wait', 'Loading'], ['webview', 'In-app browser'], ['permission', 'Allow access'], ['blocked', 'Blocked'], ['test', 'Camera and mic test'],
+    ['question', 'Practice question'], ['record', 'Recording'], ['interrupted', 'Interrupted'], ['review', 'Review'], ['countdown', 'Countdown']];
 
   function jump(st){
     S.inuseCleared = false;
@@ -1164,16 +1139,19 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
   }
   function setOpt(key, val){
     if (key === 'osGranted') S.osGranted = val === 'yes';
-    else if (key === 'prepSecs') S.prepSecs = +val;
     else S[key] = val;
     if (key === 'permMode'){ S.permitted = false; S.inuseCleared = false; }
     if (key === 'voiceMode' && val === 'heard' && S.state === 'test') later(micOk, 600);
-    if (key === 'prepSecs' && S.state === 'question') S.prepLeft = S.prepSecs;
     if (key === 'netMode') return netChanged();
     render();
   }
-  const Opt = ({k, v, label, on}) => html`<${Tag} variant="secondary" color=${on ? 'blue' : 'gray'} size="md" selected=${on} onSelectedChange=${() => setOpt(k, v)}>${label}<//>`;
-  const Group = ({label, children, hidden}) => hidden ? null : html`<div class="proto-group"><span class="proto-label">${label}</span><div class="seg">${children}</div></div>`;
+  // One segmented control per setting: Tessera Tabs, primary (pills).
+  const Seg = ({label, k, value, opts, hidden}) => hidden ? null : html`<div class="proto-group">
+    <span class="proto-label">${label}</span>
+    <${Tabs} variant="primary" value=${value} onValueChange=${v => setOpt(k, v)}>
+      <${TabList} aria-label=${label}>${opts.map(([v, l]) => html`<${Tab} key=${v} value=${v}>${l}<//>`)}<//>
+    <//>
+  </div>`;
 
   function Proto(){
     const cur = S.state === 'waitError' ? 'wait' : S.state;
@@ -1184,52 +1162,26 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
         <p class="proto-ticket p3" aria-live="polite"><b>UX-1224</b> ${TICKET[S.state] || ''}</p>
       </div>
       <div class="proto-body">
-        <${Group} label="Device">
-          <${Opt} k="platform" v="android" on=${S.platform === 'android'} label="Android · Chrome" />
-          <${Opt} k="platform" v="ios" on=${S.platform === 'ios'} label="iPhone · Safari" />
-        <//>
-        <div class="proto-group"><span class="proto-label">Jump to</span><div class="seg">
-          ${CHIPS.map(([k, l]) => html`<${Tag} key=${k} variant="secondary" color=${cur === k ? 'blue' : 'gray'} size="md" selected=${cur === k} onSelectedChange=${() => jump(k)}>${l}<//>`)}
-        </div></div>
-        <${Group} label="Site permission">
-          <${Opt} k="permMode" v="ask" on=${S.permMode === 'ask'} label="Asks" />
-          <${Opt} k="permMode" v="granted" on=${S.permMode === 'granted'} label="Already allowed" />
-          <${Opt} k="permMode" v="inuse" on=${S.permMode === 'inuse'} label="Camera in use" />
-        <//>
-        <${Group} label="Android app permission" hidden=${S.platform !== 'android'}>
-          <${Opt} k="osGranted" v="no" on=${!S.osGranted} label="Chrome must ask the OS" />
-          <${Opt} k="osGranted" v="yes" on=${S.osGranted} label="Chrome already has it" />
-        <//>
-        <${Group} label="Voice check">
-          <${Opt} k="voiceMode" v="heard" on=${S.voiceMode === 'heard'} label="Voice heard" />
-          <${Opt} k="voiceMode" v="silent" on=${S.voiceMode === 'silent'} label="Silent" />
-        <//>
-        <${Group} label="Preparation time">
-          <${Opt} k="prepSecs" v="5" on=${S.prepSecs === 5} label="5s" />
-          <${Opt} k="prepSecs" v="10" on=${S.prepSecs === 10} label="10s" />
-          <${Opt} k="prepSecs" v="30" on=${S.prepSecs === 30} label="30s" />
-        <//>
-        <${Group} label="Loading">
-          <${Opt} k="loadMode" v="ok" on=${S.loadMode === 'ok'} label="Succeeds" />
-          <${Opt} k="loadMode" v="fail" on=${S.loadMode === 'fail'} label="Fails" />
-        <//>
-        <${Group} label="Opened from">
-          <${Opt} k="appMode" v="browser" on=${S.appMode === 'browser'} label="A real browser" />
-          <${Opt} k="appMode" v="inapp" on=${S.appMode === 'inapp'} label="Inside an app" />
-        <//>
-        <${Group} label="Connection">
-          <${Opt} k="netMode" v="online" on=${S.netMode === 'online'} label="Online" />
-          <${Opt} k="netMode" v="offline" on=${S.netMode === 'offline'} label="Offline" />
-        <//>
-        <${Group} label="Saving the answer">
-          <${Opt} k="saveMode" v="ok" on=${S.saveMode === 'ok'} label="Saves" />
-          <${Opt} k="saveMode" v="slow" on=${S.saveMode === 'slow'} label="Slow, then saves" />
-          <${Opt} k="saveMode" v="fail" on=${S.saveMode === 'fail'} label="Fails" />
-        <//>
-        <${Group} label="Interrupt the recording" hidden=${!(S.state === 'record' && S.recording)}>
-          <${Tag} variant="secondary" color="gray" size="md" onSelectedChange=${() => interrupt('away')}>Leaving the page<//>
-          <${Tag} variant="secondary" color="gray" size="md" onSelectedChange=${() => interrupt('device')}>An incoming call<//>
-        <//>
+        <div class="proto-group">
+          <span class="proto-label">Screen</span>
+          <${Tabs} variant="vertical" value=${cur} onValueChange=${jump}>
+            <${TabList} aria-label="Jump to a screen">${SCREENS.map(([k, l]) => html`<${Tab} key=${k} value=${k} onClick=${() => { if (k === cur) jump(k); }}>${l}<//>`)}<//>
+          <//>
+        </div>
+        <${Seg} label="Device" k="platform" value=${S.platform} opts=${[['android', 'Android'], ['ios', 'iPhone']]} />
+        <${Seg} label="Opened from" k="appMode" value=${S.appMode} opts=${[['browser', 'Browser'], ['inapp', 'In an app']]} />
+        <${Seg} label="Site permission" k="permMode" value=${S.permMode} opts=${[['ask', 'Asks'], ['granted', 'Allowed'], ['inuse', 'Camera in use']]} />
+        <${Seg} label="Chrome's app permission" k="osGranted" value=${S.osGranted ? 'yes' : 'no'} opts=${[['no', 'Asks the OS'], ['yes', 'Already has it']]} hidden=${S.platform !== 'android'} />
+        <${Seg} label="Voice check" k="voiceMode" value=${S.voiceMode} opts=${[['heard', 'Voice heard'], ['silent', 'Silent']]} />
+        <${Seg} label="Loading" k="loadMode" value=${S.loadMode} opts=${[['ok', 'Succeeds'], ['fail', 'Fails']]} />
+        <${Seg} label="Connection" k="netMode" value=${S.netMode} opts=${[['online', 'Online'], ['offline', 'Offline']]} />
+        <${Seg} label="Saving the answer" k="saveMode" value=${S.saveMode} opts=${[['ok', 'Saves'], ['slow', 'Slow'], ['fail', 'Fails']]} />
+        ${(S.state === 'record' && S.recording) ? html`<div class="proto-group">
+          <span class="proto-label">Interrupt the recording</span>
+          <div class="proto-actions">
+            <${Button} variant="secondary-gray" onClick=${() => interrupt('away')}>Leave the page<//>
+            <${Button} variant="secondary-gray" onClick=${() => interrupt('device')}>Incoming call<//>
+          </div></div>` : null}
       </div>
     </aside>`;
   }
