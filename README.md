@@ -37,6 +37,15 @@ recording, and a save that has not landed. Those are in **What the analytics
 changed** below, and they are not edge cases — they are where the funnel
 leaks.
 
+It is built on the real Tessera components (`window.TesseraDS`) and follows the
+V8 Test Taker Experience mobile frames: the Talview top bar with the language
+and Alvy actions, a grey canvas with white bordered cards, device rows with a
+status, a video card with a dark control strip, and a right-aligned footer of
+36px buttons. Alvy's chat is Tessera's `ChatPanel`, the offline state is
+`CandidateBanner`, the prep and countdown rings are `ProgressIndicator`, and the
+level and playback bars are `CandidateSoundwave`. Only the simulated browser
+chrome and the browser's own permission dialogs are drawn by hand.
+
 What the flow rests on:
 
 - **Same order as web.** A candidate practises in the sequence they will meet
@@ -44,25 +53,25 @@ What the flow rests on:
   two. The permission screen reuses the desktop step's title and lede.
 - **The permission button says Continue, not Allow.** The browser's own Allow
   comes next, and two Allows in a row reads as being asked twice.
-- **The device check is its own screen, gated by Continue.** Continue stays
-  locked until the microphone is heard, so nobody records without having
-  proved the mic works.
-- **The question is read with the camera off,** and recording starts only on
-  the candidate's tap — time to think before being watched.
-- **Start recording and Stop recording are the same labelled button in the
-  same place,** so the thumb never moves. A label beats a camera-app shutter
-  for people who are not photographers.
+- **The device check is its own screen, gated by Next.** Next stays locked
+  until the microphone is heard, so nobody records without having proved the
+  mic works.
+- **The question is read with the camera off, with a preparation countdown.**
+  Recording starts by itself when the prep time ends, as it does in the real
+  assessment, or on Start now. The web onboarding never explains the prep time;
+  this screen does.
+- **Stop recording saves the answer.** There is no Submit and no upload step.
+  Retake and Next are the two actions, as on web, and Next is held until the
+  save has landed.
 - **The clip plays back afterwards.** The device check only proves the live
   preview works; playback is the only thing that proves the recording
   captured them. Recorded with MediaRecorder, falling back to the last frame
   where that API is unavailable.
-- **Answers save per answer, automatically; Submit confirms the take** and is
-  held until the save has landed. The Submit reading is an assumption — see
-  the open questions.
 
-Opening the question sheet or hiding the preview mid-recording repaints around
-the media rather than through it, because a re-render replaces the canvas the
-recorder is reading and would silently destroy the take.
+Opening the question modal or hiding the preview mid-recording leaves the media
+alone. The video and canvas are children of components that stay mounted across
+repaints, so a repaint cannot replace the canvas the recorder is reading, which
+used to destroy the take silently.
 
 ### Permission dialogs
 
@@ -137,16 +146,24 @@ mid-recording without a re-render dropping the stream.
   from "device error" from "abandoned". Until it does, the drop at the
   permission step can only be guessed at. This is a product ask, not a
   design one.
-- **What does Submit do?** The wireframe has a Submit button, and answers
-  save by themselves with no upload step. The build reads Submit as "this is
-  my answer", not "send it": the take is saved as a draft automatically and
-  Submit confirms it. If Submit actually triggers the save, the save chip and
-  the hold-until-saved logic need rethinking. Confirm with product.
-- **Eight screens before the first word.** Separating the device check and the
-  question costs taps on the platform that already loses people. The test
-  screen's success state and the question screen are both pure Continue
-  screens with no decision on them, so one of them is a candidate to fold if
-  the funnel says so.
+- **Taps before the first word.** Separating the device check and the question
+  costs taps on the platform that already loses people. The test screen's
+  success state is a pure Next screen with no decision on it, so it is the
+  candidate to fold if the funnel says so.
+- **The prep time is a placeholder.** It is 10 seconds here (5, 10 and 30 in the
+  prototype panel). Confirm the real value, and whether it varies by question.
+- **Touch targets.** Tessera's Button and IconButton are 36px. That passes WCAG
+  2.2 AA (24px minimum) and matches the Figma frames, but it is under the 44pt
+  iOS and 48dp Android guidance. Worth raising with the design system team
+  rather than overriding per screen.
+- **No speaker check.** The existing system check tests camera, microphone and
+  speaker. An async answer needs only the first two, so the speaker row is
+  left out. Confirm that is intended.
+- **Dropdown panels** open in a layer above the page, so inside the scaled
+  phone frame their position is slightly off when the window is small.
+- **The real camera path is untested here.** The recorder, the level meter and
+  the interruption listeners were exercised against the drawn sample preview,
+  because the test machine has no camera. Run it once on a real phone.
 - **Retention contract.** The interrupted screen tells the candidate the
   partial answer is kept. Confirm that is what the backend actually does
   before this copy ships.
@@ -156,13 +173,18 @@ mid-recording without a re-render dropping the stream.
   fires no event. If that is a real risk, the shape to add after a second
   failure is not "Skip" but "Continue anyway — we'll note we couldn't test
   your mic."
-- Retake policy on real questions, and the number and length of questions,
-  are still open with product.
+- The number and length of real questions is still open with product. Retakes
+  are confirmed, so teaching Retake in practice is right.
 
 ## Running it
 
-Single HTML file, no build step. Open `async-practice-walkthrough.html`
-in a browser, or use the live link above.
+No build step. Open `async-practice-walkthrough.html` in a browser, or use the
+live link above. The mobile file also needs the Tessera runtime beside it, in
+a `tessera/` folder (tokens, bundle and font). It is not committed to this
+public repo; add it with the design-system skill's scaffold script, which
+leaves `index.html` alone:
+
+    python3 ~/.claude/skills/tessera-design-system/scripts/scaffold.py . --assets logos
 
 Opened from disk it uses the real camera and microphone. Where those are
 blocked (for example inside an embedded viewer) it falls back to a drawn

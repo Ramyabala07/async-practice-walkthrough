@@ -1,589 +1,248 @@
 <title>Async Practice Walkthrough — Mobile</title>
 <meta name="claude:viewport-fit-sides" content="cover">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="tessera/tokens.css">
+<link rel="stylesheet" href="tessera/bundle.css">
 <style>
-/* Mobile flow for the Tessera async interview practice run (UX-1224).
+/* Mobile flow for the Tessera async interview practice run (UX-1224), built on the real
+   Tessera components (window.TesseraDS) and the V8 Test Taker Experience mobile frames.
 
-   One flow, in the same order as the web flow and the approved wireframe:
-     loading → permissions → [the browser's own permission dialogs] → test device
-     → practice question → record → review → countdown
+   Layout concept: the phone is a scaled frame on a neutral stage. Inside it, every screen is
+   the Figma pattern — top nav, a grey canvas, white bordered cards, and a right-aligned
+   footer of 36px Tessera buttons. Nothing here uses a colour or size that is not a Tessera
+   token, except the simulated browser chrome and the browser's own permission dialogs,
+   which are drawn after Chrome, Android and Safari and are not part of the product UI.
 
-   And the states a phone actually produces, which the happy path above never shows.
-   The product funnel is why these exist rather than sitting on a backlog (figures are
-   internal — see the board linked from UX-1224, not this file):
-   - Mobile is roughly half of candidate traffic and iPhone is most of it, so this is
-     the main surface, not an edge. iPhone finishes at well under half the desktop rate.
-   - Most of the drop at the permission step fires NO event at all — neither an allow
-     nor a refusal. That is not a persuasion problem, it is a failure nobody can see,
-     hence the in-app browser screen: it catches the likeliest silent cause before it
-     costs the candidate a step.
-   - A large share of the iPhone candidates who DO allow the camera still never submit.
-     That is what the interruption and save-failure states are for.
-
-   Decisions this build rests on:
-   - Same order as web. A candidate practises in the sequence they will meet for the
-     scored questions, and there is one flow to spec and QA rather than two.
-   - The permission screen's button says Continue, not Allow. The browser's own Allow
-     comes next, and two Allows in a row reads as being asked twice.
-   - The device check is its own screen and its gate is Continue, which stays locked
-     until the mic is heard. There is no way to record without having proved the mic.
-   - The question is read with the camera off, and recording starts only on the
-     candidate's tap: time to think before being watched.
-   - Start recording and Stop recording are the same labelled button in the same place,
-     so the thumb never moves. A label beats a camera-app shutter for people who are not
-     photographers.
-   - The clip is played back afterwards. The device check only proves the live preview
-     works; playback is the only thing that proves the RECORDING captured them.
-   - Answers save per answer, automatically, and Submit confirms the take. (Assumption:
-     the wireframe has a Submit button and auto-save has no upload step, so Submit is
-     read as "this is my answer", not "send it". Confirm with product.) Submit is held
-     until the save has landed, because an invisible save that fails is worse than a
-     visible one.
-   - A gate with no way past it is only honest when the gate is certain. The mic gate is
-     (we genuinely hear nothing). In-app browser detection is a user-agent guess, so that
-     screen always offers "my camera works — continue".
-
-   Permission dialogs are drawn the way each platform really draws them:
-   - Android: Chrome's own modal, then ANDROID's runtime dialogs — camera and microphone
-     asked separately, and only once the site itself is allowed.
-   - iOS: one centred Safari alert. Safari re-asks on every page load unless the candidate
-     sets it in Website Settings, so "Allow" does not stick the way it does on desktop.
-
-   Light mode only. Colour values follow the V8 Test Taker Experience Figma variables (zinc
-   greys). Values marked "not in Figma" need checking against the DS before shipping. */
-:root{
-  color-scheme:light;
-  --stage-bg:#d4d4d8;
-  --tv-font:'Roboto',system-ui,-apple-system,'Segoe UI',sans-serif;
-
-  --tv-bg-surface:#ffffff;
-  --tv-bg-muted:#fafafa;
-  --tv-bg-accent:#eff6ff;
-  --tv-text-primary:#18181b;
-  --tv-text-tertiary:#3f3f46;
-  --tv-text-muted:#71717a;                            /* not in Figma */
-  --tv-text-on-primary:#ffffff;
-  --tv-border-subtle:#e4e4e7;
-  --tv-border-primary:#d4d4d8;
-  --tv-border-strong:#a1a1aa;
-  --tv-interactive-primary:#1d4ed8;
-  --tv-interactive-primary-hover:#1e40af;
-  --tv-interactive-link:#1d4ed8;
-  --tv-error-strong:#dc2626;
-  --tv-error-surface:#fef2f2; --tv-error-border:#fca5a5; --tv-error-text:#b91c1c;         /* not in Figma */
-  --tv-warning-surface:#fff7ed; --tv-warning-text:#c2410c;                                /* not in Figma */
-  --tv-success-surface:#f0fdf4; --tv-success-text:#15803d;                                /* not in Figma */
-  --tv-ai-blue:#1d4ed8;
-  --tv-ai-purple:#7e22ce;
-
-  --tv-video-bg:#27272a;
-  --tv-video-fg:#d4d4d8;
-  --tv-on-video:#ffffff;
-  --tv-scrim:rgba(24,24,27,.6);
-  --tv-toggle-off:#71717a;
-  --tv-toggle-knob:#ffffff;
-  --tv-chat-you:#dbeafe;
-
-  --tv-shadow-sm:0 1px 2px #0A0D120F,0 1px 3px #0A0D121A;
-
-  --tv-h3:500 22px/30px var(--tv-font);
-  --tv-h4:500 18px/26px var(--tv-font);
-  --tv-h5:500 16px/24px var(--tv-font);
-  --tv-p1:400 16px/24px var(--tv-font);
-  --tv-p2:400 14px/20px var(--tv-font);
-  --tv-p3:400 12px/18px var(--tv-font);
-  --tv-l1:500 14px/20px var(--tv-font);
-  --tv-l2:500 12px/18px var(--tv-font);
-  --tv-n2:400 24px/36px var(--tv-font);
-
-  /* Minimum touch target: 48dp on Android, 44pt on iOS. 48 satisfies both. */
-  --tap:48px;
-}
+   Light mode only: the app sits under data-theme="light", so a viewer's dark setting
+   cannot flip the tokens. */
+:root{ --stage-bg:#d4d4d8; color-scheme:light }
 *,*::before,*::after{box-sizing:border-box}
-[hidden]{display:none!important}
 html,body{height:100%}
-body{margin:0;display:flex;flex-direction:row;font:var(--tv-p1);color:var(--tv-text-primary);background:var(--stage-bg);-webkit-font-smoothing:antialiased}
-button,select,input{font:inherit;color:inherit}
-.i{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round}
-.i.sm{width:16px;height:16px}
-.i.xs{width:13px;height:13px}
+body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-size:14px;line-height:20px;color:var(--text-body);background:var(--stage-bg);-webkit-font-smoothing:antialiased}
+#root{display:flex;flex:1;min-width:0;height:100%}
+.app{display:flex;flex:1;min-width:0;height:100%}
 .sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap}
-:focus-visible{outline:2px solid var(--tv-interactive-primary);outline-offset:2px}
 
-/* ---------- Stage + phone frame ---------- */
+/* ---------- Stage and phone frame ---------- */
 .stage{position:relative;flex:1;min-width:0;min-height:0;overflow:hidden;padding-block:16px;
   padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
 #phone{position:absolute;left:50%;top:50%;width:var(--pw);height:var(--ph);margin:calc(var(--ph) / -2) 0 0 calc(var(--pw) / -2);
   transform:scale(var(--k,1));transform-origin:50% 50%;background:#000;border-radius:38px;
   box-shadow:0 10px 50px rgba(0,0,0,.28),0 0 0 11px #18181b,0 0 0 12px #3f3f46;overflow:hidden}
-
-/* Browser chrome, drawn because the blocked-permission steps name parts of it. */
-.sysbar{flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 18px;font:500 12px/1 var(--tv-font);color:var(--tv-text-primary);background:var(--tv-bg-surface)}
-.sysbar .sys-right{display:flex;align-items:center;gap:5px}
-.notch{position:absolute;top:9px;left:50%;transform:translateX(-50%);width:108px;height:27px;border-radius:999px;background:#000;z-index:3}
-.urlbar{flex:none;display:flex;align-items:center;gap:8px;padding:6px 10px;background:var(--tv-bg-surface)}
-.urlbar.top{border-bottom:1px solid var(--tv-border-subtle)}
-.urlbar.bottom{border-top:1px solid var(--tv-border-subtle)}
-.url-field{flex:1;min-width:0;display:flex;align-items:center;gap:7px;height:34px;padding:0 10px;border-radius:999px;background:#f1f1f3;font:var(--tv-p3);color:var(--tv-text-tertiary)}
-.url-field .url{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.url-btn{flex:none;width:28px;height:28px;margin:-3px 0;border:0;border-radius:8px;background:none;display:inline-flex;align-items:center;justify-content:center;color:var(--tv-text-tertiary)}
-.url-btn.aa{width:auto;padding:0 7px;font:500 15px/1 var(--tv-font);letter-spacing:-.02em}
-.url-btn.aa b{font-size:11px;font-weight:500}
-.urlbar .chev-btn{flex:none;width:28px;height:28px;border:0;background:none;color:var(--tv-text-tertiary);display:inline-flex;align-items:center;justify-content:center}
-.navbar{flex:none;height:18px;background:var(--tv-bg-surface);display:flex;align-items:center;justify-content:center}
-.navbar span{width:106px;height:4px;border-radius:2px;background:#18181b;opacity:.75}
-.home-ind{flex:none;height:22px;background:var(--tv-bg-surface);display:flex;align-items:flex-start;justify-content:center;padding-top:4px}
-.home-ind span{width:134px;height:5px;border-radius:3px;background:#18181b;opacity:.85}
-
-#frame{position:absolute;inset:0;display:flex;flex-direction:column;background:var(--tv-bg-surface);overflow:hidden}
-#viewport{flex:1;min-height:0;position:relative;display:flex;flex-direction:column;background:var(--tv-bg-surface)}
+#frame{position:absolute;inset:0;display:flex;flex-direction:column;background:var(--bg-surface);overflow:hidden}
+#viewport{flex:1;min-height:0;position:relative;display:flex;flex-direction:column;background:var(--bg-muted)}
 #view{flex:1;min-height:0;position:relative;display:flex;flex-direction:column}
 
-/* Connection bar. It lives outside #view on purpose: repainting a screen must never be
-   able to drop it, and it must be able to appear mid-recording without a re-render. */
-.netbar{flex:none;display:flex;align-items:center;justify-content:center;gap:8px;padding:8px 12px;text-align:left;
-  background:var(--tv-warning-surface);color:var(--tv-warning-text);font:var(--tv-l2);border-bottom:1px solid #fed7aa}
+/* Simulated browser chrome. Android matches the Figma frames (dark Chrome); iPhone draws
+   Safari, because the blocked-permission screens point at its aA control. */
+.a-chrome{flex:none;background:#202124;color:#e8eaed;font:500 12px/1 var(--font-sans)}
+.a-status{display:flex;align-items:center;justify-content:space-between;height:26px;padding:0 18px}
+.a-url{display:flex;align-items:center;gap:8px;padding:2px 10px 8px}
+.a-pill{flex:1;min-width:0;display:flex;align-items:center;gap:7px;height:34px;padding:0 12px;border-radius:999px;background:#3c4043;font:400 13px/1 var(--font-sans);overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.a-btn{flex:none;width:28px;height:28px;display:inline-flex;align-items:center;justify-content:center;color:#e8eaed}
+.a-tabs{width:20px;height:20px;border:1.6px solid #e8eaed;border-radius:5px;display:inline-flex;align-items:center;justify-content:center;font:600 11px/1 var(--font-sans)}
+.a-nav{flex:none;height:18px;background:var(--bg-surface);display:flex;align-items:center;justify-content:center}
+.a-nav span{width:106px;height:4px;border-radius:2px;background:#18181b;opacity:.75}
+.notch{position:absolute;top:9px;left:50%;transform:translateX(-50%);width:108px;height:27px;border-radius:999px;background:#000;z-index:3}
+.i-status{flex:none;display:flex;align-items:flex-end;justify-content:space-between;height:46px;padding:0 24px 6px;background:var(--bg-surface);font:600 14px/1 var(--font-sans);color:var(--text-primary)}
+.i-bottom{flex:none;background:var(--bg-surface);border-top:1px solid var(--border-subtle)}
+.i-url{display:flex;align-items:center;gap:8px;padding:6px 10px}
+.i-field{flex:1;min-width:0;display:flex;align-items:center;gap:7px;height:34px;padding:0 10px;border-radius:999px;background:var(--bg-elevated);font:400 12px/18px var(--font-sans);color:var(--text-body)}
+.i-aa{font:500 15px/1 var(--font-sans);letter-spacing:-.02em;padding:0 4px;color:var(--text-primary)}
+.i-aa b{font-size:11px;font-weight:500}
+.i-home{height:22px;display:flex;align-items:flex-start;justify-content:center;padding-top:4px}
+.i-home span{width:134px;height:5px;border-radius:3px;background:#18181b;opacity:.85}
 
-/* ---------- Light instruction screen ---------- */
-.screen{flex:1;min-height:0;display:flex;flex-direction:column;background:var(--tv-bg-surface)}
-.appbar{flex:none;height:52px;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:0 6px 0 14px;border-bottom:1px solid var(--tv-border-subtle)}
-.logo{display:flex;align-items:center;gap:7px;font:500 14px/1 var(--tv-font);letter-spacing:.06em;color:var(--tv-text-tertiary)}
-.logo svg{width:24px;height:24px}
-.bar-right{display:flex;align-items:center}
-.icon-btn{width:var(--tap);height:var(--tap);border-radius:10px;border:0;background:none;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;color:var(--tv-text-tertiary)}
-.icon-btn:hover{background:var(--tv-border-subtle)}
-.icon-btn.ai{color:var(--tv-ai-purple)}
-.screen-body{flex:1;min-height:0;overflow:auto;-webkit-overflow-scrolling:touch;padding:22px 20px 8px;display:flex;flex-direction:column}
-.screen-foot{flex:none;padding:12px 20px 20px;display:grid;gap:8px}
-.screen h1{margin:0 0 8px;font:var(--tv-h3);text-wrap:pretty}
-.screen h1.tone-error{color:var(--tv-error-text)}
-.screen .lede{margin:0;font:var(--tv-p1);color:var(--tv-text-tertiary);text-wrap:pretty}
-.screen .sub{margin:16px 0 0;font:var(--tv-p2);color:var(--tv-text-muted)}
+/* ---------- Screen layout: the Figma candidate pattern ---------- */
+.pg{flex:1;min-height:0;display:flex;flex-direction:column;background:var(--bg-muted)}
+.pg-body{flex:1;min-height:0;overflow:auto;padding:var(--space-4);display:flex;flex-direction:column;gap:var(--space-3)}
+.pg-foot{flex:none;display:flex;justify-content:flex-end;align-items:center;gap:var(--space-2);padding:var(--space-3) var(--space-4) var(--space-4)}
+.pg-foot.col{flex-direction:column;align-items:stretch}
+.card{background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-xl);padding:var(--space-4);display:flex;flex-direction:column;gap:var(--space-3);min-height:0}
+.card.grow{flex:1}
+.card h1,.card h2,.card h3,.card h4,.card h5,.card p{margin:0}
+.card .ttl{color:var(--text-primary)}
+.card .ttl.err{color:var(--error-emphasis)}
+.muted{color:var(--text-subtle)}
+.cap{display:flex;align-items:center;gap:var(--space-2)}
+.centre{flex:1;min-height:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:var(--space-3);text-align:center;padding:var(--space-4)}
+.mark{flex:none;width:48px;height:48px;border-radius:var(--radius-full);display:flex;align-items:center;justify-content:center;background:var(--bg-accent);color:var(--interactive-link)}
+.mark.err{background:var(--error-surface);color:var(--error-emphasis)}
+.mark svg{width:24px;height:24px}
+.steps{margin:0;padding-left:var(--space-5);display:grid;gap:var(--space-2);color:var(--text-body)}
+.steps b{font-weight:500;color:var(--text-primary)}
+.checklist{list-style:none;margin:0;padding:var(--space-2) var(--space-3);width:100%;text-align:left;background:var(--bg-muted);border:1px solid var(--border-subtle);border-radius:var(--radius-lg)}
+.checklist li{display:flex;align-items:center;gap:var(--space-2);padding:var(--space-2) 0;color:var(--text-primary)}
+.checklist li.pend{color:var(--text-subtle)}
+.checklist li.done svg{color:var(--success-strong)}
+.checklist li.fail{color:var(--error-emphasis)}
+.dot{flex:none;width:16px;height:16px;border-radius:50%;border:1.5px solid var(--border-primary)}
+.hint{background:var(--bg-accent);border-radius:var(--radius-lg);padding:var(--space-4);text-align:center;color:var(--text-body);display:flex;flex-direction:column;align-items:center;gap:var(--space-2)}
+.hint .pair{display:flex;gap:var(--space-2);color:var(--interactive-link)}
 
-.mark{flex:none;width:56px;height:56px;border-radius:16px;display:flex;align-items:center;justify-content:center;margin-bottom:18px;position:relative;background:var(--tv-bg-accent);color:var(--tv-interactive-primary)}
-.mark .i{width:26px;height:26px}
-.mark.err{background:var(--tv-error-surface);color:var(--tv-error-text)}
+/* Device rows: Tessera underline Dropdown plus a status, as in the Figma system checks. */
+.drows{display:grid;gap:var(--space-1)}
+.drow{display:grid;grid-template-columns:20px minmax(0,1fr) auto;align-items:center;gap:var(--space-2)}
+.drow>svg{color:var(--text-tertiary)}
+.dstat{display:inline-flex;align-items:center;gap:6px;min-width:84px;justify-content:flex-end;font:500 12px/18px var(--font-sans);color:var(--text-subtle);white-space:nowrap}
+.dstat.ok{color:var(--success-strong)}
+.dstat.warn{color:var(--warning-emphasis)}
 
-/* Why each device is needed: two rows, not a paragraph. */
-.needs{list-style:none;margin:18px 0 0;padding:0;display:grid;gap:12px}
-.needs li{display:flex;align-items:flex-start;gap:12px;font:var(--tv-p2);color:var(--tv-text-tertiary)}
-.needs .ti{flex:none;width:36px;height:36px;border-radius:10px;background:var(--tv-bg-muted);border:1px solid var(--tv-border-subtle);display:flex;align-items:center;justify-content:center;color:var(--tv-text-tertiary)}
-.needs b{display:block;font:var(--tv-l1);color:var(--tv-text-primary)}
+/* Video card: the Figma recorder, a rounded frame with a dark control strip at the foot. */
+.vcard{position:relative;flex:1;min-height:176px;border-radius:var(--radius-lg);overflow:hidden;background:var(--bg-tooltip)}
+.vmedia{position:absolute;inset:0}
+.vmedia.hidden{visibility:hidden}
+.vmedia video,.vmedia canvas,.vmedia img{display:block;width:100%;height:100%;object-fit:cover}
+.vmedia video.mirror{transform:scaleX(-1)}
+.vmedia.frozen video,.vmedia.frozen img,.vmedia.frozen canvas{filter:grayscale(.55) brightness(.55)}
+.vmsg{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:var(--space-2);padding:var(--space-6);text-align:center;color:var(--text-on-primary)}
+.vtop{position:absolute;left:var(--space-2);right:var(--space-2);top:var(--space-2);display:flex;justify-content:space-between;align-items:center;gap:var(--space-2);z-index:2}
+.pill{display:inline-flex;align-items:center;background:var(--bg-surface);border-radius:var(--radius-full);padding:0 var(--space-2)}
+/* Strip over the video. Re-pointing these tokens keeps the components themselves unmodified. */
+.vstrip{position:absolute;left:0;right:0;bottom:0;z-index:2;display:flex;align-items:center;justify-content:space-between;gap:var(--space-3);padding:var(--space-2) var(--space-3);
+  background:var(--bg-overlay-primary);color:var(--text-on-primary);
+  --text-tertiary:var(--text-on-primary);--text-primary:var(--text-on-primary);--interactive-link:var(--blue-300)}
+.vstrip .say{font:500 14px/20px var(--font-sans);min-width:0}
+.vstrip .grp{display:flex;align-items:center;gap:var(--space-2);min-width:0}
 
-.steps{margin:18px 0 0;padding-left:22px;display:grid;gap:10px;font:var(--tv-p2);color:var(--tv-text-tertiary)}
-.steps b{font-weight:500;color:var(--tv-text-primary)}
-.help-link{display:inline-flex;align-items:center;gap:6px;min-height:var(--tap);padding:4px 0;border:0;background:none;cursor:pointer;font:var(--tv-l1);color:var(--tv-interactive-link);text-align:left}
-.help-link:hover{text-decoration:underline}
-
-.card{margin:0 0 4px;padding:14px;border:1px solid var(--tv-border-subtle);border-radius:12px;background:var(--tv-bg-muted)}
-.card .cap{display:flex;align-items:center;gap:8px;font:var(--tv-l2);text-transform:uppercase;letter-spacing:.05em;color:var(--tv-text-muted);margin-bottom:10px}
-.tag{font:var(--tv-l2);text-transform:none;letter-spacing:0;padding:1px 8px;border-radius:4px;background:var(--tv-bg-accent);color:var(--tv-interactive-link)}
-.question-big{margin:0;font:var(--tv-h4);text-wrap:pretty;color:var(--tv-text-primary)}
+.qline{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;color:var(--text-primary)}
+.status-line{display:flex;align-items:flex-start;gap:var(--space-2);font:500 14px/20px var(--font-sans);color:var(--text-body)}
+.status-line.ok{color:var(--success-strong)}
+.status-line.late{color:var(--warning-emphasis)}
+.status-line.bad{color:var(--error-emphasis)}
+.status-line svg{flex:none;margin-top:2px}
 
 /* Where to tap, drawn instead of pointed at: a small mock of this browser's own bar. */
-.mockbar{display:flex;align-items:center;gap:7px;height:38px;padding:0 10px;border-radius:999px;background:var(--tv-bg-surface);border:1px solid var(--tv-border-primary);font:var(--tv-p3);color:var(--tv-text-muted)}
+.mockbar{display:flex;align-items:center;gap:7px;height:38px;padding:0 10px;border-radius:999px;background:var(--bg-surface);border:1px solid var(--border-primary);font:400 12px/18px var(--font-sans);color:var(--text-subtle)}
 .mockbar .url{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.mockbar .spot{flex:none;display:inline-flex;align-items:center;justify-content:center;min-width:28px;height:28px;padding:0 6px;border-radius:8px;background:var(--tv-bg-accent);
-  color:var(--tv-interactive-primary);box-shadow:0 0 0 2px var(--tv-interactive-primary);font:500 14px/1 var(--tv-font)}
+.mockbar .spot{flex:none;display:inline-flex;align-items:center;justify-content:center;min-width:28px;height:28px;padding:0 6px;border-radius:8px;background:var(--bg-accent);
+  color:var(--interactive-link);box-shadow:0 0 0 2px var(--interactive-link);font:500 14px/1 var(--font-sans)}
 .mockbar .spot b{font-size:10px;font-weight:500}
+.hintbox{background:var(--bg-muted);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);padding:var(--space-3);display:grid;gap:var(--space-2)}
 
-/* ---------- Buttons ---------- */
-.btn{font:var(--tv-l1);border-radius:10px;padding:12px 16px;min-height:var(--tap);border:1px solid transparent;background:none;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:8px}
-.btn:disabled{cursor:default;opacity:.45}
-.btn-primary{background:var(--tv-interactive-primary);color:var(--tv-text-on-primary)}
-.btn-primary:hover:not(:disabled){background:var(--tv-interactive-primary-hover)}
-.btn-secondary{background:var(--tv-bg-surface);border-color:var(--tv-border-primary);color:var(--tv-text-primary)}
-.btn-secondary:hover{background:var(--tv-bg-muted)}
-.btn-ghost{color:var(--tv-interactive-link)}
-.btn-onvideo{border-color:rgba(255,255,255,.4);color:#fff;background:var(--tv-scrim);backdrop-filter:blur(6px)}
-.btn-onvideo:hover{background:rgba(24,24,27,.78)}
-.btn-block{width:100%}
+/* Skeleton for the end of the prototype. */
+.skel{display:grid;gap:var(--space-3)}
 
-/* ---------- Camera screen ---------- */
-.camscreen{flex:1;min-height:0;position:relative;background:var(--tv-video-bg);overflow:hidden}
-.cam-media{position:absolute;inset:0}
-.cam-media.hidden{visibility:hidden}
-.cam-media video,.cam-media canvas{display:block;width:100%;height:100%;object-fit:cover}
-.cam-media video.mirror{transform:scaleX(-1)} /* the live preview is mirrored, the replay is not */
-.cam-msg{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:24px;text-align:center;color:var(--tv-video-fg);font:var(--tv-p2)}
-.cam-msg .i{width:30px;height:30px}
-.sim-tag{position:absolute;top:60px;right:12px;z-index:3;font:var(--tv-l2);color:var(--tv-on-video);background:var(--tv-scrim);padding:3px 9px;border-radius:999px}
-
-.cam-top{position:absolute;left:0;right:0;top:0;z-index:2;padding:0 6px 10px 14px;
-  background:linear-gradient(to bottom,rgba(9,9,11,.8),rgba(9,9,11,0))}
-.cam-top .row1{height:52px;display:flex;align-items:center;justify-content:space-between;gap:8px}
-.cam-top .logo,.cam-top .icon-btn{color:rgba(255,255,255,.94)}
-.cam-top .icon-btn:hover{background:rgba(255,255,255,.14)}
-.cam-top .icon-btn.ai{color:#d8b4fe}
-
-.cam-bottom{position:absolute;left:0;right:0;bottom:0;z-index:2;padding:52px 14px 14px;display:grid;gap:10px;justify-items:stretch;
-  background:linear-gradient(to top,rgba(9,9,11,.94) 50%,rgba(9,9,11,0))}
-.cam-bottom .say{margin:0;font:var(--tv-p2);color:rgba(255,255,255,.84);text-align:center;text-wrap:pretty}
-.cam-bottom .say.warn{color:#fdba74}
-.cam-bottom .help-link{color:#93c5fd;justify-self:center;min-height:40px}
-
-/* The question stays legible on the recording screen — it is not hidden behind a chip. */
-.qblock{border-radius:12px;padding:10px 12px;background:var(--tv-scrim);backdrop-filter:blur(6px);cursor:pointer;text-align:left;border:0;width:100%;color:var(--tv-on-video)}
-.qblock .cap{display:flex;align-items:center;gap:8px;font:var(--tv-l2);text-transform:uppercase;letter-spacing:.05em;color:rgba(255,255,255,.7);margin-bottom:5px}
-.qblock .cap .tag{background:rgba(255,255,255,.16);color:#fff}
-.qblock p{margin:0;font:var(--tv-p2);color:#fff;text-wrap:pretty}
-.qblock p.clamp{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-.qblock .more{display:block;margin-top:4px;font:var(--tv-l2);color:#93c5fd}
-
-.cam-status{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:6px;min-height:28px}
-.vchip{display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:999px;background:var(--tv-scrim);color:var(--tv-on-video);font:var(--tv-l2);backdrop-filter:blur(6px)}
-.vchip.ok .i{color:#86efac}
-.vchip.warn{background:rgba(154,52,18,.92)}
-.vchip.rec{background:rgba(220,38,38,.94)}
-.rec-dot{width:8px;height:8px;border-radius:50%;background:#fff;flex:none;animation:pulse 1.6s ease-in-out infinite}
-@keyframes pulse{50%{opacity:.3}}
-.vchip.rec span{font-variant-numeric:tabular-nums}
-
-.cam-devices{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
-.vselect{position:relative;display:flex;align-items:center;min-width:0;height:40px;border:1px solid rgba(255,255,255,.3);border-radius:10px;background:var(--tv-scrim);backdrop-filter:blur(6px)}
-.vselect select{appearance:none;-webkit-appearance:none;width:100%;min-width:0;height:100%;border:0;background:none;color:var(--tv-on-video);font:var(--tv-l2);padding:0 26px 0 32px;cursor:pointer;text-overflow:ellipsis}
-.vselect option{color:#18181b}
-.vselect .i{position:absolute;pointer-events:none;color:var(--tv-on-video)}
-.vselect .lead{left:9px}.vselect .chev{right:7px}
-
-/* Light screens that hold the camera in a card: the device check and the review. */
-.pcard{position:relative;flex:1;min-height:170px;margin-top:14px;border-radius:14px;overflow:hidden;background:var(--tv-video-bg)}
-.pcard .sim-tag{top:10px}
-.live-tag{position:absolute;left:10px;top:10px;z-index:3;display:inline-flex;align-items:center;gap:6px;padding:3px 9px;border-radius:999px;background:var(--tv-scrim);color:var(--tv-on-video);font:var(--tv-l2)}
-.test-panel,.review-panel{flex:none;padding:12px 20px 20px;display:grid;gap:10px}
-.test-panel .vchip{background:var(--tv-bg-muted);color:var(--tv-text-primary);border:1px solid var(--tv-border-subtle);backdrop-filter:none}
-.test-panel .vchip.ok .i{color:var(--tv-success-text)}
-.test-panel .vchip.warn{background:var(--tv-warning-surface);color:var(--tv-warning-text);border-color:#fed7aa}
-.test-panel .vselect{background:var(--tv-bg-surface);border-color:var(--tv-border-primary);backdrop-filter:none}
-.test-panel .vselect select,.test-panel .vselect .i{color:var(--tv-text-primary)}
-.test-panel .say,.review-panel .say{margin:0;font:var(--tv-p2);color:var(--tv-text-tertiary);text-align:center;text-wrap:pretty}
-.test-panel .say.warn{color:var(--tv-warning-text)}
-.test-panel .help-link{justify-self:center;min-height:40px}
-.review-panel h2{margin:0;font:var(--tv-h5);text-align:center;text-wrap:pretty}
-.screen h1.question-xl{margin:10px 0 0;font:var(--tv-h3);text-wrap:pretty}
-.illus{flex:none;display:flex;align-items:center;justify-content:center;gap:14px;height:128px;margin-bottom:20px;border-radius:16px;background:var(--tv-bg-accent)}
-.illus .ib{width:62px;height:62px;border-radius:18px;background:var(--tv-bg-surface);color:var(--tv-interactive-primary);display:flex;align-items:center;justify-content:center;box-shadow:var(--tv-shadow-sm)}
-.illus .ib .i{width:30px;height:30px}
-
-/* Recording: REC timer and a hide toggle float over the full-bleed camera. */
-.rec-top{position:absolute;left:0;right:0;top:0;z-index:2;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:12px 10px 28px 14px;
-  background:linear-gradient(to bottom,rgba(9,9,11,.8),rgba(9,9,11,0))}
-.rec-left{display:flex;align-items:center;gap:6px}
-.rec-top .toggle{min-height:40px}
-
-.toggle{display:inline-flex;align-items:center;gap:7px;min-height:var(--tap);padding:0 2px;background:none;border:0;cursor:pointer;font:var(--tv-l2);color:var(--tv-on-video);white-space:nowrap}
-.track{width:32px;height:17px;border-radius:9px;background:var(--tv-toggle-off);position:relative;transition:background .2s;flex:none}
-.track::after{content:"";position:absolute;top:2px;left:2px;width:13px;height:13px;border-radius:50%;background:var(--tv-toggle-knob);transition:transform .2s}
-.toggle[aria-pressed="true"] .track{background:var(--tv-interactive-primary)}
-.toggle[aria-pressed="true"] .track::after{transform:translateX(15px)}
-
-.meter{display:inline-flex;align-items:flex-end;gap:2px;height:16px}
-.meter i{width:3px;height:3px;border-radius:2px;background:currentColor;opacity:.9}
-
-/* ---------- Review: full-bleed playback, the way a camera app reviews a clip ---------- */
-.replay-tap{position:absolute;inset:0;z-index:1;border:0;background:none;cursor:pointer}
-.play-badge{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:2;width:64px;height:64px;border-radius:50%;
-  background:var(--tv-scrim);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;color:#fff;pointer-events:none}
-.play-badge .i{width:28px;height:28px}
-/* One chip, four truths: saving, saved, still trying, not saved. The candidate should
-   never have to guess which of those they are in. */
-.saved-chip{display:inline-flex;align-items:center;gap:7px;padding:6px 12px;border-radius:999px;background:rgba(21,128,61,.92);color:#fff;font:var(--tv-l2);justify-self:center;text-align:center}
-.saved-chip.work{background:rgba(63,63,70,.94)}
-.saved-chip.late{background:rgba(154,52,18,.94)}
-.saved-chip.bad{background:rgba(185,28,28,.96)}
-.saved-chip .spin{border-color:rgba(255,255,255,.35);border-top-color:#fff}
-.cam-bottom h2{margin:0;font:var(--tv-h5);color:var(--tv-on-video);text-align:center;text-wrap:pretty}
-/* The camera really is off after an interruption, so the held frame says so. */
-.cam-media.frozen video,.cam-media.frozen img,.cam-media.frozen canvas{filter:grayscale(.55) brightness(.5)}
-
-/* ---------- Browser permission dialogs ---------- */
+/* ---------- The browser's own permission dialogs (not Tessera: drawn after the platform) ---------- */
 .scrim{position:absolute;inset:0;z-index:50;display:flex;align-items:center;justify-content:center;padding:22px;background:rgba(0,0,0,.45)}
-/* Chrome on Android: a Material modal, centred, text buttons bottom-right. */
-.dlg-site{width:100%;max-width:300px;background:var(--tv-bg-surface);border-radius:28px;padding:22px 22px 12px;box-shadow:0 16px 48px rgba(0,0,0,.3)}
-.dlg-site .ico{display:flex;gap:6px;color:var(--tv-text-tertiary);margin-bottom:12px}
-.dlg-site p{margin:0;font:400 16px/22px var(--tv-font);color:var(--tv-text-primary)}
+.dlg-site{width:100%;max-width:300px;background:#fff;border-radius:28px;padding:22px 22px 12px;box-shadow:0 16px 48px rgba(0,0,0,.3);color:#1f1f1f}
+.dlg-site .ico{display:flex;gap:6px;color:#444746;margin-bottom:12px}
+.dlg-site p{margin:0;font:400 16px/22px var(--font-sans)}
 .dlg-site .acts{display:flex;justify-content:flex-end;gap:4px;margin-top:16px}
-.dlg-site .acts button{min-height:44px;padding:0 14px;border:0;border-radius:999px;background:none;color:var(--tv-interactive-primary);font:500 14px/1 var(--tv-font);cursor:pointer}
-.dlg-site .acts button:hover{background:var(--tv-bg-accent)}
-/* Android's own runtime dialog: icon on top, centred title, three stacked choices. */
-.dlg-os{width:100%;max-width:300px;background:var(--tv-bg-surface);border-radius:28px;padding:24px 20px 10px;text-align:center;box-shadow:0 16px 48px rgba(0,0,0,.3)}
-.dlg-os .ico{margin:0 auto 16px;color:var(--tv-text-tertiary)}
-.dlg-os .ico .i{width:34px;height:34px}
-.dlg-os p{margin:0;font:400 18px/24px var(--tv-font);color:var(--tv-text-primary);text-wrap:balance}
+.dlg-site .acts button,.dlg-os .acts button{min-height:44px;padding:0 14px;border:0;border-radius:999px;background:none;color:#0b57d0;font:500 14px/1 var(--font-sans);cursor:pointer}
+.dlg-site .acts button:hover,.dlg-os .acts button:hover{background:#e8f0fe}
+.dlg-os{width:100%;max-width:300px;background:#fff;border-radius:28px;padding:24px 20px 10px;text-align:center;box-shadow:0 16px 48px rgba(0,0,0,.3);color:#1f1f1f}
+.dlg-os .ico{margin:0 auto 16px;color:#444746;display:flex;justify-content:center}
+.dlg-os .ico svg{width:34px;height:34px}
+.dlg-os p{margin:0;font:400 18px/24px var(--font-sans);text-wrap:balance}
 .dlg-os p b{font-weight:500}
 .dlg-os .acts{display:grid;margin-top:18px}
-.dlg-os .acts button{min-height:52px;border:0;background:none;color:var(--tv-interactive-primary);font:500 14px/1 var(--tv-font);cursor:pointer;border-radius:12px}
-.dlg-os .acts button:hover{background:var(--tv-bg-accent)}
-/* Safari on iOS: a system alert. */
+.dlg-os .acts button{min-height:52px;border-radius:12px}
 .dlg-ios{width:272px;background:rgba(249,249,249,.97);border-radius:14px;overflow:hidden;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.3)}
 .dlg-ios .body{padding:19px 16px 15px}
-.dlg-ios strong{display:block;font:600 15px/20px var(--tv-font);color:#000}
+.dlg-ios strong{display:block;font:600 15px/20px var(--font-sans);color:#000}
 .dlg-ios .acts{display:flex;border-top:1px solid rgba(60,60,67,.29)}
-.dlg-ios .acts button{flex:1;min-height:44px;border:0;background:none;color:#0a7cff;font:400 17px/1 var(--tv-font);cursor:pointer}
+.dlg-ios .acts button{flex:1;min-height:44px;border:0;background:none;color:#0a7cff;font:400 17px/1 var(--font-sans);cursor:pointer}
 .dlg-ios .acts button+button{border-left:1px solid rgba(60,60,67,.29);font-weight:600}
-.dlg-note{margin:10px auto 0;max-width:300px;font:var(--tv-p3);color:rgba(255,255,255,.88);text-align:center}
+.dlg-note{margin:10px auto 0;max-width:300px;font:400 12px/18px var(--font-sans);color:rgba(255,255,255,.88);text-align:center}
 
-/* ---------- Question sheet (expanded from the recording screen) ---------- */
-.qsheet-wrap{position:absolute;inset:0;z-index:55;display:flex;align-items:flex-end;background:rgba(0,0,0,.45)}
-.qsheet{width:100%;max-height:72%;overflow:auto;background:var(--tv-bg-surface);border-radius:18px 18px 0 0;padding:12px 18px 18px}
-.grab{width:36px;height:4px;border-radius:2px;background:var(--tv-border-primary);margin:0 auto 12px}
-.qsheet .qlabel{display:flex;align-items:center;gap:8px;font:var(--tv-l2);text-transform:uppercase;letter-spacing:.05em;color:var(--tv-text-muted);margin-bottom:10px}
-.qsheet .question{margin:0 0 18px;font:var(--tv-h5);text-wrap:pretty}
-
-/* ---------- Wait / countdown / skeleton ---------- */
-.centre{flex:1;min-height:0;overflow:auto;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:32px 20px}
-.centre h1{font:var(--tv-h4);margin:14px 0 4px;text-wrap:balance}
-.centre p{font:var(--tv-p2);color:var(--tv-text-tertiary);margin:0 0 18px}
-.checklist{list-style:none;margin:0;padding:4px 16px;background:var(--tv-bg-muted);border:1px solid var(--tv-border-subtle);border-radius:10px;width:100%;text-align:left}
-.checklist li{display:flex;align-items:center;gap:10px;padding:9px 0;font:var(--tv-p2)}
-.checklist li.done .i{color:var(--tv-success-text)}
-.checklist li.pend{color:var(--tv-text-muted)}
-.checklist li.fail{color:var(--tv-error-text)}
-.spin{width:16px;height:16px;border:2px solid var(--tv-border-primary);border-top-color:var(--tv-interactive-primary);border-radius:50%;animation:spin .8s linear infinite;flex:none}
-.spin.xs{width:12px;height:12px}
-.spin.lg{width:26px;height:26px;border-width:3px}
-@keyframes spin{to{transform:rotate(360deg)}}
-.count-ring{position:relative;width:116px;height:116px;margin:8px auto 0}
-.count-ring svg{width:100%;height:100%;transform:rotate(-90deg)}
-.count-ring circle{fill:none;stroke-width:5}
-.count-ring .bg{stroke:var(--tv-border-subtle)}
-.count-ring .fg{stroke:var(--tv-interactive-primary);stroke-linecap:round;stroke-dasharray:289;stroke-dashoffset:0}
-.count-ring .fg.run{animation:sweep 1s linear forwards}
-@keyframes sweep{to{stroke-dashoffset:289}}
-.count-num{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font:var(--tv-n2)}
-.skel{flex:1;min-height:0;overflow:auto;padding:14px;background:var(--tv-bg-muted);display:flex;flex-direction:column;gap:12px}
-.sk{background:var(--tv-border-subtle);border-radius:4px;flex:none}
-.sk-head{width:62%;height:16px}
-.sk-media{border-radius:10px;background:var(--tv-bg-accent);aspect-ratio:4/3;width:100%}
-.sk-line{height:8px}
-.sk-lines{display:grid;gap:12px;margin-top:4px}
-.proto-note{display:grid;gap:10px;justify-items:start;margin-top:8px;padding:14px;border:1px dashed var(--tv-border-strong);border-radius:10px;background:var(--tv-bg-surface);font:var(--tv-p3);color:var(--tv-text-tertiary)}
-
-/* ---------- Chat with Alvy ---------- */
-.alvy{position:absolute;inset:0;z-index:65;display:flex;flex-direction:column;background:var(--tv-bg-surface)}
-.alvy-head{flex:none;display:flex;align-items:center;gap:6px;padding:4px 8px;border-bottom:1px solid var(--tv-border-subtle)}
-.alvy-head h2{margin:0;font:var(--tv-h5)}
-.chat-log{flex:1;min-height:0;overflow:auto;display:flex;flex-direction:column;gap:14px;padding:16px 14px}
-.chat-log:before{content:"";margin-top:auto}
-.msg{display:grid;gap:6px}
-.msg .who{font:var(--tv-l2)}
-.msg.you .who{justify-self:end}
-.bubble{border-radius:10px;padding:10px 12px;font:var(--tv-p2)}
-.msg.bot .bubble{background:linear-gradient(171deg,var(--tv-ai-blue),var(--tv-ai-purple));color:var(--tv-on-video)}
-.msg.you .bubble{background:var(--tv-chat-you)}
-.bubble ol{margin:6px 0 0;padding-left:18px;display:grid;gap:5px}
-.bubble b{font-weight:500}
-.bubble .time{display:block;margin-top:6px;font:var(--tv-p3);opacity:.85;text-align:right}
-.msg.bot .bubble .time{text-align:left}
-.searching{display:flex;align-items:center;gap:8px;font:var(--tv-p2);color:var(--tv-text-muted)}
-.chat-form{flex:none;border-top:1px solid var(--tv-border-subtle);padding:8px 12px;display:flex;align-items:center;gap:8px}
-.chat-form input{flex:1;min-width:0;border:0;background:none;font:var(--tv-p2);padding:12px 2px;outline-offset:2px}
-.chat-form input::placeholder{color:var(--tv-text-muted)}
-.chat-form .send{border:0;background:none;color:var(--tv-interactive-primary);font:var(--tv-l1);min-height:var(--tap);padding:0 8px;cursor:pointer}
+/* ---------- Alvy ---------- */
+.alvy{position:absolute;inset:0;z-index:65;display:flex;flex-direction:column;background:var(--bg-surface)}
+.alvy>*{flex:1;min-height:0}
 
 /* ---------- Prototype controls (not part of the design) ---------- */
-.proto{flex:none;position:relative;z-index:70;width:300px;height:100%;overflow:auto;display:flex;flex-direction:column;background:var(--tv-bg-surface);border-left:1px solid var(--tv-border-strong);font:var(--tv-p3);color:var(--tv-text-tertiary)}
+.proto{flex:none;position:relative;z-index:70;width:300px;height:100%;overflow:auto;display:flex;flex-direction:column;background:var(--bg-surface);border-left:1px solid var(--border-primary);color:var(--text-body)}
 .proto-head,.proto-body{padding-left:16px;padding-right:max(16px,env(safe-area-inset-right,0px))}
-.proto-head{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;padding-top:max(14px,env(safe-area-inset-top,0px));padding-bottom:12px;border-bottom:1px solid var(--tv-border-subtle)}
-.proto-title{flex:none;font:var(--tv-l2);color:var(--tv-text-primary);letter-spacing:.04em;text-transform:uppercase}
-.proto-head button{flex:none;margin-left:auto;font:var(--tv-l2);border:0;background:none;color:var(--tv-interactive-link);cursor:pointer;padding:4px 6px;border-radius:6px}
-.proto-ticket{order:3;flex-basis:100%;margin:0;padding:8px 10px;border-radius:8px;background:var(--tv-bg-muted);color:var(--tv-text-tertiary)}
-.proto-ticket b{font:var(--tv-l2);color:var(--tv-text-primary)}
+.proto-head{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;padding-top:max(14px,env(safe-area-inset-top,0px));padding-bottom:12px;border-bottom:1px solid var(--border-subtle)}
+.proto-title{flex:1;font:500 12px/18px var(--font-sans);color:var(--text-primary);letter-spacing:.04em;text-transform:uppercase}
+.proto-ticket{flex-basis:100%;margin:0;padding:8px 10px;border-radius:8px;background:var(--bg-muted);color:var(--text-body)}
+.proto-ticket b{font-weight:500;color:var(--text-primary)}
 .proto-body{display:flex;flex-direction:column;gap:16px;padding-top:14px;padding-bottom:max(16px,env(safe-area-inset-bottom,0px))}
 .proto.collapsed{width:auto}
 .proto.collapsed .proto-body,.proto.collapsed .proto-ticket{display:none}
-.proto.collapsed .proto-head{flex-direction:column;align-items:flex-start;border-bottom:0}
-.proto.collapsed .proto-head button{margin-left:0}
 .proto-group{display:flex;flex-direction:column;align-items:flex-start;gap:6px}
-.proto-group[hidden]{display:none}
-.proto-label{font:var(--tv-l2);color:var(--tv-text-muted)}
-.chips,.seg{display:flex;flex-wrap:wrap;gap:4px}
-.chips button,.seg button{white-space:nowrap;font:var(--tv-l2);border:1px solid var(--tv-border-primary);background:var(--tv-bg-surface);color:var(--tv-text-tertiary);border-radius:999px;padding:3px 10px;cursor:pointer}
-.chips button[aria-current="step"],.seg button[aria-pressed="true"]{border-color:var(--tv-interactive-primary);color:var(--tv-interactive-link);background:var(--tv-bg-accent)}
+.proto-label{font:500 12px/18px var(--font-sans);color:var(--text-subtle)}
+.seg{display:flex;flex-wrap:wrap;gap:4px}
 @media (max-width:760px){
   body{flex-direction:column}
-  .proto{width:auto;height:auto;max-height:45%;border-left:0;border-top:1px solid var(--tv-border-strong)}
-}
-@media (prefers-reduced-motion: reduce){
-  *,*::before,*::after{animation:none!important;transition:none!important}
+  .app{flex-direction:column}
+  .proto{width:auto;height:auto;max-height:45%;border-left:0;border-top:1px solid var(--border-primary)}
 }
 </style>
 
-<div class="stage" id="stage">
-<div id="phone" role="region" aria-label="Candidate phone screen">
-  <div id="frame">
-    <div id="chromeTop"></div>
-    <div id="viewport"><div class="netbar" id="netbar" role="status" hidden></div><main id="view"></main></div>
-    <div id="chromeBottom"></div>
-  </div>
+<div id="root" data-theme="light"></div>
 
-  <section class="alvy" id="alvy" aria-label="Chat with Alvy" hidden>
-    <div class="alvy-head">
-      <button class="icon-btn" data-act="alvy-close" type="button" aria-label="Back"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 19l-7-7 7-7"/></svg></button>
-      <h2>Chat with Alvy</h2>
-    </div>
-    <div class="chat-log" id="chatLog" aria-live="polite"></div>
-    <form class="chat-form" id="chatForm">
-      <input id="chatInput" placeholder="Ask a question…" aria-label="Ask Alvy a question" autocomplete="off">
-      <button class="send" type="submit">Send</button>
-    </form>
-  </section>
-</div>
-</div>
-
-<aside class="proto" id="proto" aria-label="Prototype controls">
-  <div class="proto-head">
-    <span class="proto-title">Prototype · Mobile</span>
-    <p class="proto-ticket" id="protoTicket" aria-live="polite"></p>
-    <button type="button" id="protoToggle" aria-expanded="true" aria-controls="protoBody">Hide controls</button>
-  </div>
-  <div class="proto-body" id="protoBody">
-    <div class="proto-group"><span class="proto-label">Device</span>
-      <div class="seg"><button type="button" data-set="platform" data-val="android">Android · Chrome</button><button type="button" data-set="platform" data-val="ios">iPhone · Safari</button></div>
-    </div>
-    <div class="proto-group"><span class="proto-label">Jump to</span>
-      <div class="chips" id="jumpChips"></div>
-    </div>
-    <div class="proto-group"><span class="proto-label">Site permission</span>
-      <div class="seg"><button type="button" data-set="permMode" data-val="ask">Asks</button><button type="button" data-set="permMode" data-val="granted">Already allowed</button><button type="button" data-set="permMode" data-val="inuse">Camera in use</button></div>
-    </div>
-    <div class="proto-group" id="osGroup"><span class="proto-label">Android app permission</span>
-      <div class="seg"><button type="button" data-set="osGranted" data-val="no">Chrome must ask the OS</button><button type="button" data-set="osGranted" data-val="yes">Chrome already has it</button></div>
-    </div>
-    <div class="proto-group"><span class="proto-label">Voice check</span>
-      <div class="seg"><button type="button" data-set="voiceMode" data-val="heard">Voice heard</button><button type="button" data-set="voiceMode" data-val="silent">Silent</button></div>
-    </div>
-    <div class="proto-group"><span class="proto-label">Loading</span>
-      <div class="seg"><button type="button" data-set="loadMode" data-val="ok">Succeeds</button><button type="button" data-set="loadMode" data-val="fail">Fails</button></div>
-    </div>
-    <div class="proto-group"><span class="proto-label">Opened from</span>
-      <div class="seg"><button type="button" data-set="appMode" data-val="browser">A real browser</button><button type="button" data-set="appMode" data-val="inapp">Inside an app</button></div>
-    </div>
-    <div class="proto-group"><span class="proto-label">Connection</span>
-      <div class="seg"><button type="button" data-set="netMode" data-val="online">Online</button><button type="button" data-set="netMode" data-val="offline">Offline</button></div>
-    </div>
-    <div class="proto-group"><span class="proto-label">Saving the answer</span>
-      <div class="seg"><button type="button" data-set="saveMode" data-val="ok">Saves</button><button type="button" data-set="saveMode" data-val="slow">Slow, then saves</button><button type="button" data-set="saveMode" data-val="fail">Fails</button></div>
-    </div>
-    <div class="proto-group" id="fireGroup"><span class="proto-label">Interrupt the recording</span>
-      <div class="chips"><button type="button" data-fire="away">Leaving the page</button><button type="button" data-fire="device">An incoming call</button></div>
-    </div>
-  </div>
-</aside>
-
+<script src="https://unpkg.com/react@18.3.1/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/htm@3.1.1/dist/htm.umd.js"></script>
+<script src="tessera/bundle.js"></script>
 <script>
 (() => {
-  const ICON = {
-    video:'<path d="M15 10l4.553-2.276A1 1 0 0 1 21 8.618v6.764a1 1 0 0 1-1.447.894L15 14v-4z"/><rect x="3" y="6" width="12" height="12" rx="2"/>',
-    mic:'<rect x="9" y="2" width="6" height="11" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M8 21h8M12 17v4"/>',
-    micOff:'<path d="M3 3l18 18M9 9v1a3 3 0 0 0 5.12 2.12M15 9.34V5a3 3 0 0 0-5.94-.6M17 16.95A7 7 0 0 1 5 10M19 10a7 7 0 0 1-.11 1.23M8 21h8M12 17v4"/>',
-    chevron:'<path d="M6 9l6 6 6-6"/>',
-    check:'<path d="M5 12l5 5L20 7"/>',
-    info:'<circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v4h1"/>',
-    eyeOff:'<path d="M3 3l18 18M10.584 10.587a2 2 0 0 0 2.828 2.83M9.363 5.365A9.466 9.466 0 0 1 12 5c4 0 7.333 2.333 10 7-.778 1.361-1.612 2.524-2.503 3.488M17.357 17.349C15.726 18.449 13.942 19 12 19c-4 0-7.333-2.333-10-7 1.369-2.395 2.913-4.175 4.632-5.341"/>',
-    videoOff:'<path d="M3 3l18 18M15 11v-1l4.553-2.276A1 1 0 0 1 21 8.618v6.764a1 1 0 0 1-.675.946M10 6h3a2 2 0 0 1 2 2v3m0 4v1a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h1"/>',
-    circleCheck:'<circle cx="12" cy="12" r="9"/><path d="M9 12l2 2 4-4"/>',
-    circleX:'<circle cx="12" cy="12" r="9"/><path d="M15 9l-6 6M9 9l6 6"/>',
-    circle:'<circle cx="12" cy="12" r="9"/>',
-    alert:'<path d="M12 9v4M12 17h.01M10.24 3.957 2.389 17.06a2 2 0 0 0 1.71 3h15.802a2 2 0 0 0 1.71-3L13.76 3.957a2 2 0 0 0-3.52 0z"/>',
+  const { useState, useEffect, useRef, Fragment } = React;
+  const DS = window.TesseraDS;
+  const html = htm.bind(React.createElement);
+  const { Button, IconButton, Icon, Spinner, Toggle, Dropdown, Chip, Tag, TextLink, Modal,
+    CandidateTopNavigation, CandidateClock, CandidateSoundwave, CandidateBanner,
+    ProgressIndicator, SkeletonLoader, ChatPanel } = DS;
+
+  /* Glyphs for the simulated browser chrome and the browser's own dialogs. Everything inside
+     the product itself uses the Tessera Icon set. */
+  const SVG = {
     lock:'<rect x="5" y="10" width="14" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/>',
     dots:'<circle cx="12" cy="5" r="1.4" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.4" fill="currentColor" stroke="none"/><circle cx="12" cy="19" r="1.4" fill="currentColor" stroke="none"/>',
     share:'<path d="M12 16V4M8 8l4-4 4 4M5 14v5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-5"/>',
-    globe:'<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a15 15 0 0 1 0 18M12 3a15 15 0 0 0 0 18"/>',
-    alvy:'<path d="M12 3l1.8 4.7L18.5 9.5l-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8z"/><path d="M18 15.5l.9 2.3 2.3.9-2.3.9-.9 2.3-.9-2.3-2.3-.9 2.3-.9z"/>',
-    play:'<path d="M8 5.5v13l11-6.5z" fill="currentColor" stroke="none"/>',
-    external:'<path d="M14 4h6v6M20 4l-8.5 8.5M18 13v6a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h6"/>',
-    link:'<path d="M10.5 13.5a5 5 0 0 0 7.1.4l2.6-2.6a5 5 0 0 0-7-7l-1.5 1.4M13.5 10.5a5 5 0 0 0-7.1-.4l-2.6 2.6a5 5 0 0 0 7 7l1.5-1.4"/>',
-    wifiOff:'<path d="M3 3l18 18M8.6 16.4a5 5 0 0 1 6.8 0M5.1 12.9a10 10 0 0 1 3.6-2.3M2 9.2a15 15 0 0 1 4.3-2.6M10.3 5.1A15 15 0 0 1 22 9.2M18.9 12.9a10 10 0 0 0-2.7-2M12 20h.01"/>',
+    home:'<path d="M3 11l9-8 9 8M5 10v10h5v-6h4v6h5V10"/>',
     sig:'<path d="M2 20h.01M6 20v-4M11 20v-9M16 20V8M21 20V4"/>',
-    batt:'<rect x="2" y="7" width="17" height="10" rx="2.5"/><path d="M22 11v2"/><rect x="4" y="9" width="11" height="6" rx="1" fill="currentColor" stroke="none"/>'
+    batt:'<rect x="2" y="7" width="17" height="10" rx="2.5"/><path d="M22 11v2"/><rect x="4" y="9" width="11" height="6" rx="1" fill="currentColor" stroke="none"/>',
+    video:'<path d="M15 10l4.553-2.276A1 1 0 0 1 21 8.618v6.764a1 1 0 0 1-1.447.894L15 14v-4z"/><rect x="3" y="6" width="12" height="12" rx="2"/>',
+    mic:'<rect x="9" y="2" width="6" height="11" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M8 21h8M12 17v4"/>',
+    play:'<path d="M8 5.5v13l11-6.5z" fill="currentColor" stroke="none"/>'
   };
-  const ic = (n, cls = '') => `<svg class="i ${cls}" viewBox="0 0 24 24" aria-hidden="true">${ICON[n]}</svg>`;
-  const $ = id => document.getElementById(id);
-  const esc = s => s.replace(/[&<>]/g, c => ({'&':'&amp;', '<':'&lt;', '>':'&gt;'})[c]);
-
-  const phone = $('phone'), stage = $('stage'), view = $('view');
-  const chromeTop = $('chromeTop'), chromeBottom = $('chromeBottom');
-  const reduce = matchMedia('(prefers-reduced-motion: reduce)');
+  const svg = (n, size = 16) => html`<svg width=${size} height=${size} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" dangerouslySetInnerHTML=${{__html: SVG[n]}} />`;
 
   const PHONES = {android:{w:360, h:800}, ios:{w:390, h:844}};
   const SITE = 'cx-v2.talview.com';
-  const dev = () => PHONES[S.platform];
-
-  let K = 1;
-  function fit(){
-    const cs = getComputedStyle(stage);
-    const w = stage.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
-    const h = stage.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
-    K = Math.max(.1, Math.min(1, (w - 26) / dev().w, (h - 26) / dev().h));
-    phone.style.setProperty('--k', K);
-  }
-
-  function renderChrome(){
-    const d = dev();
-    phone.style.setProperty('--pw', d.w + 'px');
-    phone.style.setProperty('--ph', d.h + 'px');
-    const sys = `<span class="sys-right">${ic('sig', 'xs')}${ic('batt', 'xs')}</span>`;
-    if (S.platform === 'android'){
-      chromeTop.innerHTML =
-        `<div class="sysbar" style="height:26px"><span>9:41</span>${sys}</div>
-         <div class="urlbar top">
-           <div class="url-field"><span class="url-btn">${ic('lock', 'sm')}</span><span class="url">${SITE}</span></div>
-           <span class="chev-btn">${ic('dots', 'sm')}</span>
-         </div>`;
-      chromeBottom.innerHTML = '<div class="navbar"><span></span></div>';
-    } else {
-      chromeTop.innerHTML = `<div class="notch"></div><div class="sysbar" style="height:46px;align-items:flex-end;padding-bottom:6px"><span>9:41</span>${sys}</div>`;
-      chromeBottom.innerHTML =
-        `<div class="urlbar bottom">
-           <div class="url-field"><span class="url-btn aa">a<b>A</b></span><span class="url">${SITE}</span></div>
-           <span class="chev-btn">${ic('share', 'sm')}</span>
-         </div>
-         <div class="home-ind"><span></span></div>`;
-    }
-    fit();
-  }
-
-  /* ================= Flow =================
-     question → [dialogs] → record (check / ready / recording) → review → countdown */
   const CAMS = ['Front camera', 'Back camera'];
   const MICS = ['Phone microphone', 'AirPods Pro', 'Wired headset'];
   const WAIT_LABELS = ['Email verified', 'Loading your assessment', 'Preparing your practice run'];
   const QUESTION = 'Tell us about a project you’re proud of and what you learned from it.';
 
-  /* An in-app browser (a link tapped inside Gmail, LinkedIn, WhatsApp) runs in a webview
-     where getUserMedia is often unavailable, and fails without drawing a prompt — the
-     shape that matches the candidates who produce neither an allow nor a deny.
-     This is a heuristic and only a heuristic: user-agent strings are not a contract.
-     It warns early because a false positive costs one screen and a false negative costs
-     the candidate. Check it against real UA data before trusting any number it produces. */
+  /* An in-app browser (a link tapped inside Gmail, LinkedIn, WhatsApp) runs in a webview where
+     getUserMedia is often unavailable, and fails without drawing a prompt — the shape that
+     matches the candidates who produce neither an allow nor a deny. This is a heuristic and
+     only a heuristic: user-agent strings are not a contract. It warns early because a false
+     positive costs one screen and a false negative costs the candidate. Check it against real
+     UA data before trusting any number it produces. */
   function detectWebview(){
     const ua = navigator.userAgent || '';
-    if (/; wv\)|\bwv\b/.test(ua)) return true;                                       // Android WebView
+    if (/; wv\)|\bwv\b/.test(ua)) return true;
     if (/FBAN|FBAV|Instagram|LinkedInApp|Line\/|MicroMessenger|Snapchat|Twitter|WhatsApp|GSA\//i.test(ua)) return true;
-    // A real iOS browser identifies itself; a WKWebView carries none of these tokens.
     if (/iPhone|iPad|iPod/.test(ua) && !/Safari|CriOS|FxiOS|EdgiOS|OPiOS/.test(ua)) return true;
     return false;
   }
 
+  /* ================= State =================
+     One mutable store, rendered by React. Media elements are children of components that stay
+     mounted across repaints, so a repaint can no longer replace the canvas the recorder reads. */
   const S = {
     state:'wait', platform:'android',
     dialog:null,                 // 'site' | 'os-cam' | 'os-mic' — the browser's own UI
-    osGranted:false,             // whether Chrome already holds Android's camera/mic permission
+    osGranted:false,
     permMode:'ask', voiceMode:'heard', loadMode:'ok',
     appMode:detectWebview() ? 'inapp' : 'browser',
     netMode:'online', online:navigator.onLine !== false,
     saveMode:'ok', save:'saving',
+    prepSecs:10, prepLeft:10,
     permitted:false, blockedReason:'denied', inuseCleared:false,
     heard:false, micFailed:false, recording:false, hidePreview:false,
-    interruptReason:'away', keptSecs:0, pendingInterrupt:false, lastFrame:null,
-    qOpen:false, qExpanded:false, alvyOpen:false,
+    interruptReason:'away', keptSecs:0, takeSecs:0, pendingInterrupt:false, lastFrame:null,
+    qOpen:false, alvyOpen:false, alvyMsgs:[], alvyTyping:false,
     recSecs:0, cam:0, mic:0, count:5, waitItems:['done', 'act', 'pend'],
     stream:null, audioCtx:null, analyser:null, abuf:null, level:0, realFailed:false,
-    recorder:null, chunks:[], clipURL:null, poster:null, replayOK:false
+    recorder:null, chunks:[], clipURL:null, poster:null, replayOK:false,
+    protoCollapsed:false
   };
+  let bump = () => {};
+  const render = () => bump();
 
   let timers = [], intervals = [];
   const later = (fn, ms) => timers.push(setTimeout(fn, ms));
@@ -595,6 +254,7 @@ button,select,input{font:inherit;color:inherit}
   const KEEP_CLIP = ['review', 'interrupted'];   // states that must not throw the take away
   const NO_CAMERA = ['wait', 'waitError', 'webview', 'permission', 'blocked', 'interrupted', 'countdown', 'assessment'];
   const online = () => S.netMode === 'offline' ? false : S.online;
+  const BROWSER = () => S.platform === 'ios' ? 'Safari' : 'Chrome';
 
   function go(next){
     clearTimers();
@@ -602,12 +262,12 @@ button,select,input{font:inherit;color:inherit}
     S.state = next;
     S.recording = next === 'record';   // the record screen IS the recording
     S.qOpen = false;
-    S.qExpanded = false;
     S.dialog = null;
     S.pendingInterrupt = false;
     if (!KEEP_CLIP.includes(next)) dropClip();
     if (next === 'wait') S.waitItems = ['done', 'act', 'pend'];
     if (next === 'test'){ S.heard = false; S.micFailed = false; }
+    if (next === 'question') S.prepLeft = S.prepSecs;
     if (next === 'record'){ S.recSecs = 0; S.hidePreview = false; S.lastFrame = null; }
     if (NO_CAMERA.includes(next)) stopStream();
     if (next === 'countdown') S.count = 5;
@@ -615,42 +275,45 @@ button,select,input{font:inherit;color:inherit}
     enter(next);
   }
 
+  // Entering the record screen starts the recording, but not here: the recorder needs the
+  // canvas to exist, so the record screen starts it once it has mounted (see RecordScreen).
+  function beginTake(){ (canUseCamera() && !S.stream) ? go('test') : go('record'); }
+
   function enter(st){
     if (st === 'wait'){
       // Prototype stand-in: production drives these from real loading milestones.
       later(() => {
         if (S.loadMode === 'fail'){ S.waitItems = ['done', 'fail', 'pend']; go('waitError'); return; }
-        S.waitItems = ['done', 'done', 'act']; renderWaitList();
+        S.waitItems = ['done', 'done', 'act']; render();
       }, 1400);
-      later(() => { S.waitItems = ['done', 'done', 'done']; renderWaitList(); }, 2600);
+      later(() => { S.waitItems = ['done', 'done', 'done']; render(); }, 2600);
       later(() => go(S.appMode === 'inapp' ? 'webview' : 'permission'), 3200);
     }
-    if (st === 'review') startSave();
     if (st === 'test'){
       if (canUseCamera() && !S.stream) acquire().catch(() => {});
       startLevel();
       if (S.voiceMode === 'heard' && !S.analyser) later(micOk, 2600);
       later(() => { if (!S.heard) micNone(); }, 7000);
     }
-    if (st === 'record'){
-      // go() has already rendered. Render must come BEFORE the recorder starts, because it
-      // replaces the canvas that captureStream() reads.
-      startRecorder();
-      runRecClock();
-      startLevel();
+    if (st === 'question'){
+      // The prep time: the system starts recording by itself when it runs out.
+      every(() => {
+        S.prepLeft--;
+        if (S.prepLeft <= 0){ beginTake(); return; }
+        render();
+      }, 1000);
     }
+    if (st === 'review') startSave();
     if (st === 'countdown'){
       every(() => {
         S.count--;
         if (S.count <= 0){ go('assessment'); return; }
-        const n = $('countNum'); if (n) n.textContent = S.count;
-        restartRing();
+        render();
       }, 1000);
-      restartRing();
     }
   }
 
-  /* ---------- Permission: the question screen primes it, the platform asks ---------- */
+  /* ---------- Permission: the screen primes it, the platform asks ---------- */
   function askPermission(){
     if (S.permMode === 'granted'){ S.permitted = true; return granted(); }
     if (canUseCamera()){
@@ -671,8 +334,8 @@ button,select,input{font:inherit;color:inherit}
     S.dialog = 'site';
     render();
   }
-  // Chrome asks the OS only once the site itself is allowed, and Android asks for
-  // camera and microphone one at a time.
+  // Chrome asks the OS only once the site itself is allowed, and Android asks for camera and
+  // microphone one at a time.
   function dialogAllow(){
     if (S.dialog === 'site'){
       if (S.platform === 'android' && !S.osGranted){ S.dialog = 'os-cam'; return render(); }
@@ -694,10 +357,10 @@ button,select,input{font:inherit;color:inherit}
   }
 
   /* ---------- Interruption: the half of mobile the happy path never shows ----------
-     A call, a notification the candidate taps, the screen locking, switching apps — all
-     of them suspend the page and end the camera track. The old build carried on drawing
-     a running timer over a dead stream, which is the worst available answer: the
-     candidate finds out at the end, if at all. Stop, keep the take, and say what was kept. */
+     A call, a notification the candidate taps, the screen locking, switching apps — all of
+     them suspend the page and end the camera track. Carrying on drawing a running timer over
+     a dead stream is the worst available answer: the candidate finds out at the end, if at
+     all. Stop, keep the take, and say what was kept. */
   function interrupt(reason){
     if (S.state !== 'record' || !S.recording) return;
     S.interruptReason = reason;
@@ -722,7 +385,6 @@ button,select,input{font:inherit;color:inherit}
     if (S.pendingInterrupt){ S.pendingInterrupt = false; go('interrupted'); }
   });
   // A track ends or mutes when something else claims the device — typically a phone call.
-  // Guarded on S.recording because some devices fire a spurious mute as a stream starts.
   function watchTracks(stream){
     stream.getTracks().forEach(t => {
       const lost = () => interrupt('device');
@@ -731,74 +393,46 @@ button,select,input{font:inherit;color:inherit}
     });
   }
 
-  /* ---------- Saving: invisible when it works, impossible to miss when it doesn't ----------
-     The answer saves by itself, per answer, with no upload step. That is the right design
-     and it carries one risk: a write that stalls is silent, so the candidate walks on to
-     question 2 with question 1 still in flight. The cure is not a progress bar on every
-     save — it is refusing to let them leave this screen until the write has landed. */
+  /* ---------- Saving: stop recording saves the answer, with no upload step ----------
+     That is the right design and it carries one risk: a write that stalls is silent, so the
+     candidate walks on to the next question with this one still in flight. The cure is not a
+     progress bar on every save — it is holding Next until the write has landed. */
   let saveToken = 0;
   function startSave(){
     const tok = ++saveToken;
     S.save = 'saving';
-    paintPanel();
+    render();
     later(() => {
       if (tok !== saveToken || S.state !== 'review') return;
-      if (!online()){ S.save = 'retry'; return paintPanel(); }   // held until the connection returns
-      if (S.saveMode === 'ok'){ S.save = 'saved'; return paintPanel(); }
+      if (!online()){ S.save = 'retry'; return render(); }   // held until the connection returns
+      if (S.saveMode === 'ok'){ S.save = 'saved'; return render(); }
       S.save = 'retry';
-      paintPanel();
+      render();
       later(() => {
         if (tok !== saveToken || S.state !== 'review') return;
         S.save = (S.saveMode === 'fail' || !online()) ? 'failed' : 'saved';
-        paintPanel();
+        render();
       }, 3200);
     }, 1500);
   }
-
-  /* ---------- Connection ---------- */
-  function paintNet(){
-    const bar = $('netbar');
-    if (!bar) return;
-    const off = !online();
-    bar.hidden = !off;
-    if (!off) return;
-    const msg = S.recording ? 'No connection. Keep recording — we’ll save this when you’re back.'
-      : S.state === 'review' ? 'No connection. Your answer saves as soon as you’re back online.'
-      : 'No internet connection. We’ll keep trying.';
-    bar.innerHTML = `${ic('wifiOff', 'sm')}<span>${msg}</span>`;
-  }
   function netChanged(){
-    paintNet();
+    render();
     if (S.state === 'review' && online() && (S.save === 'retry' || S.save === 'failed')) startSave();
   }
   addEventListener('online', () => { S.online = true; netChanged(); });
   addEventListener('offline', () => { S.online = false; netChanged(); });
 
-  /* ---------- Mic gate: Continue unlocks when we hear something ---------- */
+  /* ---------- Mic gate: Next unlocks when we hear something ---------- */
   function micOk(){
     if (S.heard || S.state !== 'test') return;
     S.heard = true; S.micFailed = false;
-    paintPanel();
-    say('Microphone working. You can record your answer now.');
+    render();
   }
   function micNone(){
     if (S.heard || S.state !== 'test') return;
     S.micFailed = true;
-    paintPanel();
+    render();
   }
-  // Repaint only the panel over the camera, so the preview never flashes.
-  function paintPanel(){
-    const p = $('camBottom');
-    if (!p) return render();
-    p.innerHTML = panelHTML();
-  }
-  function panelHTML(){
-    if (S.state === 'test') return testPanelHTML();
-    if (S.state === 'review') return reviewPanelHTML();
-    if (S.state === 'interrupted') return interruptPanelHTML();
-    return recordPanelHTML();
-  }
-
   function simSpeech(){
     const t = performance.now() / 1000;
     const talking = (Math.sin(t * 1.7) + Math.sin(t * 0.63)) > -0.9;
@@ -813,11 +447,9 @@ button,select,input{font:inherit;color:inherit}
   function startLevel(){
     let loud = 0;
     every(() => {
-      const lvl = S.voiceMode === 'silent' ? 0 : S.analyser ? realLevel() : simSpeech();
-      S.level = lvl;
-      document.querySelectorAll('.meter i').forEach(b => b.style.height = Math.round(3 + lvl * 13 * (0.55 + 0.45 * Math.random())) + 'px');
+      S.level = S.voiceMode === 'silent' ? 0 : S.analyser ? realLevel() : simSpeech();
       if (!S.heard && S.analyser && S.voiceMode === 'heard' && S.state === 'test'){
-        loud = lvl > 0.12 ? loud + 80 : Math.max(0, loud - 40);
+        loud = S.level > 0.12 ? loud + 80 : Math.max(0, loud - 40);
         if (loud >= 600) micOk();
       }
     }, 80);
@@ -837,12 +469,12 @@ button,select,input{font:inherit;color:inherit}
       S.stream = stream;
       setupAudio(stream);
       watchTracks(stream);
-      refreshMedia();
+      render();
       return stream;
     }, err => {
       if (tok !== acquireToken) throw {stale:true};
-      // An instant refusal means this frame cannot use the camera at all (an embedded
-      // viewer, say): fall back to the drawn sample preview and the simulated dialogs.
+      // An instant refusal means this frame cannot use the camera at all (an embedded viewer,
+      // say): fall back to the drawn sample preview and the simulated dialogs.
       if ((err.name === 'NotAllowedError' && performance.now() - t0 < 250) || err.name === 'SecurityError' || err.name === 'TypeError'){
         S.realFailed = true;
         throw {fallback:true};
@@ -869,40 +501,15 @@ button,select,input{font:inherit;color:inherit}
     try { S.audioCtx?.close(); } catch (e){}
     S.stream = null; S.audioCtx = null; S.analyser = null;
   }
-  function mediaHTML(){
-    if (S.state === 'interrupted') return S.poster
-      ? `<img src="${S.poster}" alt="The last frame before the recording stopped">` : '';
-    if (S.state === 'review') return S.replayOK && S.clipURL
-      ? `<video id="clip" playsinline loop autoplay${S.stream ? '' : ' muted'} aria-label="Your practice recording" src="${S.clipURL}"></video>`
-      : S.poster ? `<img id="clip" src="${S.poster}" alt="The last frame of your practice recording">` : '';
-    if (!showPreview()) return '';
-    return S.stream
-      ? '<video id="liveVideo" class="mirror" autoplay muted playsinline aria-label="Your camera preview"></video>'
-      : '<canvas id="simCam" role="img" aria-label="Sample camera preview"></canvas><span class="sim-tag">Sample preview</span>';
-  }
-  function attachMedia(){
-    const v = $('liveVideo');
-    if (v && S.stream){ v.srcObject = S.stream; v.play().catch(() => {}); }
-    const c = $('simCam');
-    if (c) startSim(c);
-    const clip = $('clip');
-    if (clip && clip.tagName === 'VIDEO') clip.play().catch(() => { const b = $('playBadge'); if (b) b.hidden = false; });
-  }
-  function refreshMedia(){
-    const m = $('vmedia');
-    if (!m) return;
-    m.innerHTML = mediaHTML();
-    attachMedia();
-  }
 
   /* ---------- Recording the clip, so the candidate can watch it back ----------
-     The device check only proves the live preview works. Playing the clip back is the
-     only thing that proves the RECORDING captured them. Where MediaRecorder is missing
-     or refuses the source, we keep the last frame instead and say playback is unavailable. */
+     The device check only proves the live preview works. Playing the clip back is the only
+     proof the RECORDING captured them. Where MediaRecorder is missing or refuses the source,
+     we keep the last frame instead and say playback is unavailable. */
+  let simCanvasEl = null;
   function recorderSource(){
     if (S.stream) return S.stream;
-    const c = $('simCam');
-    try { return c?.captureStream ? c.captureStream(30) : null; } catch (e){ return null; }
+    try { return simCanvasEl?.captureStream ? simCanvasEl.captureStream(30) : null; } catch (e){ return null; }
   }
   function startRecorder(){
     S.chunks = []; S.replayOK = false;
@@ -917,7 +524,7 @@ button,select,input{font:inherit;color:inherit}
         if (!S.chunks.length) return;
         S.clipURL = URL.createObjectURL(new Blob(S.chunks, {type:mime}));
         S.replayOK = true;
-        if (S.state === 'review') render();
+        render();
       };
       S.recorder = rec;
       rec.start();
@@ -933,7 +540,7 @@ button,select,input{font:inherit;color:inherit}
   }
   // A still of the last frame, used when playback is not available in this frame.
   function grabPoster(){
-    const src = $('liveVideo') || $('simCam');
+    const src = document.getElementById('liveVideo') || document.getElementById('simCam');
     if (!src) return null;
     const sw = src.videoWidth || src.width, sh = src.videoHeight || src.height;
     if (!sw || !sh) return null;
@@ -948,12 +555,31 @@ button,select,input{font:inherit;color:inherit}
       return cv.toDataURL('image/jpeg', 0.82);
     } catch (e){ return null; }
   }
+  // The clock for the record screen: seconds, plus a recent frame in hand because an
+  // interruption gives no warning and no time to grab one.
+  function runRecClock(){
+    every(() => {
+      S.recSecs++;
+      if (S.recSecs % 2 === 0) S.lastFrame = grabPoster() || S.lastFrame;
+      render();
+    }, 1000);
+  }
+  function endRecording(){
+    S.takeSecs = S.recSecs;
+    S.poster = grabPoster() || S.lastFrame;
+    stopRecorder(false);
+    clearTimers();
+    S.recording = false;
+    go('review');
+  }
 
-  /* Sample preview for viewers whose frame blocks the camera: a drawn person who
-     sways, blinks and talks in time with the level meter. Scaled like object-fit:cover. */
+  /* Sample preview for viewers whose frame blocks the camera: a drawn person who sways,
+     blinks and talks in time with the level. Scaled like object-fit:cover. */
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)');
   let simRaf = 0;
   function startSim(c){
     cancelAnimationFrame(simRaf);
+    simCanvasEl = c;
     const ctx = c.getContext('2d');
     const t0 = performance.now();
     // A new canvas starts at 300x150, so "has a size" tells us nothing — track it.
@@ -962,8 +588,7 @@ button,select,input{font:inherit;color:inherit}
       const dpr = Math.min(window.devicePixelRatio || 1, 2), w = c.clientWidth, h = c.clientHeight;
       if (!w || !h) return false;
       // Size it once, then hold that size for the whole take: captureStream() encodes the
-      // backing store, and an encoder whose resolution changes part-way produces a broken
-      // clip. The connection bar appearing is enough to trigger it.
+      // backing store, and an encoder whose resolution changes part-way produces a broken clip.
       if ((!sized || !S.recording) && (c.width !== Math.round(w * dpr) || c.height !== Math.round(h * dpr))){
         c.width = Math.round(w * dpr); c.height = Math.round(h * dpr);
       }
@@ -977,10 +602,13 @@ button,select,input{font:inherit;color:inherit}
       if (!paint(now)){ simRaf = requestAnimationFrame(frame); return; }
       if (!reduce.matches) simRaf = requestAnimationFrame(frame);
     };
-    // Size and paint once right now. The recorder starts straight after render on the
-    // record screen, so the canvas must already have its final size and a first frame.
+    // Size and paint once right now, so the recorder never starts on an unsized canvas.
     paint(performance.now());
     simRaf = requestAnimationFrame(frame);
+  }
+  function stopSim(c){
+    cancelAnimationFrame(simRaf);
+    if (simCanvasEl === c) simCanvasEl = null;
   }
   function drawPerson(ctx, w, h, t, level){
     const u = Math.max(w / 612, h / 443) * 0.92;
@@ -1034,15 +662,14 @@ button,select,input{font:inherit;color:inherit}
     ctx.fillStyle = vig; ctx.fillRect(0, 0, w, h);
   }
 
+
   /* ================= Recovery copy ================= */
-  const BROWSER = () => S.platform === 'ios' ? 'Safari' : 'Chrome';
   const SITE_STEPS = {
     android:['Tap the lock icon at the left of the address bar, at the top of the screen.', 'Tap <b>Permissions</b>.', 'Turn on <b>Camera</b> and <b>Microphone</b>.', 'Come back here and tap <b>Try again</b>.'],
     ios:['Tap <b>aA</b> in the address bar, at the bottom of the screen.', 'Tap <b>Website Settings</b>.', 'Set <b>Camera</b> and <b>Microphone</b> to <b>Allow</b>.', 'Tap <b>Done</b>, then <b>Try again</b> here.']
   };
   const OS_STEPS = ['Open your phone’s <b>Settings</b>.', 'Go to <b>Apps › Chrome › Permissions</b>.', 'Allow <b>Camera</b> and <b>Microphone</b>.', 'Come back here and tap <b>Try again</b>.'];
   const INUSE_STEPS = ['Close any app using your camera — a video call, the camera app, or a recorder.', 'Swipe it away so it fully quits, not just goes to the background.', 'Tap <b>Try again</b>.'];
-
   function blockedCopy(){
     if (S.blockedReason === 'inuse') return {
       title:'Your camera is in use',
@@ -1060,31 +687,17 @@ button,select,input{font:inherit;color:inherit}
       steps:SITE_STEPS[S.platform], topic:'blocked', hint:true
     };
   }
-  function hintBar(){
-    return S.platform === 'android'
-      ? `<div class="card" style="margin-top:18px"><span class="cap">Look at the top of your screen</span>
-           <div class="mockbar"><span class="spot">${ic('lock', 'sm')}</span><span class="url">${SITE}</span>${ic('dots', 'sm')}</div></div>`
-      : `<div class="card" style="margin-top:18px"><span class="cap">Look at the bottom of your screen</span>
-           <div class="mockbar"><span class="spot">a<b>A</b></span><span class="url">${SITE}</span>${ic('share', 'sm')}</div></div>`;
-  }
 
   /* ================= Chat with Alvy ================= */
-  const alvyPanel = $('alvy'), chatLog = $('chatLog');
   const nowTime = () => new Date().toLocaleTimeString([], {hour:'numeric', minute:'2-digit'});
-  function bubble(who, html){
-    const d = document.createElement('div');
-    d.className = 'msg ' + who;
-    d.innerHTML = `<span class="who">${who === 'you' ? 'You' : 'Alvy'}</span><div class="bubble">${html}<span class="time">${nowTime()}</span></div>`;
-    chatLog.append(d);
-    chatLog.scrollTop = chatLog.scrollHeight;
-  }
+  let msgId = 0, chatTimers = [];
+  function pushMsg(m){ S.alvyMsgs = [...S.alvyMsgs, {id:'m' + (++msgId), time:nowTime(), ...m}]; render(); }
   function openAlvy(){
-    if (S.alvyOpen) return;
-    S.alvyOpen = true; alvyPanel.hidden = false;
-    if (!chatLog.children.length) bubble('bot', 'Need help?<br>Type your question or describe the issue, and I’ll instantly find the right steps or guide you to support.');
+    S.alvyOpen = true;
+    if (!S.alvyMsgs.length) pushMsg({from:'agent', author:'Alvy', children:'Need help? Type your question or describe the issue, and I’ll instantly find the right steps or guide you to support.'});
+    else render();
   }
-  function closeAlvy(){ S.alvyOpen = false; alvyPanel.hidden = true; }
-  let chatTimers = [];
+  function closeAlvy(){ S.alvyOpen = false; render(); }
   // Help-centre articles Alvy summarises (prototype copy; the real articles need confirming).
   function article(topic){
     const name = BROWSER();
@@ -1105,7 +718,7 @@ button,select,input{font:inherit;color:inherit}
       ask:'Hi, you can’t hear my microphone. Can you help?',
       search:'microphone troubleshooting steps',
       title:'Fixing “Microphone not detected”',
-      steps:['Choose a different microphone from the list on the recording screen.', 'Check your phone isn’t muted and nothing is covering the mic.', 'Unplug your headset and try the phone microphone instead.', `Make sure ${name} can use your microphone in your phone’s settings.`]
+      steps:['Choose a different microphone from the list on the screen.', 'Check your phone isn’t muted and nothing is covering the mic.', 'Unplug your headset and try the phone microphone instead.', `Make sure ${name} can use your microphone in your phone’s settings.`]
     };
   }
   function helpFlow(topic){
@@ -1113,496 +726,428 @@ button,select,input{font:inherit;color:inherit}
     chatTimers.forEach(clearTimeout); chatTimers = [];
     const t = (fn, ms) => chatTimers.push(setTimeout(fn, ms));
     const ar = article(topic);
-    let searching;
-    t(() => bubble('you', ar.ask), 500);
-    t(() => bubble('bot', `Absolutely, let me help you fix that.<br>I’m checking our help center for ${ar.search}.`), 1300);
-    t(() => { searching = document.createElement('div'); searching.className = 'searching'; searching.innerHTML = '<span class="spin xs" aria-hidden="true"></span>Searching…'; chatLog.append(searching); chatLog.scrollTop = chatLog.scrollHeight; }, 2000);
-    t(() => { searching?.remove(); bubble('bot', `I found an article that matches your issue. Here’s a quick summary of <b>${ar.title}</b>:<ol>${ar.steps.map(x => `<li>${x}</li>`).join('')}</ol>`); }, 3400);
+    t(() => pushMsg({from:'sent', children:ar.ask}), 500);
+    t(() => pushMsg({from:'agent', author:'Alvy', children:html`<${Fragment}>Absolutely, let me help you fix that.<br />I’m checking our help center for ${ar.search}.<//>`}), 1300);
+    t(() => { S.alvyTyping = true; render(); }, 2000);
+    t(() => {
+      S.alvyTyping = false;
+      pushMsg({from:'agent', author:'Alvy', children:html`<div>I found an article that matches your issue. Here’s a quick summary of <b>${ar.title}</b>:
+        <ol style=${{margin:'8px 0 0', paddingLeft:18, display:'grid', gap:4}}>${ar.steps.map((x, i) => html`<li key=${i} dangerouslySetInnerHTML=${{__html:x}} />`)}</ol></div>`});
+    }, 3400);
   }
-  $('chatForm').addEventListener('submit', e => {
-    e.preventDefault();
-    const inp = $('chatInput'), text = inp.value.trim();
-    if (!text) return;
-    bubble('you', esc(text));
-    inp.value = '';
-    chatTimers.push(setTimeout(() => bubble('bot', 'Thanks, I’m looking into that now.'), 900));
-  });
+  function sendChat({text}){
+    if (!text || !text.trim()) return;
+    pushMsg({from:'sent', children:text});
+    chatTimers.push(setTimeout(() => pushMsg({from:'agent', author:'Alvy', children:'Thanks, I’m looking into that now.'}), 900));
+  }
+
+  /* ================= Components ================= */
+  const TOP_ICONS = {sig:13, batt:13};
+
+  function ChromeTop(){
+    const sys = html`<span style=${{display:'inline-flex', gap:5}}>${svg('sig', 13)}${svg('batt', 13)}</span>`;
+    if (S.platform === 'android') return html`<div class="a-chrome">
+      <div class="a-status"><span>3:33</span>${sys}</div>
+      <div class="a-url"><span class="a-btn">${svg('home', 18)}</span>
+        <div class="a-pill">${svg('lock', 14)}<span>${SITE}</span></div>
+        <span class="a-tabs">1</span><span class="a-btn">${svg('dots', 18)}</span></div></div>`;
+    return html`<${Fragment}><div class="notch"></div><div class="i-status"><span>9:41</span>${sys}</div><//>`;
+  }
+  function ChromeBottom(){
+    if (S.platform === 'android') return html`<div class="a-nav"><span></span></div>`;
+    return html`<div class="i-bottom"><div class="i-url">
+        <span class="i-aa">a<b>A</b></span><div class="i-field">${SITE}</div><span class="a-btn" style=${{color:'var(--text-body)'}}>${svg('share', 16)}</span></div>
+      <div class="i-home"><span></span></div></div>`;
+  }
+
+  // The Figma mobile top bar: Talview logo, language, and Alvy as the one AI action.
+  function TopNav(){
+    return html`<${CandidateTopNavigation} device="mobile"
+      logo=${html`<img src="tessera/assets/logos/talview-logo-vector.svg" alt="Talview" height="28" />`}
+      actions=${html`<${Fragment}>
+        <${IconButton} variant="tertiary-gray" icon="language" aria-label="Change language, currently English" />
+        <${IconButton} variant="gradient" icon="sparkle-solid" aria-label="Chat with Alvy" onClick=${openAlvy} />
+      <//>`} />`;
+  }
+
+  const Page = ({foot, footClass, children}) => html`<div class="pg">
+    <div class="pg-body">${children}</div>
+    ${foot ? html`<div class=${'pg-foot ' + (footClass || '')}>${foot}</div>` : null}
+  </div>`;
+
+  const Steps = ({items}) => html`<ol class="steps p2">${items.map((x, i) => html`<li key=${i} dangerouslySetInnerHTML=${{__html:x}} />`)}</ol>`;
+
+  /* ---- device rows, as in the Figma system checks ---- */
+  function DevStatus({s}){
+    if (s === 'ok') return html`<span class="dstat ok"><${Icon} name="check" size=${16} />Working</span>`;
+    if (s === 'quiet') return html`<span class="dstat warn"><${Icon} name="mic-off" size=${16} />No sound yet</span>`;
+    if (s === 'testing') return html`<span class="dstat"><${Spinner} size=${12} color="blue" label=${null} />Testing</span>`;
+    if (s === 'req') return html`<span class="dstat"><${Spinner} size=${12} color="blue" label=${null} />Requesting permission</span>`;
+    return html`<span class="dstat">Waiting for permission</span>`;
+  }
+  function DeviceRow({kind, status, disabled}){
+    const cam = kind === 'cam', names = cam ? CAMS : MICS, idx = cam ? S.cam : S.mic;
+    return html`<div class="drow">
+      <${Icon} name=${cam ? 'video-camera' : 'microphone'} size=${16} />
+      <${Dropdown} variant="underline" aria-label=${cam ? 'Camera' : 'Microphone'} disabled=${disabled}
+        options=${names.map((n, i) => ({value:String(i), label:n}))} value=${String(idx)}
+        onValueChange=${v => { if (cam) S.cam = +v; else S.mic = +v; render(); }} />
+      <${DevStatus} s=${status} />
+    </div>`;
+  }
+
+  /* ---- camera media: the live video or the sample preview, always mounted as one element ---- */
+  function SimCanvas(){
+    const ref = useRef(null);
+    useEffect(() => { const el = ref.current; startSim(el); return () => stopSim(el); }, []);
+    return html`<canvas id="simCam" ref=${ref} role="img" aria-label="Sample camera preview"></canvas>`;
+  }
+  function VideoLayer({frozen}){
+    const vref = useRef(null);
+    useEffect(() => {
+      const v = vref.current;
+      if (v && S.stream && v.srcObject !== S.stream){ v.srcObject = S.stream; v.play?.().catch(() => {}); }
+    });
+    const hidden = S.hidePreview && S.state === 'record';
+    let inner = null;
+    if (S.state === 'interrupted') inner = S.poster ? html`<img src=${S.poster} alt="The last frame before the recording stopped" />` : null;
+    else if (showPreview()) inner = S.stream
+      ? html`<video id="liveVideo" ref=${vref} class="mirror" autoPlay muted playsInline aria-label="Your camera preview"></video>`
+      : html`<${SimCanvas} />`;
+    return html`<div class=${'vmedia' + (hidden ? ' hidden' : '') + (frozen ? ' frozen' : '')}>${inner}</div>`;
+  }
+  const simChip = () => (showPreview() && !S.stream) ? html`<${Chip} color="gray" size="sm">Sample preview<//>` : null;
+
+  // Live microphone level, polled on its own so the screen is not repainted at 12fps.
+  function LiveWave({bars = 22}){
+    const [lv, setLv] = useState([]);
+    useEffect(() => {
+      const id = setInterval(() => setLv(p => [...p.slice(-(bars - 1)), S.level]), 90);
+      return () => clearInterval(id);
+    }, []);
+    return html`<${CandidateSoundwave} levels=${lv} barCount=${bars} label="Microphone level" />`;
+  }
 
   /* ================= Screens ================= */
-  const logoHTML = () => `<div class="logo" aria-label="Talview">
-      <svg viewBox="0 0 32 32" aria-hidden="true" fill="none"><path d="M16 3 28 10v12L16 29 4 22V10z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="m11 14 5 6 5-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      TALVIEW</div>`;
-  const barButtons = () => `<div class="bar-right">
-      <button class="icon-btn" type="button" aria-label="Change language, currently English">${ic('globe')}</button>
-      <button class="icon-btn ai" data-act="alvy" type="button" aria-label="Chat with Alvy">${ic('alvy')}</button>
-    </div>`;
-  const appbar = () => `<header class="appbar">${logoHTML()}${barButtons()}</header>`;
-
-  function listHTML(){
-    const SR = {done:'done', act:'in progress', pend:'not started', fail:'failed'};
-    return WAIT_LABELS.map((t, i) => {
-      const s = S.waitItems[i];
-      const mark = s === 'done' ? ic('circleCheck', 'sm') : s === 'act' ? '<span class="spin" aria-hidden="true"></span>' : s === 'fail' ? ic('circleX', 'sm') : ic('circle', 'sm');
-      return `<li class="${s}">${mark}<span>${t}</span><span class="sr-only">, ${SR[s]}</span></li>`;
-    }).join('');
-  }
-  function renderWaitList(){ const l = $('waitList'); if (l) l.innerHTML = listHTML(); }
-
-  function waitScreen(){
+  function WaitScreen(){
     const err = S.state === 'waitError';
-    return `<section class="screen">${appbar()}
-      <div class="centre">
-        <div class="mark ${err ? 'err' : ''}" aria-hidden="true">${err ? ic('alert') : '<span class="spin lg"></span>'}</div>
-        <h1>${err ? 'We couldn’t load your assessment' : 'Getting your assessment ready…'}</h1>
-        <p>${err ? 'Check your internet connection, then try again.' : 'This can take up to 30 seconds. Keep this page open.'}</p>
-        <ul class="checklist" id="waitList" aria-live="polite">${listHTML()}</ul>
-      </div>
-      ${err ? `<div class="screen-foot"><button class="btn btn-primary btn-block" data-act="reload" type="button" data-focus>Try again</button></div>` : ''}
-    </section>`;
-  }
-
-  // Permissions first, as on web. The wording of the title and lede is the desktop
-  // step's own, so the two flows read as one product.
-  function permissionScreen(){
-    return `<section class="screen">${appbar()}
-      <div class="screen-body">
-        <!-- Placeholder for the Illustrations-library artwork. -->
-        <div class="illus" aria-hidden="true"><span class="ib">${ic('video')}</span><span class="ib">${ic('mic')}</span></div>
-        <h1>Allow camera and microphone</h1>
-        <p class="lede">You answer this assessment by recording video, so we need your camera and microphone. Your browser will ask for permission.</p>
-        <ul class="needs">
-          <li><span class="ti">${ic('video', 'sm')}</span><span><b>Camera</b>So your answer is recorded.</span></li>
-          <li><span class="ti">${ic('mic', 'sm')}</span><span><b>Microphone</b>So we can hear what you say.</span></li>
+    const SR = {done:'done', act:'in progress', pend:'not started', fail:'failed'};
+    return html`<${Page} foot=${err ? html`<${Button} onClick=${() => location.reload()}>Try again<//>` : null}>
+      <section class="card grow centre">
+        ${err ? html`<span class="mark err"><${Icon} name="circle-exclamation" size=${24} /></span>` : html`<${Spinner} size=${48} color="blue" label="Loading your assessment" />`}
+        <h1 class="h4 ttl">${err ? 'We couldn’t load your assessment' : 'Getting your assessment ready…'}</h1>
+        <p class="p2">${err ? 'Check your internet connection, then try again.' : 'This can take up to 30 seconds. Keep this page open.'}</p>
+        <ul class="checklist p2" aria-live="polite">
+          ${WAIT_LABELS.map((t, i) => {
+            const s = S.waitItems[i];
+            const mark = s === 'done' ? html`<${Icon} name="circle-check" size=${16} />`
+              : s === 'act' ? html`<${Spinner} size=${16} color="blue" label=${null} />`
+              : s === 'fail' ? html`<${Icon} name="circle-xmark" size=${16} />`
+              : html`<span class="dot"></span>`;
+            return html`<li key=${i} class=${s}>${mark}<span>${t}</span><span class="sr-only">, ${SR[s]}</span></li>`;
+          })}
         </ul>
-        <p class="sub">${S.platform === 'android'
-          ? 'Chrome asks twice — once for this site, then once for Chrome itself. Allow both.'
-          : 'Safari asks again each time you open the assessment. That’s normal.'}</p>
-      </div>
-      <div class="screen-foot">
-        <button class="btn btn-primary btn-block" data-act="ask" type="button" data-focus>Continue</button>
-      </div>
-    </section>`;
+      </section><//>`;
   }
 
-  /* Caught before the permission ask, not after: the whole cost of being wrong here is
-     one screen, and the cost of being right is a candidate who would otherwise have hit
-     a camera that never starts and never explains itself. */
-  function webviewScreen(){
+  // Caught before the permission ask, not after: being wrong costs one screen, being right
+  // saves a candidate from a camera that never starts and never explains itself.
+  function WebviewScreen(){
     const ios = S.platform === 'ios', name = BROWSER();
-    return `<section class="screen">${appbar()}
-      <div class="screen-body">
-        <div class="mark err" aria-hidden="true">${ic('external')}</div>
-        <h1>Open this in ${name}</h1>
-        <p class="lede">You’ve opened the assessment from inside another app. Recording usually doesn’t work there — and when it doesn’t, it fails without saying anything.</p>
-        <ol class="steps">
-          ${ios
-            ? '<li>Tap the <b>⋯</b> or share button, usually at the bottom of the screen.</li><li>Choose <b>Open in Safari</b>.</li>'
-            : '<li>Tap the <b>⋮</b> menu at the top right of the screen.</li><li>Choose <b>Open in Chrome</b>.</li>'}
-          <li>Sign in again if you’re asked — you’ll land right back here.</li>
-        </ol>
-        <button class="help-link" id="copyBtn" data-act="copy" type="button">${ic('link', 'sm')}Or copy the link and paste it into ${name}</button>
-      </div>
-      <div class="screen-foot">
-        <button class="btn btn-secondary btn-block" data-act="skip-wv" type="button" data-focus>My camera works — continue</button>
-        <p class="sub" style="margin:0;text-align:center">We can’t always tell which app you’re in. If recording works for you, carry on.</p>
-      </div>
-    </section>`;
+    return html`<${Page} footClass="col" foot=${html`<${Fragment}>
+        <${Button} variant="secondary-gray" fullWidth onClick=${() => go('permission')}>My camera works — continue<//>
+        <p class="p3 muted" style=${{margin:0, textAlign:'center'}}>We can’t always tell which app you’re in. If recording works for you, carry on.</p>
+      <//>`}>
+      <section class="card grow">
+        <span class="mark err"><${Icon} name="open-link" size=${24} /></span>
+        <h1 class="h4 ttl">Open this in ${name}</h1>
+        <p class="p2">You’ve opened the assessment from inside another app. Recording usually doesn’t work there, and when it doesn’t, it fails without saying anything.</p>
+        <${Steps} items=${ios
+          ? ['Tap the <b>⋯</b> or share button, usually at the bottom of the screen.', 'Choose <b>Open in Safari</b>.', 'Sign in again if you’re asked. You’ll land right back here.']
+          : ['Tap the <b>⋮</b> menu at the top right of the screen.', 'Choose <b>Open in Chrome</b>.', 'Sign in again if you’re asked. You’ll land right back here.']} />
+        <${CopyLink} name=${name} />
+      </section><//>`;
+  }
+  function CopyLink({name}){
+    const [msg, setMsg] = useState('');
+    const copy = () => {
+      const p = navigator.clipboard?.writeText?.(location.href);
+      if (p) p.then(() => setMsg('Link copied'), () => setMsg('Copy the address from the bar instead'));
+      else setMsg('Copy the address from the bar instead');
+    };
+    return html`<${TextLink} as="button" leadingIcon=${html`<${Icon} name="link" />`} onClick=${copy}>${msg || `Or copy the link and paste it into ${name}`}<//>`;
   }
 
-  function blockedScreen(){
-    const c = blockedCopy();
-    return `<section class="screen">${appbar()}
-      <div class="screen-body">
-        <div class="mark err" aria-hidden="true">${ic('videoOff')}</div>
-        <h1 class="tone-error">${c.title}</h1>
-        <p class="lede">${c.lede}</p>
-        ${c.hint ? hintBar() : ''}
-        <ol class="steps">${c.steps.map(x => `<li>${x}</li>`).join('')}</ol>
-        <button class="help-link" data-act="help" data-topic="${c.topic}" type="button">${ic('info', 'sm')}Still stuck? Get help from Alvy</button>
-      </div>
-      <div class="screen-foot">
-        <button class="btn btn-primary btn-block" data-act="retry" type="button" data-focus>Try again</button>
-      </div>
-    </section>`;
-  }
-
-  function countdownScreen(){
-    return `<section class="screen">${appbar()}
-      <div class="centre">
-        <h1>Starting your assessment</h1>
-        <p>Get comfortable — the timer starts when the first question appears.</p>
-        <div class="count-ring" aria-live="polite">
-          <svg viewBox="0 0 100 100" aria-hidden="true"><circle class="bg" cx="50" cy="50" r="46"/><circle class="fg" cx="50" cy="50" r="46"/></svg>
-          <span class="count-num" id="countNum">${S.count}</span>
+  // Permissions first, as on web. The Figma system check shows this same moment: a calm
+  // panel explaining the ask, and the device rows waiting on permission.
+  function PermissionScreen(){
+    const req = !!S.dialog;
+    return html`<${Page} foot=${html`<${Button} onClick=${askPermission}>Continue<//>`}>
+      <section class="card grow">
+        <h1 class="h4 ttl">Allow camera and microphone</h1>
+        <p class="p2">You answer this assessment by recording video, so we need your camera and microphone. Your browser will ask for permission.</p>
+        <div class="hint">
+          <span class="pair"><${Icon} name="video-camera" size=${24} /><${Icon} name="microphone" size=${24} /></span>
+          <p class="p2">${S.platform === 'android'
+            ? 'Chrome asks twice: once for this site, then once for Chrome itself. Choose Allow both times.'
+            : 'Safari will ask. Choose Allow. It asks again each time you open the assessment, and that’s normal.'}</p>
         </div>
-      </div>
-    </section>`;
-  }
-  function restartRing(){
-    const fg = document.querySelector('.count-ring .fg');
-    if (!fg || reduce.matches) return;
-    fg.classList.remove('run'); void fg.getBoundingClientRect(); fg.classList.add('run');
-  }
-
-  function assessmentScreen(){
-    return `<section class="screen">${appbar()}
-      <div class="skel" aria-label="Loading assessment">
-        <span class="sk sk-head"></span>
-        <div class="sk-media"></div>
-        <div class="sk-lines"><span class="sk sk-line" style="width:88%"></span><span class="sk sk-line" style="width:72%"></span><span class="sk sk-line" style="width:80%"></span></div>
-        <div class="proto-note" role="note"><strong>End of prototype</strong><span>The timer is running and the first assessment question loads here.</span>
-          <button class="btn btn-secondary" data-act="reload" type="button">Restart prototype</button></div>
-      </div>
-    </section>`;
-  }
-
-  /* ---------- Test device, practice question, record, review ---------- */
-  const vchip = (kind, label) => {
-    const icon = {ok:'check', warn:'micOff'}[kind] || 'circle';
-    return `<span class="vchip ${kind}">${ic(icon, 'xs')}${label}</span>`;
-  };
-  const meterHTML = () => `<span class="meter" aria-hidden="true">${'<i></i>'.repeat(12)}</span>`;
-  function selectHTML(id, kind, names, idx){
-    return `<div class="vselect">${ic(kind === 'cam' ? 'video' : 'mic', 'sm lead')}
-      <select id="${id}" aria-label="${kind === 'cam' ? 'Camera' : 'Microphone'}">${names.map((n, i) => `<option${i === idx ? ' selected' : ''}>${n}</option>`).join('')}</select>${ic('chevron', 'xs chev')}</div>`;
-  }
-  function questionBlock(){
-    return `<button class="qblock" data-act="qopen" type="button" aria-expanded="false">
-      <span class="cap">Practice question <span class="tag">Not scored</span></span>
-      <p class="clamp">${QUESTION}</p>
-      <span class="more">Read full question</span>
-    </button>`;
-  }
-
-  /* Test device: the gate is Continue, and it unlocks when the mic is heard. */
-  function testPanelHTML(){
-    const mic = S.heard ? vchip('ok', 'Microphone working')
-      : S.micFailed ? vchip('warn', 'No sound yet')
-      : `<span class="vchip">${meterHTML()}Say something…</span>`;
-    const say = S.heard
-      ? 'Everything is working. Continue when you’re ready.'
-      : S.micFailed
-        ? 'We can’t hear you. Check your phone isn’t muted, or pick a different microphone.'
-        : 'Say a few words so we can check your microphone.';
-    return `<div class="cam-status">${vchip('ok', 'Camera working')}${mic}</div>
-      <div class="cam-devices">${selectHTML('camSelect', 'cam', CAMS, S.cam)}${selectHTML('micSelect', 'mic', MICS, S.mic)}</div>
-      ${S.micFailed ? `<button class="help-link" data-act="help" data-topic="mic" type="button">${ic('info', 'sm')}Get help from Alvy</button>` : ''}
-      <p class="say${S.micFailed ? ' warn' : ''}">${say}</p>
-      <button class="btn btn-primary btn-block" data-act="to-question" type="button"${S.heard ? ' data-focus' : ' disabled'}>Continue</button>`;
-  }
-  function testScreen(){
-    const msg = showPreview() ? '' : `<span class="spin lg" aria-hidden="true"></span><span>Starting your camera…</span>`;
-    return `<section class="screen">${appbar()}
-      <div class="screen-body" style="padding-bottom:0">
-        <h1>Check your camera and microphone</h1>
-        <p class="lede">We’ll make sure we can see and hear you before you start.</p>
-        <div class="pcard">
-          <div class="cam-media" id="vmedia">${mediaHTML()}</div>
-          <div class="cam-msg" id="camMsg"${msg ? '' : ' hidden'}>${msg}</div>
-          ${showPreview() ? '<span class="live-tag">Preview · not recording</span>' : ''}
+        <div class="drows">
+          <${DeviceRow} kind="cam" status=${req ? 'req' : 'ask'} disabled />
+          <${DeviceRow} kind="mic" status=${req ? 'req' : 'ask'} disabled />
         </div>
-      </div>
-      <div class="test-panel" id="camBottom">${testPanelHTML()}</div>
-    </section>`;
+      </section><//>`;
   }
 
-  /* The question is read with the camera off. Recording starts only on the tap. */
-  function questionScreen(){
-    return `<section class="screen">${appbar()}
-      <div class="screen-body">
-        <span class="card cap" style="display:inline-flex;align-self:flex-start;margin:0;padding:6px 10px;background:var(--tv-bg-muted)">Practice question <span class="tag">Not scored</span></span>
-        <h1 class="question-xl">${QUESTION}</h1>
-        <p class="sub">Take a moment to think, then tap Start recording. Nothing here is scored, and you can record it again.</p>
-      </div>
-      <div class="screen-foot">
-        <button class="btn btn-primary btn-block" data-act="start-rec" type="button" data-focus>Start recording</button>
-      </div>
-    </section>`;
+  // Test device: the same step as web, as its own screen. Next stays locked until the mic is heard.
+  function TestScreen(){
+    const mic = S.heard ? 'ok' : S.micFailed ? 'quiet' : 'testing';
+    return html`<${Page} foot=${html`<${Button} disabled=${!S.heard} onClick=${() => go('question')}>Next<//>`}>
+      <section class="card grow">
+        <h1 class="h4 ttl">Check your camera and microphone</h1>
+        <p class="p2">We’ll make sure we can see and hear you before you start.</p>
+        <div class="vcard">
+          <${VideoLayer} />
+          ${showPreview() ? null : html`<div class="vmsg"><${Spinner} size=${24} color="white" label=${null} /><span>Starting your camera…</span></div>`}
+          <div class="vtop"><${Chip} color="gray" size="sm">Not recording<//>${simChip()}</div>
+          <div class="vstrip">
+            <span class="say">${S.heard ? 'We can hear you' : 'Say ‘Testing 123’ out loud'}</span>
+            <${LiveWave} />
+          </div>
+        </div>
+        <div class="drows">
+          <${DeviceRow} kind="cam" status="ok" />
+          <${DeviceRow} kind="mic" status=${mic} />
+        </div>
+        ${S.micFailed ? html`<div class="status-line late" role="status"><${Icon} name="mic-off" size=${16} />
+          <span>We can’t hear you. Check your phone isn’t muted, or pick a different microphone.</span></div>
+          <${TextLink} as="button" leadingIcon=${html`<${Icon} name="help-circle" />`} onClick=${() => helpFlow('mic')}>Get help from Alvy<//>` : null}
+      </section><//>`;
   }
 
-  /* Recording: full-bleed camera, the question one tap away, Stop where Start was. */
-  function recordPanelHTML(){
-    return `${questionBlock()}
-      <button class="btn btn-primary btn-block" data-act="stop-rec" type="button" data-focus>Stop recording</button>`;
+  // The preparation time: the system starts recording on its own when it runs out. The
+  // onboarding on web never explains this, so this screen does.
+  function QuestionScreen(){
+    return html`<${Page} foot=${html`<${Button} onClick=${beginTake}>Start now<//>`}>
+      <section class="card grow">
+        <div class="cap"><${Chip} color="blue" variant="secondary" size="sm">Practice · not scored<//></div>
+        <h1 class="h3 ttl">${QUESTION}</h1>
+        <div class="centre">
+          <${ProgressIndicator} type="circular" value=${S.prepSecs - S.prepLeft} max=${S.prepSecs} valueText=${S.prepLeft}
+            label=${`Recording starts in ${S.prepLeft} seconds`} />
+          <p class="p2">Take a moment to think. Recording starts by itself when the timer ends, or tap Start now.</p>
+        </div>
+      </section><//>`;
   }
-  function recTopHTML(){
-    return `<div class="rec-top">
-      <div class="rec-left">
-        <span class="vchip rec"><span class="rec-dot"></span>REC <span id="recTime">${fmt(S.recSecs)}</span></span>
-        <span class="vchip">${meterHTML()}<span class="sr-only">Picking up sound</span></span>
+
+  // Recording: Start and Stop are the same labelled button in the same place.
+  function RecordScreen(){
+    // The recorder needs the canvas to exist, so it starts once this screen has mounted.
+    useEffect(() => { startRecorder(); runRecClock(); startLevel(); }, []);
+    const close = () => { S.qOpen = false; render(); };
+    return html`<${Fragment}>
+      <${Page}>
+        <section class="card">
+          <div class="cap"><${Chip} color="blue" variant="secondary" size="sm">Practice · not scored<//></div>
+          <p class="p2 qline">${QUESTION}</p>
+          <${TextLink} as="button" onClick=${() => { S.qOpen = true; render(); }}>Read full question<//>
+        </section>
+        <div class="vcard">
+          <${VideoLayer} />
+          ${S.hidePreview ? html`<div class="vmsg"><${Icon} name="eye-closed-regular" size=${24} /><span>Preview hidden. You’re still recording.</span></div>` : null}
+          <div class="vtop"><span class="pill"><${CandidateClock} live seconds=${S.recSecs} size="sm" /></span>${simChip()}</div>
+          <div class="vstrip">
+            <${Toggle} size="sm" label="Hide preview" checked=${S.hidePreview} onCheckedChange=${v => { S.hidePreview = v; render(); }} />
+            <${Button} onClick=${endRecording}>Stop recording<//>
+          </div>
+        </div>
+      <//>
+      <${Modal} open=${S.qOpen} onOpenChange=${o => { S.qOpen = o; render(); }} portal=${false} title="Practice question"
+        primaryAction=${{label:'Close', onClick:close}}><p class="p1" style=${{margin:0}}>${QUESTION}</p><//>
+    <//>`;
+  }
+
+  // An interruption stops the take and keeps it, and says so.
+  function InterruptedScreen(){
+    const away = S.interruptReason === 'away', kept = fmt(S.keptSecs);
+    return html`<${Page} footClass="col" foot=${html`<${Fragment}>
+        <${Button} fullWidth onClick=${() => go('test')}>Check my camera and retake<//>
+        ${S.keptSecs ? html`<${Button} variant="secondary-gray" fullWidth onClick=${() => go('review')}>Watch what we kept<//>` : null}
+      <//>`}>
+      <section class="card grow">
+        <h1 class="h4 ttl">Recording stopped at ${kept}</h1>
+        <div class="vcard">
+          <${VideoLayer} frozen />
+          ${S.poster ? null : html`<div class="vmsg"><${Icon} name="camera-blocked" size=${24} /><span>Your camera is off</span></div>`}
+        </div>
+        <p class="p2">${away
+          ? 'Switching apps, locking the screen or opening a notification turns the camera off, so we can’t keep recording once that happens.'
+          : 'A call, or another app opening the camera, takes it away from this page, and recording stops there.'}</p>
+        <p class="p2">We kept the ${kept} you’d already recorded. In the real assessment that part of your answer is saved, so the question isn’t lost.</p>
+      </section><//>`;
+  }
+
+  function SaveLine(){
+    if (S.save === 'saved') return html`<div class="status-line ok" role="status"><${Icon} name="circle-check" size=${16} /><span>Saved automatically</span></div>`;
+    if (S.save === 'saving') return html`<div class="status-line" role="status"><${Spinner} size=${16} color="blue" label=${null} /><span>Saving your answer…</span></div>`;
+    if (S.save === 'retry') return html`<div class="status-line late" role="status"><${Spinner} size=${16} color="blue" label=${null} /><span>Still saving. Keep this page open.</span></div>`;
+    return html`<div class="status-line bad" role="alert"><${Icon} name="circle-exclamation" size=${16} />
+      <span>We couldn’t save that answer. Nothing is lost: it’s still here on this page. Check your connection, then
+        <${TextLink} as="button" size="md" onClick=${startSave}> try again<//>.</span></div>`;
+  }
+  function ReviewPlayer(){
+    const ref = useRef(null);
+    const [t, setT] = useState(0), [dur, setDur] = useState(0), [playing, setPlaying] = useState(false);
+    const clip = S.replayOK && S.clipURL;
+    useEffect(() => {
+      const v = ref.current;
+      if (!v) return;
+      const sync = () => { setT(v.currentTime || 0); setDur(v.duration); setPlaying(!v.paused); };
+      ['timeupdate', 'loadedmetadata', 'play', 'pause'].forEach(e => v.addEventListener(e, sync));
+      v.play().catch(() => {});
+      return () => ['timeupdate', 'loadedmetadata', 'play', 'pause'].forEach(e => v.removeEventListener(e, sync));
+    }, [clip]);
+    // MediaRecorder output often reports an infinite duration; fall back to what we timed.
+    const total = Number.isFinite(dur) && dur > 0 ? Math.round(dur) : S.takeSecs;
+    const toggle = () => { const v = ref.current; if (!v) return; v.paused ? v.play().catch(() => {}) : v.pause(); };
+    return html`<div class="vcard">
+      <div class="vmedia">${clip
+        ? html`<video ref=${ref} src=${S.clipURL} playsInline loop autoPlay muted=${!S.stream} aria-label="Your practice recording"></video>`
+        : S.poster ? html`<img src=${S.poster} alt="The last frame of your practice recording" />` : null}</div>
+      ${clip ? null : html`<div class="vtop"><${Chip} color="gray" size="sm">Playback isn’t available in this preview<//></div>`}
+      <div class="vstrip">
+        <div class="grp">
+          ${clip ? html`<${IconButton} variant="tertiary-gray" aria-label=${playing ? 'Pause' : 'Play'} aria-pressed=${playing}
+            icon=${playing ? 'pause' : html`<${Fragment}>${svg('play', 16)}<//>`} onClick=${toggle} />` : null}
+          <${CandidateClock} seconds=${Math.floor(t)} total=${total} mutedTotal size="sm" />
+        </div>
+        <${CandidateSoundwave} mode="playback" barCount=${20} progress=${total ? Math.min(1, t / total) : 0} label="Playback progress" />
       </div>
-      <button class="toggle" id="hideBtn" data-act="hide" aria-pressed="${S.hidePreview}" type="button"><span class="track" aria-hidden="true"></span>Hide</button>
     </div>`;
   }
-
-  function interruptPanelHTML(){
-    const away = S.interruptReason === 'away';
-    const kept = fmt(S.keptSecs);
-    return `<span class="saved-chip late">${ic('alert', 'xs')}Stopped at ${kept}</span>
-      <h2>${away ? 'Leaving the page stops the recording' : 'Something else took the camera'}</h2>
-      <p class="say">${away
-        ? 'Switching apps, locking the screen or opening a notification turns the camera off. We can’t keep recording once that happens.'
-        : 'A call, or another app opening the camera, takes it away from this page. Recording stops there.'}</p>
-      <p class="say">We kept the ${kept} you’d already recorded. In the real assessment that part of your answer is saved — the question isn’t lost.</p>
-      <button class="btn btn-primary btn-block" data-act="redo-test" type="button" data-focus>Check my camera and record again</button>
-      ${S.keptSecs ? `<button class="btn btn-onvideo btn-block" data-act="see-kept" type="button">Watch what we kept</button>` : ''}`;
+  // Stop recording saved the answer. Retake and Next are the two actions, as on web; Next is
+  // held until the save has landed, because an invisible save that fails is worse than a visible one.
+  function ReviewScreen(){
+    return html`<${Page} foot=${html`<${Fragment}>
+        <${Button} variant="secondary-gray" onClick=${() => go('question')}>Retake<//>
+        <${Button} disabled=${S.save !== 'saved'} onClick=${() => go('countdown')}>Next<//>
+      <//>`}>
+      <section class="card grow">
+        <h1 class="h4 ttl">Review your answer</h1>
+        <p class="p2">Play it back to check we captured you clearly. Your answers save as you go, so there’s nothing to submit.</p>
+        <${ReviewPlayer} />
+        <${SaveLine} />
+      </section><//>`;
   }
 
-  function saveChipHTML(){
-    if (S.save === 'saved')  return `<span class="saved-chip">${ic('check', 'xs')}Saved automatically</span>`;
-    if (S.save === 'saving') return `<span class="saved-chip work"><span class="spin xs" aria-hidden="true"></span>Saving your answer…</span>`;
-    if (S.save === 'retry')  return `<span class="saved-chip late"><span class="spin xs" aria-hidden="true"></span>Still saving — keep this page open</span>`;
-    return `<span class="saved-chip bad">${ic('alert', 'xs')}Not saved yet</span>`;
+  const MockBar = () => S.platform === 'android'
+    ? html`<div class="hintbox"><span class="l2">Look at the top of your screen</span>
+        <div class="mockbar"><span class="spot">${svg('lock', 16)}</span><span class="url">${SITE}</span>${svg('dots', 16)}</div></div>`
+    : html`<div class="hintbox"><span class="l2">Look at the bottom of your screen</span>
+        <div class="mockbar"><span class="spot">a<b>A</b></span><span class="url">${SITE}</span>${svg('share', 16)}</div></div>`;
+  function BlockedScreen(){
+    const c = blockedCopy();
+    return html`<${Page} foot=${html`<${Button} onClick=${() => { S.inuseCleared = true; S.permitted = false; go('permission'); }}>Try again<//>`}>
+      <section class="card grow">
+        <span class="mark err"><${Icon} name="camera-blocked" size=${24} /></span>
+        <h1 class="h4 ttl err">${c.title}</h1>
+        <p class="p2">${c.lede}</p>
+        ${c.hint ? html`<${MockBar} />` : null}
+        <${Steps} items=${c.steps} />
+        <${TextLink} as="button" leadingIcon=${html`<${Icon} name="help-circle" />`} onClick=${() => helpFlow(c.topic)}>Still stuck? Get help from Alvy<//>
+      </section><//>`;
   }
-  function reviewPanelHTML(){
-    if (S.save === 'failed') return `${saveChipHTML()}
-      <h2>We couldn’t save that answer</h2>
-      <p class="say">Nothing is lost — it’s still here on this page. Check your connection and try again.</p>
-      <button class="btn btn-primary btn-block" data-act="resave" type="button" data-focus>Try again</button>
-      <button class="btn btn-secondary btn-block" data-act="again" type="button">Record again</button>`;
-    // Submit is held until the write lands. That hold IS the feature: it is the only thing
-    // standing between a stalled save and a candidate who answers question 2 regardless.
-    const waiting = S.save !== 'saved';
-    return `${saveChipHTML()}
-      <p class="say">Your answer saves as you go. Submit when you’re happy with it, or record it again.${S.replayOK ? '' : ' Playback isn’t available in this preview.'}</p>
-      <button class="btn btn-primary btn-block" data-act="begin" type="button"${waiting ? ' disabled' : ' data-focus'}>Submit</button>
-      <button class="btn btn-secondary btn-block" data-act="again" type="button">Record again</button>`;
+
+  function CountdownScreen(){
+    return html`<${Page}><section class="card grow centre">
+      <h1 class="h4 ttl">Starting your assessment</h1>
+      <p class="p2">Get comfortable. The timer starts when the first question appears.</p>
+      <${ProgressIndicator} type="circular" value=${S.count} max=${5} valueText=${S.count} label="Starting your assessment in" />
+    <//><//>`;
   }
-  function reviewScreen(){
-    return `<section class="screen">${appbar()}
-      <div class="screen-body" style="padding-bottom:0">
-        <h1>Review your answer</h1>
-        <p class="lede">Play it back to check we captured you clearly.</p>
-        <div class="pcard">
-          <div class="cam-media" id="vmedia">${mediaHTML()}</div>
-          ${S.replayOK ? '<button class="replay-tap" data-act="replay" type="button" aria-label="Play or pause your recording"></button><span class="play-badge" id="playBadge" hidden>' + ic('play') + '</span>' : ''}
+  function AssessmentScreen(){
+    return html`<${Page} foot=${html`<${Button} variant="secondary-gray" onClick=${() => location.reload()}>Restart prototype<//>`}>
+      <section class="card grow">
+        <div class="skel" aria-label="Loading assessment">
+          <${SkeletonLoader} shape="heading" level="h4" width="62%" />
+          <${SkeletonLoader} shape="rectangle" width="100%" height=${120} />
+          <${SkeletonLoader} shape="paragraph" lines=${3} width="100%" />
         </div>
-      </div>
-      <div class="review-panel" id="camBottom">${reviewPanelHTML()}</div>
-    </section>`;
+        <p class="p2"><b>End of prototype.</b> The timer is running and the first assessment question loads here.</p>
+      </section><//>`;
   }
 
-  /* The record and interrupted screens: dark, full-bleed. */
-  function camScreenHTML(){
-    const halt = S.state === 'interrupted';
-    const msg = S.hidePreview ? `${ic('eyeOff')}<span>Preview hidden. You’re still recording.</span>`
-      : halt ? (S.poster ? '' : `${ic('videoOff')}<span>Your camera is off</span>`)
-      : showPreview() ? ''
-      : `<span class="spin lg" aria-hidden="true"></span><span>Starting your camera…</span>`;
-    return `<section class="camscreen">
-      <div class="cam-media${S.hidePreview ? ' hidden' : ''}${halt ? ' frozen' : ''}" id="vmedia">${mediaHTML()}</div>
-      <div class="cam-msg" id="camMsg"${msg ? '' : ' hidden'}>${msg}</div>
-      ${halt ? '' : recTopHTML()}
-      <div class="cam-bottom" id="camBottom">${panelHTML()}</div>
-    </section>`;
-  }
-
-  // Open and close the sheet WITHOUT re-rendering the screen: a render replaces the
-  // video/canvas, and on the record screen that would kill the take being recorded.
-  function setQ(open){
-    S.qOpen = open;
-    view.querySelector('.qsheet-wrap')?.remove();
-    if (open){
-      view.insertAdjacentHTML('beforeend', qsheetHTML());
-      view.querySelector('.qsheet-wrap [data-focus]')?.focus({preventScroll:true});
+  function Screen(){
+    switch (S.state){
+      case 'wait': case 'waitError': return html`<${WaitScreen} />`;
+      case 'webview': return html`<${WebviewScreen} />`;
+      case 'permission': return html`<${PermissionScreen} />`;
+      case 'test': return html`<${TestScreen} />`;
+      case 'question': return html`<${QuestionScreen} />`;
+      case 'record': return html`<${RecordScreen} />`;
+      case 'interrupted': return html`<${InterruptedScreen} />`;
+      case 'review': return html`<${ReviewScreen} />`;
+      case 'blocked': return html`<${BlockedScreen} />`;
+      case 'countdown': return html`<${CountdownScreen} />`;
+      default: return html`<${AssessmentScreen} />`;
     }
   }
-  function qsheetHTML(){
-    return `<div class="qsheet-wrap" data-act="qclose">
-      <div class="qsheet" role="dialog" aria-label="Practice question">
-        <div class="grab" aria-hidden="true"></div>
-        <div class="qlabel">Practice question <span class="tag">Not scored</span></div>
-        <p class="question">${QUESTION}</p>
-        <button class="btn btn-secondary btn-block" data-act="qclose" type="button" data-focus>Close</button>
-      </div></div>`;
-  }
 
-  /* ---------- The browser's own permission dialogs ---------- */
-  function dialogHTML(){
-    if (S.platform === 'ios') return `<div class="scrim"><div>
+  /* ---------- The browser's own permission dialogs (not Tessera: drawn after the platform) ---------- */
+  function Dialog(){
+    if (S.platform === 'ios') return html`<div class="scrim"><div>
       <div class="dlg-ios" role="dialog" aria-label="Safari permission request">
         <div class="body"><strong>“${SITE}” Would Like to Access the Camera and Microphone</strong></div>
-        <div class="acts"><button data-act="deny" type="button">Don’t Allow</button><button data-act="allow" type="button" data-focus>Allow</button></div>
+        <div class="acts"><button onClick=${dialogDeny} type="button">Don’t Allow</button><button onClick=${dialogAllow} type="button">Allow</button></div>
       </div>
-      <p class="dlg-note">Simulated. iOS draws this alert, not the page.</p>
-    </div></div>`;
-    if (S.dialog === 'site') return `<div class="scrim"><div>
+      <p class="dlg-note">Simulated. iOS draws this alert, not the page.</p></div></div>`;
+    if (S.dialog === 'site') return html`<div class="scrim"><div>
       <div class="dlg-site" role="dialog" aria-label="Chrome permission request">
-        <div class="ico">${ic('video', 'sm')}${ic('mic', 'sm')}</div>
+        <div class="ico">${svg('video', 16)}${svg('mic', 16)}</div>
         <p>${SITE} wants to use your camera and microphone</p>
-        <div class="acts"><button data-act="deny" type="button">Block</button><button data-act="allow" type="button" data-focus>Allow</button></div>
+        <div class="acts"><button onClick=${dialogDeny} type="button">Block</button><button onClick=${dialogAllow} type="button">Allow</button></div>
       </div>
-      <p class="dlg-note">Simulated. Chrome draws this dialog, not the page.</p>
-    </div></div>`;
+      <p class="dlg-note">Simulated. Chrome draws this dialog, not the page.</p></div></div>`;
     const cam = S.dialog === 'os-cam';
-    return `<div class="scrim"><div>
+    return html`<div class="scrim"><div>
       <div class="dlg-os" role="dialog" aria-label="Android permission request">
-        <div class="ico">${ic(cam ? 'video' : 'mic')}</div>
+        <div class="ico">${svg(cam ? 'video' : 'mic', 34)}</div>
         <p>Allow <b>Chrome</b> to ${cam ? 'take pictures and record video' : 'record audio'}?</p>
         <div class="acts">
-          <button data-act="allow" type="button" data-focus>While using the app</button>
-          <button data-act="allow" type="button">Only this time</button>
-          <button data-act="deny" type="button">Don’t allow</button>
+          <button onClick=${dialogAllow} type="button">While using the app</button>
+          <button onClick=${dialogAllow} type="button">Only this time</button>
+          <button onClick=${dialogDeny} type="button">Don’t allow</button>
         </div>
       </div>
-      <p class="dlg-note">Simulated. Android draws this one — it comes after the site is allowed.</p>
-    </div></div>`;
+      <p class="dlg-note">Simulated. Android draws this one. It comes after the site is allowed.</p></div></div>`;
   }
 
-  /* ================= Render ================= */
-  let announcer = null;
-  function say(msg){
-    if (!announcer){
-      announcer = document.createElement('div');
-      announcer.className = 'sr-only';
-      announcer.setAttribute('role', 'status');
-      document.body.append(announcer);
-    }
-    announcer.textContent = '';
-    later(() => { announcer.textContent = msg; }, 60);
+  function OfflineBanner(){
+    if (online()) return null;
+    const msg = S.state === 'record' ? 'Keep recording. We’ll save this when you’re back.'
+      : S.state === 'review' ? 'Your answer saves as soon as you’re back online.'
+      : 'We’re attempting to reconnect.';
+    return html`<${CandidateBanner} color="red" device="mobile" heading="No internet connection">${msg}<//>`;
   }
 
-  function screenHTML(){
-    switch (S.state){
-      case 'wait': case 'waitError': return waitScreen();
-      case 'webview': return webviewScreen();
-      case 'permission': return permissionScreen();
-      case 'test': return testScreen();
-      case 'question': return questionScreen();
-      case 'review': return reviewScreen();
-      case 'blocked': return blockedScreen();
-      case 'countdown': return countdownScreen();
-      case 'assessment': return assessmentScreen();
-      default: return camScreenHTML();
-    }
-  }
-
-  function render(){
-    updateProto();
-    view.innerHTML = screenHTML() + (S.qOpen ? qsheetHTML() : '') + (S.dialog ? dialogHTML() : '');
-    attachMedia();
-    paintNet();
-    view.querySelector('[data-focus]')?.focus({preventScroll:true});
-  }
-
-  /* ---------- Recording ---------- */
-  // Entering the record screen IS starting the recording; this only runs the clock.
-  function runRecClock(){
-    every(() => {
-      S.recSecs++;
-      const t = $('recTime');
-      if (t) t.textContent = fmt(S.recSecs);
-      // Keep a recent frame in hand: an interruption gives no warning and no time to grab one.
-      if (S.recSecs % 2 === 0) S.lastFrame = grabPoster() || S.lastFrame;
-    }, 1000);
-  }
-  function endRecording(){
-    S.poster = grabPoster() || S.lastFrame;
-    stopRecorder(false);
-    clearTimers();
-    S.recording = false;
-    go('review');
-  }
-
-  /* ================= Events ================= */
-  phone.addEventListener('click', e => {
-    const b = e.target.closest('[data-act]');
-    if (!b) return;
-    switch (b.dataset.act){
-      case 'reload': location.reload(); break;
-      case 'alvy': openAlvy(); break;
-      case 'alvy-close': closeAlvy(); break;
-      case 'help': helpFlow(b.dataset.topic); break;
-      case 'ask': askPermission(); break;
-      case 'allow': dialogAllow(); break;
-      case 'deny': dialogDeny(); break;
-      case 'retry': S.inuseCleared = true; S.permitted = false; go('permission'); break;
-      case 'start-rec': (canUseCamera() && !S.stream) ? go('test') : go('record'); break;
-      case 'to-question': go('question'); break;
-      case 'redo-test': go('test'); break;
-      case 'stop-rec': endRecording(); break;
-      case 'hide': {
-        // Repaint around the media, never through it: a re-render would drop the stream.
-        S.hidePreview = !S.hidePreview;
-        $('vmedia')?.classList.toggle('hidden', S.hidePreview);
-        const cm = $('camMsg');
-        if (cm){
-          cm.innerHTML = S.hidePreview ? `${ic('eyeOff')}<span>Preview hidden. You’re still recording.</span>` : '';
-          cm.hidden = !S.hidePreview;
-        }
-        $('hideBtn')?.setAttribute('aria-pressed', String(S.hidePreview));
-        break;
-      }
-      case 'qopen': setQ(true); break;
-      // Tapping the scrim closes it; tapping inside the sheet does not.
-      case 'qclose':
-        if (b.classList.contains('qsheet-wrap') && e.target.closest('.qsheet')) return;
-        setQ(false); break;
-      case 'replay': {
-        const v = $('clip'), badge = $('playBadge');
-        if (!v || v.tagName !== 'VIDEO') return;
-        if (v.paused){ v.play().catch(() => {}); if (badge) badge.hidden = true; }
-        else { v.pause(); if (badge) badge.hidden = false; }
-        break;
-      }
-      case 'again': go('question'); break;
-      case 'see-kept': go('review'); break;
-      case 'resave': startSave(); break;
-      case 'skip-wv': go('permission'); break;
-      case 'copy': {
-        const btn = $('copyBtn');
-        const done = (icon, label) => { if (btn) btn.innerHTML = ic(icon, 'sm') + label; };
-        const p = navigator.clipboard?.writeText?.(location.href);
-        if (p) p.then(() => done('check', 'Link copied'), () => done('info', 'Copy the address from the bar instead'));
-        else done('info', 'Copy the address from the bar instead');
-        break;
-      }
-      case 'begin': go('countdown'); break;
-    }
-  });
-  document.addEventListener('keydown', e => {
-    if (e.key !== 'Escape') return;
-    if (S.alvyOpen) closeAlvy();
-    else if (S.qOpen) setQ(false);
-  });
-  addEventListener('resize', fit);
-
-  /* ================= Prototype controls ================= */
-  const proto = $('proto'), protoToggle = $('protoToggle');
-  function setCollapsed(c){ proto.classList.toggle('collapsed', c); protoToggle.textContent = c ? 'Show controls' : 'Hide controls'; protoToggle.setAttribute('aria-expanded', String(!c)); }
-  protoToggle.addEventListener('click', () => setCollapsed(!proto.classList.contains('collapsed')));
-
+  /* ================= Prototype controls (not part of the design) ================= */
   // UX-1224 points: 1 page after OTP feels stuck · 2 practice gives no direction · 3 tracker skips a step · 4 10–30s waits
   const TICKET = {
     wait:'#1 + #4: a wait screen with live loading steps replaces the blank page.',
     waitError:'#4: if loading fails, say so and offer Try again instead of an endless spinner.',
-    webview:'Most of the drop at the permission step fires no event at all — not even a refusal. An in-app browser that silently has no camera fits that shape. Caught here, before it costs them a step.',
-    permission:'Same order as web. Continue hands off to the browser’s own dialog; it says Continue, not Allow, because the real Allow comes next and two in a row reads as being asked twice.',
+    webview:'Most of the drop at the permission step fires no event at all, not even a refusal. An in-app browser that silently has no camera fits that shape. Caught here, before it costs them a step.',
+    permission:'Same order as web. Continue hands off to the browser’s own dialog, so it says Continue, not Allow: the real Allow comes next and two in a row reads as being asked twice.',
     blocked:'#2: a blocked or busy camera gets its own screen, with the steps for this phone and a drawing of where to tap.',
-    test:'Same step as web, as its own screen. Continue stays locked until the mic is heard, so nobody records without having proved the mic works.',
-    question:'The question is read with the camera off, and recording starts only on the candidate’s tap: time to think before being watched.',
+    test:'Same step as web, as its own screen. Next stays locked until the mic is heard, so nobody records without having proved the mic works.',
+    question:'The question is read with the camera off. Recording starts by itself when the prep time ends, as in the real assessment, or on Start now.',
     record:'Start and Stop are the same labelled button in the same place, so the thumb never moves. The question stays one tap away.',
-    interrupted:'A large share of iPhone candidates who allow the camera still never submit. A call or a tapped notification ends the track — so stop, keep the take, and say what was kept.',
-    review:'Playback proves the RECORDING worked, not just the preview. The answer saves by itself; Submit confirms it and is held until the save lands.',
+    interrupted:'A call or a tapped notification ends the camera track. Stop, keep the take, and say what was kept.',
+    review:'Stop recording saves the answer. Retake and Next are the two actions, as on web. Next is held until the save lands.',
     countdown:'#4: a short countdown so the start of the timer is never a surprise.',
     assessment:'End of the flow.'
   };
-  const CHIPS = [['wait', 'Loading'], ['webview', 'In-app browser'], ['permission', 'Permissions'], ['blocked', 'Blocked'],
-    ['test', 'Test device'], ['question', 'Question'], ['record', 'Record'], ['interrupted', 'Interrupted'], ['review', 'Review'], ['countdown', 'Countdown']];
-  function updateProto(){
-    const jc = $('jumpChips');
-    if (jc && !jc.children.length) jc.innerHTML = CHIPS.map(([k, l]) => `<button type="button" data-go="${k}">${l}</button>`).join('');
-    $('osGroup').hidden = S.platform !== 'android';
-    $('fireGroup').hidden = !(S.state === 'record' && S.recording);
-    const tk = $('protoTicket');
-    if (tk) tk.innerHTML = `<b>UX-1224</b> ${TICKET[S.state] || ''}`;
-    const cur = S.state === 'waitError' ? 'wait' : S.state;
-    proto.querySelectorAll('[data-go]').forEach(b => b.dataset.go === cur ? b.setAttribute('aria-current', 'step') : b.removeAttribute('aria-current'));
-    proto.querySelectorAll('[data-set]').forEach(b => {
-      const v = b.dataset.set === 'osGranted' ? (S.osGranted ? 'yes' : 'no') : S[b.dataset.set];
-      b.setAttribute('aria-pressed', String(v === b.dataset.val));
-    });
-  }
+  const CHIPS = [['wait', 'Loading'], ['webview', 'In-app browser'], ['permission', 'Permissions'], ['blocked', 'Blocked'], ['test', 'Test device'],
+    ['question', 'Question'], ['record', 'Record'], ['interrupted', 'Interrupted'], ['review', 'Review'], ['countdown', 'Countdown']];
 
   function jump(st){
     S.inuseCleared = false;
@@ -1612,29 +1157,136 @@ button,select,input{font:inherit;color:inherit}
       S.permitted = S.permMode === 'inuse';
       S.blockedReason = S.permMode === 'inuse' ? 'inuse' : 'denied';
     }
-    if (st === 'review' || st === 'interrupted') S.poster = S.poster || S.lastFrame || grabPoster();
+    if (st === 'review' || st === 'interrupted') S.poster = S.poster || S.lastFrame;
     if (st === 'interrupted' && !S.keptSecs) S.keptSecs = 14;   // so the copy has a duration to show
+    if (st === 'review' && !S.takeSecs) S.takeSecs = 14;
     go(st);
   }
-
-  proto.addEventListener('click', e => {
-    const g = e.target.closest('[data-go]');
-    if (g) return jump(g.dataset.go);
-    const f = e.target.closest('[data-fire]');
-    if (f) return interrupt(f.dataset.fire);
-    const s = e.target.closest('[data-set]');
-    if (!s) return;
-    const key = s.dataset.set;
-    if (key === 'osGranted') S.osGranted = s.dataset.val === 'yes';
-    else S[key] = s.dataset.val;
-    if (key === 'platform'){ renderChrome(); render(); return; }
+  function setOpt(key, val){
+    if (key === 'osGranted') S.osGranted = val === 'yes';
+    else if (key === 'prepSecs') S.prepSecs = +val;
+    else S[key] = val;
     if (key === 'permMode'){ S.permitted = false; S.inuseCleared = false; }
-    if (key === 'voiceMode' && s.dataset.val === 'heard' && S.state === 'test') later(micOk, 600);
-    if (key === 'netMode') netChanged();
-    updateProto();
-  });
+    if (key === 'voiceMode' && val === 'heard' && S.state === 'test') later(micOk, 600);
+    if (key === 'prepSecs' && S.state === 'question') S.prepLeft = S.prepSecs;
+    if (key === 'netMode') return netChanged();
+    render();
+  }
+  const Opt = ({k, v, label, on}) => html`<${Tag} variant="secondary" color=${on ? 'blue' : 'gray'} size="md" selected=${on} onSelectedChange=${() => setOpt(k, v)}>${label}<//>`;
+  const Group = ({label, children, hidden}) => hidden ? null : html`<div class="proto-group"><span class="proto-label">${label}</span><div class="seg">${children}</div></div>`;
 
-  renderChrome();
+  function Proto(){
+    const cur = S.state === 'waitError' ? 'wait' : S.state;
+    return html`<aside class=${'proto' + (S.protoCollapsed ? ' collapsed' : '')} aria-label="Prototype controls">
+      <div class="proto-head">
+        <span class="proto-title">Prototype · Mobile</span>
+        <${Button} variant="tertiary-color" onClick=${() => { S.protoCollapsed = !S.protoCollapsed; render(); }}>${S.protoCollapsed ? 'Show controls' : 'Hide controls'}<//>
+        <p class="proto-ticket p3" aria-live="polite"><b>UX-1224</b> ${TICKET[S.state] || ''}</p>
+      </div>
+      <div class="proto-body">
+        <${Group} label="Device">
+          <${Opt} k="platform" v="android" on=${S.platform === 'android'} label="Android · Chrome" />
+          <${Opt} k="platform" v="ios" on=${S.platform === 'ios'} label="iPhone · Safari" />
+        <//>
+        <div class="proto-group"><span class="proto-label">Jump to</span><div class="seg">
+          ${CHIPS.map(([k, l]) => html`<${Tag} key=${k} variant="secondary" color=${cur === k ? 'blue' : 'gray'} size="md" selected=${cur === k} onSelectedChange=${() => jump(k)}>${l}<//>`)}
+        </div></div>
+        <${Group} label="Site permission">
+          <${Opt} k="permMode" v="ask" on=${S.permMode === 'ask'} label="Asks" />
+          <${Opt} k="permMode" v="granted" on=${S.permMode === 'granted'} label="Already allowed" />
+          <${Opt} k="permMode" v="inuse" on=${S.permMode === 'inuse'} label="Camera in use" />
+        <//>
+        <${Group} label="Android app permission" hidden=${S.platform !== 'android'}>
+          <${Opt} k="osGranted" v="no" on=${!S.osGranted} label="Chrome must ask the OS" />
+          <${Opt} k="osGranted" v="yes" on=${S.osGranted} label="Chrome already has it" />
+        <//>
+        <${Group} label="Voice check">
+          <${Opt} k="voiceMode" v="heard" on=${S.voiceMode === 'heard'} label="Voice heard" />
+          <${Opt} k="voiceMode" v="silent" on=${S.voiceMode === 'silent'} label="Silent" />
+        <//>
+        <${Group} label="Preparation time">
+          <${Opt} k="prepSecs" v="5" on=${S.prepSecs === 5} label="5s" />
+          <${Opt} k="prepSecs" v="10" on=${S.prepSecs === 10} label="10s" />
+          <${Opt} k="prepSecs" v="30" on=${S.prepSecs === 30} label="30s" />
+        <//>
+        <${Group} label="Loading">
+          <${Opt} k="loadMode" v="ok" on=${S.loadMode === 'ok'} label="Succeeds" />
+          <${Opt} k="loadMode" v="fail" on=${S.loadMode === 'fail'} label="Fails" />
+        <//>
+        <${Group} label="Opened from">
+          <${Opt} k="appMode" v="browser" on=${S.appMode === 'browser'} label="A real browser" />
+          <${Opt} k="appMode" v="inapp" on=${S.appMode === 'inapp'} label="Inside an app" />
+        <//>
+        <${Group} label="Connection">
+          <${Opt} k="netMode" v="online" on=${S.netMode === 'online'} label="Online" />
+          <${Opt} k="netMode" v="offline" on=${S.netMode === 'offline'} label="Offline" />
+        <//>
+        <${Group} label="Saving the answer">
+          <${Opt} k="saveMode" v="ok" on=${S.saveMode === 'ok'} label="Saves" />
+          <${Opt} k="saveMode" v="slow" on=${S.saveMode === 'slow'} label="Slow, then saves" />
+          <${Opt} k="saveMode" v="fail" on=${S.saveMode === 'fail'} label="Fails" />
+        <//>
+        <${Group} label="Interrupt the recording" hidden=${!(S.state === 'record' && S.recording)}>
+          <${Tag} variant="secondary" color="gray" size="md" onSelectedChange=${() => interrupt('away')}>Leaving the page<//>
+          <${Tag} variant="secondary" color="gray" size="md" onSelectedChange=${() => interrupt('device')}>An incoming call<//>
+        <//>
+      </div>
+    </aside>`;
+  }
+
+  /* ================= App ================= */
+  function App(){
+    const [, setN] = useState(0);
+    bump = () => setN(n => n + 1);
+    const stageRef = useRef(null);
+    const [K, setK] = useState(1);
+    useEffect(() => {
+      const fit = () => {
+        const el = stageRef.current;
+        if (!el) return;
+        const cs = getComputedStyle(el);
+        const w = el.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+        const h = el.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
+        const d = PHONES[S.platform];
+        setK(Math.max(.1, Math.min(1, (w - 26) / d.w, (h - 26) / d.h)));
+      };
+      fit();
+      addEventListener('resize', fit);
+      return () => removeEventListener('resize', fit);
+    }, [S.platform]);
+    useEffect(() => {
+      const onKey = e => {
+        if (e.key !== 'Escape') return;
+        if (S.alvyOpen) closeAlvy();
+      };
+      document.addEventListener('keydown', onKey);
+      return () => document.removeEventListener('keydown', onKey);
+    }, []);
+    const d = PHONES[S.platform];
+    return html`<div class="app">
+      <div class="stage" ref=${stageRef}>
+        <div id="phone" role="region" aria-label="Candidate phone screen" style=${{'--pw':d.w + 'px', '--ph':d.h + 'px', '--k':K}}>
+          <div id="frame">
+            <${ChromeTop} />
+            <div id="viewport">
+              <${TopNav} />
+              <${OfflineBanner} />
+              <main id="view"><${Screen} />${S.dialog ? html`<${Dialog} />` : null}</main>
+            </div>
+            <${ChromeBottom} />
+          </div>
+          ${S.alvyOpen ? html`<section class="alvy" aria-label="Chat with Alvy">
+            <${ChatPanel} header=${{title:'Chat with Alvy', icon:html`<${Icon} name="sparkle" size=${18} />`, onBack:closeAlvy}}
+              messages=${S.alvyMsgs} typing=${S.alvyTyping ? ['Alvy'] : null}
+              composer=${{onSend:sendChat, placeholder:'Ask a question…'}} />
+          </section>` : null}
+        </div>
+      </div>
+      <${Proto} />
+    </div>`;
+  }
+
+  ReactDOM.createRoot(document.getElementById('root')).render(html`<${App} />`);
   go('wait');
 })();
 </script>
