@@ -30,7 +30,7 @@ of the desktop tour — no spotlight, no coach marks, no step sheet over the
 page. It follows the web order and the approved wireframe:
 
     loading -> permissions -> [the browser's own permission dialogs]
-    -> test device -> practice question -> record -> review -> countdown
+    -> camera and mic test -> camera view (ready, then recording) -> review -> countdown
 
 plus the states a phone actually produces: an in-app browser, an interrupted
 recording, and a save that has not landed. Those are in **What the analytics
@@ -51,7 +51,7 @@ drawn by hand.
 
 What the flow rests on:
 
-- **Same order as web.** A candidate practises in the sequence they will meet
+- **Same order as web.** A candidate practices in the sequence they will meet
   for the scored questions, and there is one flow to spec and QA rather than
   two. The allow-access screen reuses the desktop step's title and lede.
 - **The permission button says Continue, not Allow.** The browser's own Allow
@@ -59,21 +59,25 @@ What the flow rests on:
 - **The camera and mic test is its own screen, gated by Continue.** Continue
   stays locked until the microphone is heard, so nobody records without having
   proved the mic works.
-- **The question is read with the camera off,** and recording starts on the
-  candidate's tap. The real assessment adds preparation time before it starts
-  recording; the onboarding does not, so none is shown here.
-- **Stop recording saves the answer.** There is no Submit and no upload step.
-  Next and Retake are the two actions, as on web, and Next is held until the
-  save has landed.
+- **The camera view opens straight after the mic test,** with the practice
+  question on it and a full-width Start recording. There is no separate question
+  screen. Start recording becomes Stop recording in the same place, so the thumb
+  never moves. The real assessment adds preparation time before it records; the
+  onboarding does not, so none is shown here.
+- **Stop recording saves the answer, and the screen says that is how it works.**
+  There is no Submit and no upload step. Practice again and Start assessment are
+  the two actions, and Start assessment is held until the save has landed.
 - **The clip plays back afterwards.** The device check only proves the live
   preview works; playback is the only thing that proves the recording
   captured them. Recorded with MediaRecorder, falling back to the last frame
   where that API is unavailable.
 
-Opening the question modal or hiding the preview mid-recording leaves the media
-alone. The video and canvas are children of components that stay mounted across
-repaints, so a repaint cannot replace the canvas the recorder is reading, which
-used to destroy the take silently.
+Read more on the recording screen opens the full question in place. A modal was
+tried first, but Tessera's Modal is a fixed 480px wide, so inside a phone it
+overflows and sits behind the camera overlays. Hiding the preview and expanding
+the question leave the media alone: the video and canvas are children of
+components that stay mounted across repaints, so a repaint cannot replace the
+canvas the recorder is reading, which used to destroy the take silently.
 
 ### Permission dialogs
 
@@ -86,7 +90,7 @@ biggest drop-off point in the flow.
   row. The OS ask only happens once the site is allowed. The prototype panel
   can start with the OS permission already held, which is the common case.
 - **iOS** shows one Safari alert. Safari asks again on every page load unless
-  the candidate sets it in Website Settings, so the question screen says so.
+  the candidate sets it in Website Settings, so the allow-access screen says so.
 
 Three distinct blocked screens follow: the site blocked the request, Chrome
 lacks the OS permission, or another app holds the camera. Each carries the
@@ -176,7 +180,7 @@ mid-recording without a re-render dropping the stream.
   failure is not "Skip" but "Continue anyway — we'll note we couldn't test
   your mic."
 - The number and length of real questions is still open with product. Retakes
-  are confirmed, so teaching Retake in practice is right.
+  are confirmed, so teaching Practice again in onboarding is right.
 
 ## Running it
 
