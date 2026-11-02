@@ -27,10 +27,14 @@ level metering, and a Chat with Alvy panel for help.
 
 `async-practice-walkthrough-mobile.html` is a separate file. It is not a port
 of the desktop tour — no spotlight, no coach marks, no step sheet over the
-page. One flow, four candidate screens:
+page. One flow, four candidate screens, in the same order as the web flow:
 
-    loading -> practice question -> [the browser's own permission dialogs]
+    loading -> permissions -> [the browser's own permission dialogs]
     -> record -> review -> countdown
+
+The one structural difference from web is `record`: web has a separate "test
+device" step, and on a phone that step is merged into the practice answer
+itself (see below).
 
 plus the states a phone actually produces: an in-app browser, an interrupted
 recording, and a save that has not landed. Those are in **What the numbers
@@ -39,13 +43,18 @@ leaks.
 
 Four decisions it rests on:
 
-- **The question comes before the permission ask.** The ask then arrives with
-  its reason attached ("to answer this we need your camera"), which is the
-  largest single lever on grant rates.
-- **Checking and recording are one screen** with three phases. The round
+- **Permissions come first, as on web.** A candidate practises in the same
+  order they will meet for the scored questions, so the practice never teaches
+  a different sequence. The permission screen reuses the desktop step's own
+  title and lede, and carries the practice question as a small "what you'll
+  answer" card — the reason for the ask, without a step of its own. Whether
+  that card moves the grant rate is untested; it should be an A/B on the
+  permission grant rate, not settled in a design review.
+- **Test device and the practice answer are one screen** with three phases. The round
   shutter, bottom-centre where a phone camera puts it, is both the gate and
   the action: it unlocks when the microphone is heard. No step can be skipped
-  and none is spent on navigation.
+  and none is spent on navigation. On a phone the camera is a full dark screen,
+  so a separate check costs a light-dark-light flip and an extra tap.
 - **The clip plays back afterwards.** The device check only proves the live
   preview works; playback is the only thing that proves the recording
   captured them. Recorded with MediaRecorder, falling back to the last frame

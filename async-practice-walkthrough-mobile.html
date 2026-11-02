@@ -6,9 +6,14 @@
 <style>
 /* Mobile flow for the Tessera async interview practice run (UX-1224).
 
-   One flow, four candidate screens:
-     loading → practice question → [the browser's own permission dialogs]
-     → record (check and record on one screen) → review → countdown
+   One flow, four candidate screens, in the same order as the web flow:
+     loading → permissions → [the browser's own permission dialogs]
+     → record (device check and practice answer on one screen) → review → countdown
+
+   The ONE structural difference from web is that last merge. Web has a separate
+   "test device" step; on a phone the camera is a full dark screen, so a separate check
+   costs a light→dark→light flip and an extra tap, and the shutter only works as a gate
+   if the check and the recording are the same control.
 
    And the states a phone actually produces, which the happy path above never shows.
    The product funnel is why these exist rather than sitting on a backlog (figures are
@@ -23,9 +28,11 @@
      That is what the interruption and save-failure states are for.
 
    Decisions this build rests on:
-   - The question is shown BEFORE any permission is asked. The ask then arrives with
-     its reason attached ("to answer this we need your camera"), which is the biggest
-     single lever on grant rates.
+   - Permissions come first, as on web. A candidate practises in the same sequence they
+     will meet for the scored questions, so the practice never teaches a different order.
+     The reason for the ask rides on the permission screen itself (the practice question,
+     shown as "what you'll answer") rather than getting a step of its own. Whether that
+     moves the grant rate is untested — it should be an A/B, not a design-review verdict.
    - Checking and recording are one screen with three phases, not three screens. The
      round record button is both the gate and the action: it unlocks when the mic is
      heard. Phones put the shutter bottom-centre; so do we.
@@ -528,7 +535,7 @@ button,select,input{font:inherit;color:inherit}
      question → [dialogs] → record (check / ready / recording) → review → countdown */
   const CAMS = ['Front camera', 'Back camera'];
   const MICS = ['Phone microphone', 'AirPods Pro', 'Wired headset'];
-  const WAIT_LABELS = ['Email verified', 'Loading your assessment', 'Preparing a practice question'];
+  const WAIT_LABELS = ['Email verified', 'Loading your assessment', 'Preparing your practice run'];
   const QUESTION = 'Tell us about a project you’re proud of and what you learned from it.';
 
   /* An in-app browser (a link tapped inside Gmail, LinkedIn, WhatsApp) runs in a webview
@@ -571,7 +578,7 @@ button,select,input{font:inherit;color:inherit}
 
   const showPreview = () => S.state === 'record' && S.permitted;
   const KEEP_CLIP = ['review', 'interrupted'];   // states that must not throw the take away
-  const NO_CAMERA = ['wait', 'waitError', 'webview', 'question', 'blocked', 'interrupted', 'countdown', 'assessment'];
+  const NO_CAMERA = ['wait', 'waitError', 'webview', 'permission', 'blocked', 'interrupted', 'countdown', 'assessment'];
   const online = () => S.netMode === 'offline' ? false : S.online;
 
   function go(next){
@@ -600,7 +607,7 @@ button,select,input{font:inherit;color:inherit}
         S.waitItems = ['done', 'done', 'act']; renderWaitList();
       }, 1400);
       later(() => { S.waitItems = ['done', 'done', 'done']; renderWaitList(); }, 2600);
-      later(() => go(S.appMode === 'inapp' ? 'webview' : 'question'), 3200);
+      later(() => go(S.appMode === 'inapp' ? 'webview' : 'permission'), 3200);
     }
     if (st === 'review') startSave();
     if (st === 'record'){
@@ -627,10 +634,10 @@ button,select,input{font:inherit;color:inherit}
       // A real camera is reachable (the file opened directly in a browser): let the real
       // browser ask, so what the candidate sees is genuinely their own prompt.
       acquire().then(stream => {
-        if (!stream || S.state !== 'question') return;
+        if (!stream || S.state !== 'permission') return;
         S.permitted = true; granted();
       }).catch(err => {
-        if (S.state !== 'question' || err?.stale) return;
+        if (S.state !== 'permission' || err?.stale) return;
         if (err?.fallback){ S.dialog = 'site'; return render(); }
         S.blockedReason = (err.name === 'NotReadableError' || err.name === 'AbortError') ? 'inuse' : 'denied';
         S.permitted = S.blockedReason === 'inuse';
@@ -1123,26 +1130,27 @@ button,select,input{font:inherit;color:inherit}
     </section>`;
   }
 
-  // The question comes first, so the permission ask arrives with its reason attached.
-  function questionScreen(){
+  // Permissions first, as on web. The wording of the title and lede is the desktop
+  // step's own, so the two flows read as one product.
+  function permissionScreen(){
     return `<section class="screen">${appbar()}
       <div class="screen-body">
-        <h1>Here’s your practice question</h1>
-        <p class="lede">You’ll answer out loud on camera. This one isn’t scored — it’s so you know exactly how the real thing works.</p>
-        <div class="card" style="margin-top:18px">
-          <span class="cap">Practice question <span class="tag">Not scored</span></span>
-          <p class="question-big">${QUESTION}</p>
-        </div>
+        <h1>Allow camera and microphone</h1>
+        <p class="lede">You answer this assessment by recording video, so we need your camera and microphone. Your browser will ask for permission.</p>
         <ul class="needs">
           <li><span class="ti">${ic('video', 'sm')}</span><span><b>Camera</b>So your answer is recorded.</span></li>
           <li><span class="ti">${ic('mic', 'sm')}</span><span><b>Microphone</b>So we can hear what you say.</span></li>
         </ul>
+        <div class="card" style="margin-top:20px">
+          <span class="cap">What you’ll answer <span class="tag">Practice · not scored</span></span>
+          <p class="question-big">${QUESTION}</p>
+        </div>
         <p class="sub">${S.platform === 'android'
           ? 'Chrome asks twice — once for this site, then once for Chrome itself. Allow both.'
           : 'Safari asks again each time you open the assessment. That’s normal.'}</p>
       </div>
       <div class="screen-foot">
-        <button class="btn btn-primary btn-block" data-act="ask" type="button" data-focus>Set up camera and mic</button>
+        <button class="btn btn-primary btn-block" data-act="ask" type="button" data-focus>Allow access</button>
       </div>
     </section>`;
   }
@@ -1380,7 +1388,7 @@ button,select,input{font:inherit;color:inherit}
     switch (S.state){
       case 'wait': case 'waitError': return waitScreen();
       case 'webview': return webviewScreen();
-      case 'question': return questionScreen();
+      case 'permission': return permissionScreen();
       case 'blocked': return blockedScreen();
       case 'countdown': return countdownScreen();
       case 'assessment': return assessmentScreen();
@@ -1431,7 +1439,7 @@ button,select,input{font:inherit;color:inherit}
       case 'ask': askPermission(); break;
       case 'allow': dialogAllow(); break;
       case 'deny': dialogDeny(); break;
-      case 'retry': S.inuseCleared = true; S.permitted = false; go('question'); break;
+      case 'retry': S.inuseCleared = true; S.permitted = false; go('permission'); break;
       case 'start-rec': beginRecording(); break;
       case 'stop-rec': endRecording(); break;
       case 'hide': {
@@ -1461,7 +1469,7 @@ button,select,input{font:inherit;color:inherit}
       case 'again': go('record'); break;
       case 'see-kept': go('review'); break;
       case 'resave': startSave(); break;
-      case 'skip-wv': go('question'); break;
+      case 'skip-wv': go('permission'); break;
       case 'copy': {
         const btn = $('copyBtn');
         const done = (icon, label) => { if (btn) btn.innerHTML = ic(icon, 'sm') + label; };
@@ -1490,15 +1498,15 @@ button,select,input{font:inherit;color:inherit}
     wait:'#1 + #4: a wait screen with live loading steps replaces the blank page.',
     waitError:'#4: if loading fails, say so and offer Try again instead of an endless spinner.',
     webview:'Most of the drop at the permission step fires no event at all — not even a refusal. An in-app browser that silently has no camera fits that shape. Caught here, before it costs them a step.',
-    question:'#2: the question comes before the permission ask, so Allow arrives with its reason attached — the biggest lever on grant rates.',
+    permission:'Same order as web: permissions first. The practice question rides on this screen as the reason for the ask, instead of getting a step of its own.',
     blocked:'#2: a blocked or busy camera gets its own screen, with the steps for this phone and a drawing of where to tap.',
-    record:'#2 + #3: checking and recording are one screen. The shutter is the gate — it unlocks when the mic is heard, so no step can be skipped and none is wasted.',
+    record:'The one departure from web: #2 + #3 — test device and practice answer are one screen. The shutter is the gate — it unlocks when the mic is heard, so no step can be skipped and none is wasted.',
     interrupted:'A large share of iPhone candidates who allow the camera still never submit. A call or a tapped notification ends the track — so stop, keep the take, and say what was kept.',
     review:'The device check only proves the preview worked. Playing the clip back proves the RECORDING did. Start is held until the answer has actually saved.',
     countdown:'#4: a short countdown so the start of the timer is never a surprise.',
     assessment:'End of the flow.'
   };
-  const CHIPS = [['wait', 'Loading'], ['webview', 'In-app browser'], ['question', 'Question'], ['blocked', 'Blocked'],
+  const CHIPS = [['wait', 'Loading'], ['webview', 'In-app browser'], ['permission', 'Permissions'], ['blocked', 'Blocked'],
     ['record', 'Record'], ['interrupted', 'Interrupted'], ['review', 'Review'], ['countdown', 'Countdown']];
   function updateProto(){
     const jc = $('jumpChips');
@@ -1518,7 +1526,7 @@ button,select,input{font:inherit;color:inherit}
   function jump(st){
     S.inuseCleared = false;
     if (['record', 'review', 'interrupted'].includes(st)) S.permitted = true;
-    else if (['wait', 'webview', 'question'].includes(st)) S.permitted = false;
+    else if (['wait', 'webview', 'permission'].includes(st)) S.permitted = false;
     if (st === 'blocked'){
       S.permitted = S.permMode === 'inuse';
       S.blockedReason = S.permMode === 'inuse' ? 'inuse' : 'denied';
