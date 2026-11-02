@@ -6,14 +6,9 @@
 <style>
 /* Mobile flow for the Tessera async interview practice run (UX-1224).
 
-   One flow, four candidate screens, in the same order as the web flow:
-     loading → permissions → [the browser's own permission dialogs]
-     → record (device check and practice answer on one screen) → review → countdown
-
-   The ONE structural difference from web is that last merge. Web has a separate
-   "test device" step; on a phone the camera is a full dark screen, so a separate check
-   costs a light→dark→light flip and an extra tap, and the shutter only works as a gate
-   if the check and the recording are the same control.
+   One flow, in the same order as the web flow and the approved wireframe:
+     loading → permissions → [the browser's own permission dialogs] → test device
+     → practice question → record → review → countdown
 
    And the states a phone actually produces, which the happy path above never shows.
    The product funnel is why these exist rather than sitting on a backlog (figures are
@@ -28,19 +23,24 @@
      That is what the interruption and save-failure states are for.
 
    Decisions this build rests on:
-   - Permissions come first, as on web. A candidate practises in the same sequence they
-     will meet for the scored questions, so the practice never teaches a different order.
-     The reason for the ask rides on the permission screen itself (the practice question,
-     shown as "what you'll answer") rather than getting a step of its own. Whether that
-     moves the grant rate is untested — it should be an A/B, not a design-review verdict.
-   - Checking and recording are one screen with three phases, not three screens. The
-     round record button is both the gate and the action: it unlocks when the mic is
-     heard. Phones put the shutter bottom-centre; so do we.
+   - Same order as web. A candidate practises in the sequence they will meet for the
+     scored questions, and there is one flow to spec and QA rather than two.
+   - The permission screen's button says Continue, not Allow. The browser's own Allow
+     comes next, and two Allows in a row reads as being asked twice.
+   - The device check is its own screen and its gate is Continue, which stays locked
+     until the mic is heard. There is no way to record without having proved the mic.
+   - The question is read with the camera off, and recording starts only on the
+     candidate's tap: time to think before being watched.
+   - Start recording and Stop recording are the same labelled button in the same place,
+     so the thumb never moves. A label beats a camera-app shutter for people who are not
+     photographers.
    - The clip is played back afterwards. The device check only proves the live preview
      works; playback is the only thing that proves the RECORDING captured them.
-   - Answers save per answer, automatically. The review screen says so, quietly, so the
-     candidate meets that fact once with nothing at stake — and loudly only when a save
-     has not landed, because an invisible save that fails is worse than a visible one.
+   - Answers save per answer, automatically, and Submit confirms the take. (Assumption:
+     the wireframe has a Submit button and auto-save has no upload step, so Submit is
+     read as "this is my answer", not "send it". Confirm with product.) Submit is held
+     until the save has landed, because an invisible save that fails is worse than a
+     visible one.
    - A gate with no way past it is only honest when the gate is certain. The mic gate is
      (we genuinely hear nothing). In-app browser detection is a user-agent guess, so that
      screen always offers "my camera works — continue".
@@ -248,16 +248,31 @@ button,select,input{font:inherit;color:inherit}
 .vselect .i{position:absolute;pointer-events:none;color:var(--tv-on-video)}
 .vselect .lead{left:9px}.vselect .chev{right:7px}
 
-/* The shutter: where a phone camera puts it, and the gate at the same time. */
-.shutter-row{display:flex;align-items:center;justify-content:center;gap:16px;min-height:76px}
-.shutter-row .side{flex:1;display:flex;align-items:center}
-.shutter-row .side.right{justify-content:flex-end}
-.shutter{position:relative;width:68px;height:68px;border-radius:50%;border:3px solid rgba(255,255,255,.9);background:none;padding:0;cursor:pointer;
-  display:flex;align-items:center;justify-content:center;flex:none;transition:border-color .2s}
-.shutter .core{width:52px;height:52px;border-radius:50%;background:var(--tv-error-strong);transition:width .22s ease,height .22s ease,border-radius .22s ease}
-.shutter.recording .core{width:26px;height:26px;border-radius:7px}
-.shutter:disabled{cursor:default;border-color:rgba(255,255,255,.35)}
-.shutter:disabled .core{background:rgba(255,255,255,.35)}
+/* Light screens that hold the camera in a card: the device check and the review. */
+.pcard{position:relative;flex:1;min-height:170px;margin-top:14px;border-radius:14px;overflow:hidden;background:var(--tv-video-bg)}
+.pcard .sim-tag{top:10px}
+.live-tag{position:absolute;left:10px;top:10px;z-index:3;display:inline-flex;align-items:center;gap:6px;padding:3px 9px;border-radius:999px;background:var(--tv-scrim);color:var(--tv-on-video);font:var(--tv-l2)}
+.test-panel,.review-panel{flex:none;padding:12px 20px 20px;display:grid;gap:10px}
+.test-panel .vchip{background:var(--tv-bg-muted);color:var(--tv-text-primary);border:1px solid var(--tv-border-subtle);backdrop-filter:none}
+.test-panel .vchip.ok .i{color:var(--tv-success-text)}
+.test-panel .vchip.warn{background:var(--tv-warning-surface);color:var(--tv-warning-text);border-color:#fed7aa}
+.test-panel .vselect{background:var(--tv-bg-surface);border-color:var(--tv-border-primary);backdrop-filter:none}
+.test-panel .vselect select,.test-panel .vselect .i{color:var(--tv-text-primary)}
+.test-panel .say,.review-panel .say{margin:0;font:var(--tv-p2);color:var(--tv-text-tertiary);text-align:center;text-wrap:pretty}
+.test-panel .say.warn{color:var(--tv-warning-text)}
+.test-panel .help-link{justify-self:center;min-height:40px}
+.review-panel h2{margin:0;font:var(--tv-h5);text-align:center;text-wrap:pretty}
+.screen h1.question-xl{margin:10px 0 0;font:var(--tv-h3);text-wrap:pretty}
+.illus{flex:none;display:flex;align-items:center;justify-content:center;gap:14px;height:128px;margin-bottom:20px;border-radius:16px;background:var(--tv-bg-accent)}
+.illus .ib{width:62px;height:62px;border-radius:18px;background:var(--tv-bg-surface);color:var(--tv-interactive-primary);display:flex;align-items:center;justify-content:center;box-shadow:var(--tv-shadow-sm)}
+.illus .ib .i{width:30px;height:30px}
+
+/* Recording: REC timer and a hide toggle float over the full-bleed camera. */
+.rec-top{position:absolute;left:0;right:0;top:0;z-index:2;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:12px 10px 28px 14px;
+  background:linear-gradient(to bottom,rgba(9,9,11,.8),rgba(9,9,11,0))}
+.rec-left{display:flex;align-items:center;gap:6px}
+.rec-top .toggle{min-height:40px}
+
 .toggle{display:inline-flex;align-items:center;gap:7px;min-height:var(--tap);padding:0 2px;background:none;border:0;cursor:pointer;font:var(--tv-l2);color:var(--tv-on-video);white-space:nowrap}
 .track{width:32px;height:17px;border-radius:9px;background:var(--tv-toggle-off);position:relative;transition:background .2s;flex:none}
 .track::after{content:"";position:absolute;top:2px;left:2px;width:13px;height:13px;border-radius:50%;background:var(--tv-toggle-knob);transition:transform .2s}
@@ -576,7 +591,7 @@ button,select,input{font:inherit;color:inherit}
   const clearTimers = () => { timers.forEach(clearTimeout); intervals.forEach(clearInterval); timers = []; intervals = []; };
   const fmt = s => String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0');
 
-  const showPreview = () => S.state === 'record' && S.permitted;
+  const showPreview = () => (S.state === 'test' || S.state === 'record') && S.permitted;
   const KEEP_CLIP = ['review', 'interrupted'];   // states that must not throw the take away
   const NO_CAMERA = ['wait', 'waitError', 'webview', 'permission', 'blocked', 'interrupted', 'countdown', 'assessment'];
   const online = () => S.netMode === 'offline' ? false : S.online;
@@ -585,14 +600,15 @@ button,select,input{font:inherit;color:inherit}
     clearTimers();
     stopRecorder(true);
     S.state = next;
-    S.recording = false;
+    S.recording = next === 'record';   // the record screen IS the recording
     S.qOpen = false;
     S.qExpanded = false;
     S.dialog = null;
     S.pendingInterrupt = false;
     if (!KEEP_CLIP.includes(next)) dropClip();
     if (next === 'wait') S.waitItems = ['done', 'act', 'pend'];
-    if (next === 'record'){ S.recSecs = 0; S.hidePreview = false; S.heard = false; S.micFailed = false; S.lastFrame = null; }
+    if (next === 'test'){ S.heard = false; S.micFailed = false; }
+    if (next === 'record'){ S.recSecs = 0; S.hidePreview = false; S.lastFrame = null; }
     if (NO_CAMERA.includes(next)) stopStream();
     if (next === 'countdown') S.count = 5;
     render();
@@ -610,11 +626,18 @@ button,select,input{font:inherit;color:inherit}
       later(() => go(S.appMode === 'inapp' ? 'webview' : 'permission'), 3200);
     }
     if (st === 'review') startSave();
-    if (st === 'record'){
+    if (st === 'test'){
       if (canUseCamera() && !S.stream) acquire().catch(() => {});
       startLevel();
       if (S.voiceMode === 'heard' && !S.analyser) later(micOk, 2600);
       later(() => { if (!S.heard) micNone(); }, 7000);
+    }
+    if (st === 'record'){
+      // go() has already rendered. Render must come BEFORE the recorder starts, because it
+      // replaces the canvas that captureStream() reads.
+      startRecorder();
+      runRecClock();
+      startLevel();
     }
     if (st === 'countdown'){
       every(() => {
@@ -667,7 +690,7 @@ button,select,input{font:inherit;color:inherit}
   }
   function granted(){
     if (S.permMode === 'inuse' && !S.inuseCleared){ S.blockedReason = 'inuse'; S.permitted = true; return go('blocked'); }
-    go('record');
+    go('test');
   }
 
   /* ---------- Interruption: the half of mobile the happy path never shows ----------
@@ -751,15 +774,15 @@ button,select,input{font:inherit;color:inherit}
   addEventListener('online', () => { S.online = true; netChanged(); });
   addEventListener('offline', () => { S.online = false; netChanged(); });
 
-  /* ---------- Mic gate: the shutter unlocks when we hear something ---------- */
+  /* ---------- Mic gate: Continue unlocks when we hear something ---------- */
   function micOk(){
-    if (S.heard || S.state !== 'record' || S.recording) return;
+    if (S.heard || S.state !== 'test') return;
     S.heard = true; S.micFailed = false;
     paintPanel();
     say('Microphone working. You can record your answer now.');
   }
   function micNone(){
-    if (S.heard || S.state !== 'record' || S.recording) return;
+    if (S.heard || S.state !== 'test') return;
     S.micFailed = true;
     paintPanel();
   }
@@ -770,6 +793,7 @@ button,select,input{font:inherit;color:inherit}
     p.innerHTML = panelHTML();
   }
   function panelHTML(){
+    if (S.state === 'test') return testPanelHTML();
     if (S.state === 'review') return reviewPanelHTML();
     if (S.state === 'interrupted') return interruptPanelHTML();
     return recordPanelHTML();
@@ -792,7 +816,7 @@ button,select,input{font:inherit;color:inherit}
       const lvl = S.voiceMode === 'silent' ? 0 : S.analyser ? realLevel() : simSpeech();
       S.level = lvl;
       document.querySelectorAll('.meter i').forEach(b => b.style.height = Math.round(3 + lvl * 13 * (0.55 + 0.45 * Math.random())) + 'px');
-      if (!S.heard && S.analyser && S.voiceMode === 'heard' && S.state === 'record'){
+      if (!S.heard && S.analyser && S.voiceMode === 'heard' && S.state === 'test'){
         loud = lvl > 0.12 ? loud + 80 : Math.max(0, loud - 40);
         if (loud >= 600) micOk();
       }
@@ -934,10 +958,9 @@ button,select,input{font:inherit;color:inherit}
     const t0 = performance.now();
     // A new canvas starts at 300x150, so "has a size" tells us nothing — track it.
     let sized = false;
-    const frame = now => {
-      if (!c.isConnected) return;
+    const paint = now => {
       const dpr = Math.min(window.devicePixelRatio || 1, 2), w = c.clientWidth, h = c.clientHeight;
-      if (!w || !h){ simRaf = requestAnimationFrame(frame); return; }
+      if (!w || !h) return false;
       // Size it once, then hold that size for the whole take: captureStream() encodes the
       // backing store, and an encoder whose resolution changes part-way produces a broken
       // clip. The connection bar appearing is enough to trigger it.
@@ -947,8 +970,16 @@ button,select,input{font:inherit;color:inherit}
       sized = true;
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       drawPerson(ctx, c.width / dpr, c.height / dpr, (now - t0) / 1000, S.level);
+      return true;
+    };
+    const frame = now => {
+      if (!c.isConnected) return;
+      if (!paint(now)){ simRaf = requestAnimationFrame(frame); return; }
       if (!reduce.matches) simRaf = requestAnimationFrame(frame);
     };
+    // Size and paint once right now. The recorder starts straight after render on the
+    // record screen, so the canvas must already have its final size and a first frame.
+    paint(performance.now());
     simRaf = requestAnimationFrame(frame);
   }
   function drawPerson(ctx, w, h, t, level){
@@ -1135,22 +1166,20 @@ button,select,input{font:inherit;color:inherit}
   function permissionScreen(){
     return `<section class="screen">${appbar()}
       <div class="screen-body">
+        <!-- Placeholder for the Illustrations-library artwork. -->
+        <div class="illus" aria-hidden="true"><span class="ib">${ic('video')}</span><span class="ib">${ic('mic')}</span></div>
         <h1>Allow camera and microphone</h1>
         <p class="lede">You answer this assessment by recording video, so we need your camera and microphone. Your browser will ask for permission.</p>
         <ul class="needs">
           <li><span class="ti">${ic('video', 'sm')}</span><span><b>Camera</b>So your answer is recorded.</span></li>
           <li><span class="ti">${ic('mic', 'sm')}</span><span><b>Microphone</b>So we can hear what you say.</span></li>
         </ul>
-        <div class="card" style="margin-top:20px">
-          <span class="cap">What you’ll answer <span class="tag">Practice · not scored</span></span>
-          <p class="question-big">${QUESTION}</p>
-        </div>
         <p class="sub">${S.platform === 'android'
           ? 'Chrome asks twice — once for this site, then once for Chrome itself. Allow both.'
           : 'Safari asks again each time you open the assessment. That’s normal.'}</p>
       </div>
       <div class="screen-foot">
-        <button class="btn btn-primary btn-block" data-act="ask" type="button" data-focus>Allow access</button>
+        <button class="btn btn-primary btn-block" data-act="ask" type="button" data-focus>Continue</button>
       </div>
     </section>`;
   }
@@ -1227,7 +1256,7 @@ button,select,input{font:inherit;color:inherit}
     </section>`;
   }
 
-  /* ---------- Record screen: check, ready and recording are one screen ---------- */
+  /* ---------- Test device, practice question, record, review ---------- */
   const vchip = (kind, label) => {
     const icon = {ok:'check', warn:'micOff'}[kind] || 'circle';
     return `<span class="vchip ${kind}">${ic(icon, 'xs')}${label}</span>`;
@@ -1245,37 +1274,65 @@ button,select,input{font:inherit;color:inherit}
     </button>`;
   }
 
-  function recordPanelHTML(){
-    if (S.recording) return `${questionBlock()}
-      <div class="cam-status">
-        <span class="vchip rec"><span class="rec-dot"></span>REC <span id="recTime">${fmt(S.recSecs)}</span></span>
-        <span class="vchip">${meterHTML()}Picking up sound</span>
-      </div>
-      <p class="say">Say a sentence or two, then tap to stop.</p>
-      <div class="shutter-row">
-        <span class="side"></span>
-        <button class="shutter recording" data-act="stop-rec" type="button" aria-label="Stop recording"><span class="core"></span></button>
-        <span class="side right"><button class="toggle" data-act="hide" aria-pressed="${S.hidePreview}" type="button"><span class="track" aria-hidden="true"></span>Hide</button></span>
-      </div>`;
-
+  /* Test device: the gate is Continue, and it unlocks when the mic is heard. */
+  function testPanelHTML(){
     const mic = S.heard ? vchip('ok', 'Microphone working')
       : S.micFailed ? vchip('warn', 'No sound yet')
       : `<span class="vchip">${meterHTML()}Say something…</span>`;
     const say = S.heard
-      ? 'Tap to record your answer. Nothing here is scored.'
+      ? 'Everything is working. Continue when you’re ready.'
       : S.micFailed
         ? 'We can’t hear you. Check your phone isn’t muted, or pick a different microphone.'
-        : 'Say something so we can check your microphone.';
-    return `${questionBlock()}
-      <div class="cam-status">${vchip('ok', 'Camera working')}${mic}</div>
+        : 'Say a few words so we can check your microphone.';
+    return `<div class="cam-status">${vchip('ok', 'Camera working')}${mic}</div>
       <div class="cam-devices">${selectHTML('camSelect', 'cam', CAMS, S.cam)}${selectHTML('micSelect', 'mic', MICS, S.mic)}</div>
       ${S.micFailed ? `<button class="help-link" data-act="help" data-topic="mic" type="button">${ic('info', 'sm')}Get help from Alvy</button>` : ''}
       <p class="say${S.micFailed ? ' warn' : ''}">${say}</p>
-      <div class="shutter-row">
-        <span class="side"></span>
-        <button class="shutter" data-act="start-rec" type="button" aria-label="Start recording"${S.heard ? '' : ' disabled'}><span class="core"></span></button>
-        <span class="side right"></span>
-      </div>`;
+      <button class="btn btn-primary btn-block" data-act="to-question" type="button"${S.heard ? ' data-focus' : ' disabled'}>Continue</button>`;
+  }
+  function testScreen(){
+    const msg = showPreview() ? '' : `<span class="spin lg" aria-hidden="true"></span><span>Starting your camera…</span>`;
+    return `<section class="screen">${appbar()}
+      <div class="screen-body" style="padding-bottom:0">
+        <h1>Check your camera and microphone</h1>
+        <p class="lede">We’ll make sure we can see and hear you before you start.</p>
+        <div class="pcard">
+          <div class="cam-media" id="vmedia">${mediaHTML()}</div>
+          <div class="cam-msg" id="camMsg"${msg ? '' : ' hidden'}>${msg}</div>
+          ${showPreview() ? '<span class="live-tag">Preview · not recording</span>' : ''}
+        </div>
+      </div>
+      <div class="test-panel" id="camBottom">${testPanelHTML()}</div>
+    </section>`;
+  }
+
+  /* The question is read with the camera off. Recording starts only on the tap. */
+  function questionScreen(){
+    return `<section class="screen">${appbar()}
+      <div class="screen-body">
+        <span class="card cap" style="display:inline-flex;align-self:flex-start;margin:0;padding:6px 10px;background:var(--tv-bg-muted)">Practice question <span class="tag">Not scored</span></span>
+        <h1 class="question-xl">${QUESTION}</h1>
+        <p class="sub">Take a moment to think, then tap Start recording. Nothing here is scored, and you can record it again.</p>
+      </div>
+      <div class="screen-foot">
+        <button class="btn btn-primary btn-block" data-act="start-rec" type="button" data-focus>Start recording</button>
+      </div>
+    </section>`;
+  }
+
+  /* Recording: full-bleed camera, the question one tap away, Stop where Start was. */
+  function recordPanelHTML(){
+    return `${questionBlock()}
+      <button class="btn btn-primary btn-block" data-act="stop-rec" type="button" data-focus>Stop recording</button>`;
+  }
+  function recTopHTML(){
+    return `<div class="rec-top">
+      <div class="rec-left">
+        <span class="vchip rec"><span class="rec-dot"></span>REC <span id="recTime">${fmt(S.recSecs)}</span></span>
+        <span class="vchip">${meterHTML()}<span class="sr-only">Picking up sound</span></span>
+      </div>
+      <button class="toggle" id="hideBtn" data-act="hide" aria-pressed="${S.hidePreview}" type="button"><span class="track" aria-hidden="true"></span>Hide</button>
+    </div>`;
   }
 
   function interruptPanelHTML(){
@@ -1287,7 +1344,7 @@ button,select,input{font:inherit;color:inherit}
         ? 'Switching apps, locking the screen or opening a notification turns the camera off. We can’t keep recording once that happens.'
         : 'A call, or another app opening the camera, takes it away from this page. Recording stops there.'}</p>
       <p class="say">We kept the ${kept} you’d already recorded. In the real assessment that part of your answer is saved — the question isn’t lost.</p>
-      <button class="btn btn-primary btn-block" data-act="again" type="button" data-focus>Record again</button>
+      <button class="btn btn-primary btn-block" data-act="redo-test" type="button" data-focus>Check my camera and record again</button>
       ${S.keptSecs ? `<button class="btn btn-onvideo btn-block" data-act="see-kept" type="button">Watch what we kept</button>` : ''}`;
   }
 
@@ -1301,34 +1358,55 @@ button,select,input{font:inherit;color:inherit}
     if (S.save === 'failed') return `${saveChipHTML()}
       <h2>We couldn’t save that answer</h2>
       <p class="say">Nothing is lost — it’s still here on this page. Check your connection and try again.</p>
-      <p class="say">This practice one doesn’t count. In the real assessment we keep you on this screen until it saves, so you never move on having lost an answer.</p>
       <button class="btn btn-primary btn-block" data-act="resave" type="button" data-focus>Try again</button>
-      <button class="btn btn-onvideo btn-block" data-act="again" type="button">Record again</button>`;
-    // Start is held until the write lands. That hold IS the feature: it is the only thing
+      <button class="btn btn-secondary btn-block" data-act="again" type="button">Record again</button>`;
+    // Submit is held until the write lands. That hold IS the feature: it is the only thing
     // standing between a stalled save and a candidate who answers question 2 regardless.
     const waiting = S.save !== 'saved';
     return `${saveChipHTML()}
-      <h2>That’s exactly how the real one works</h2>
-      <p class="say">Your answers save as you go — there’s nothing to upload or submit.${S.replayOK ? '' : ' Playback isn’t available in this preview.'}</p>
-      <button class="btn btn-primary btn-block" data-act="begin" type="button"${waiting ? ' disabled' : ' data-focus'}>${waiting ? 'Saving your answer…' : 'Start assessment'}</button>
-      <button class="btn btn-onvideo btn-block" data-act="again" type="button">Record again</button>`;
+      <p class="say">Your answer saves as you go. Submit when you’re happy with it, or record it again.${S.replayOK ? '' : ' Playback isn’t available in this preview.'}</p>
+      <button class="btn btn-primary btn-block" data-act="begin" type="button"${waiting ? ' disabled' : ' data-focus'}>Submit</button>
+      <button class="btn btn-secondary btn-block" data-act="again" type="button">Record again</button>`;
+  }
+  function reviewScreen(){
+    return `<section class="screen">${appbar()}
+      <div class="screen-body" style="padding-bottom:0">
+        <h1>Review your answer</h1>
+        <p class="lede">Play it back to check we captured you clearly.</p>
+        <div class="pcard">
+          <div class="cam-media" id="vmedia">${mediaHTML()}</div>
+          ${S.replayOK ? '<button class="replay-tap" data-act="replay" type="button" aria-label="Play or pause your recording"></button><span class="play-badge" id="playBadge" hidden>' + ic('play') + '</span>' : ''}
+        </div>
+      </div>
+      <div class="review-panel" id="camBottom">${reviewPanelHTML()}</div>
+    </section>`;
   }
 
+  /* The record and interrupted screens: dark, full-bleed. */
   function camScreenHTML(){
-    const review = S.state === 'review', halt = S.state === 'interrupted';
+    const halt = S.state === 'interrupted';
     const msg = S.hidePreview ? `${ic('eyeOff')}<span>Preview hidden. You’re still recording.</span>`
       : halt ? (S.poster ? '' : `${ic('videoOff')}<span>Your camera is off</span>`)
-      : (review || showPreview()) ? ''
+      : showPreview() ? ''
       : `<span class="spin lg" aria-hidden="true"></span><span>Starting your camera…</span>`;
     return `<section class="camscreen">
       <div class="cam-media${S.hidePreview ? ' hidden' : ''}${halt ? ' frozen' : ''}" id="vmedia">${mediaHTML()}</div>
-      ${review && S.replayOK ? '<button class="replay-tap" data-act="replay" type="button" aria-label="Play or pause your recording"></button><span class="play-badge" id="playBadge" hidden>' + ic('play') + '</span>' : ''}
       <div class="cam-msg" id="camMsg"${msg ? '' : ' hidden'}>${msg}</div>
-      <div class="cam-top"><div class="row1">${logoHTML()}${barButtons()}</div></div>
+      ${halt ? '' : recTopHTML()}
       <div class="cam-bottom" id="camBottom">${panelHTML()}</div>
     </section>`;
   }
 
+  // Open and close the sheet WITHOUT re-rendering the screen: a render replaces the
+  // video/canvas, and on the record screen that would kill the take being recorded.
+  function setQ(open){
+    S.qOpen = open;
+    view.querySelector('.qsheet-wrap')?.remove();
+    if (open){
+      view.insertAdjacentHTML('beforeend', qsheetHTML());
+      view.querySelector('.qsheet-wrap [data-focus]')?.focus({preventScroll:true});
+    }
+  }
   function qsheetHTML(){
     return `<div class="qsheet-wrap" data-act="qclose">
       <div class="qsheet" role="dialog" aria-label="Practice question">
@@ -1389,6 +1467,9 @@ button,select,input{font:inherit;color:inherit}
       case 'wait': case 'waitError': return waitScreen();
       case 'webview': return webviewScreen();
       case 'permission': return permissionScreen();
+      case 'test': return testScreen();
+      case 'question': return questionScreen();
+      case 'review': return reviewScreen();
       case 'blocked': return blockedScreen();
       case 'countdown': return countdownScreen();
       case 'assessment': return assessmentScreen();
@@ -1405,12 +1486,8 @@ button,select,input{font:inherit;color:inherit}
   }
 
   /* ---------- Recording ---------- */
-  function beginRecording(){
-    if (!S.heard) return;
-    S.recording = true;
-    S.recSecs = 0;
-    render();          // render FIRST — it replaces the canvas that captureStream() reads
-    startRecorder();
+  // Entering the record screen IS starting the recording; this only runs the clock.
+  function runRecClock(){
     every(() => {
       S.recSecs++;
       const t = $('recTime');
@@ -1440,7 +1517,9 @@ button,select,input{font:inherit;color:inherit}
       case 'allow': dialogAllow(); break;
       case 'deny': dialogDeny(); break;
       case 'retry': S.inuseCleared = true; S.permitted = false; go('permission'); break;
-      case 'start-rec': beginRecording(); break;
+      case 'start-rec': (canUseCamera() && !S.stream) ? go('test') : go('record'); break;
+      case 'to-question': go('question'); break;
+      case 'redo-test': go('test'); break;
       case 'stop-rec': endRecording(); break;
       case 'hide': {
         // Repaint around the media, never through it: a re-render would drop the stream.
@@ -1451,14 +1530,14 @@ button,select,input{font:inherit;color:inherit}
           cm.innerHTML = S.hidePreview ? `${ic('eyeOff')}<span>Preview hidden. You’re still recording.</span>` : '';
           cm.hidden = !S.hidePreview;
         }
-        paintPanel();
+        $('hideBtn')?.setAttribute('aria-pressed', String(S.hidePreview));
         break;
       }
-      case 'qopen': S.qOpen = true; render(); break;
+      case 'qopen': setQ(true); break;
       // Tapping the scrim closes it; tapping inside the sheet does not.
       case 'qclose':
         if (b.classList.contains('qsheet-wrap') && e.target.closest('.qsheet')) return;
-        S.qOpen = false; render(); break;
+        setQ(false); break;
       case 'replay': {
         const v = $('clip'), badge = $('playBadge');
         if (!v || v.tagName !== 'VIDEO') return;
@@ -1466,7 +1545,7 @@ button,select,input{font:inherit;color:inherit}
         else { v.pause(); if (badge) badge.hidden = false; }
         break;
       }
-      case 'again': go('record'); break;
+      case 'again': go('question'); break;
       case 'see-kept': go('review'); break;
       case 'resave': startSave(); break;
       case 'skip-wv': go('permission'); break;
@@ -1484,7 +1563,7 @@ button,select,input{font:inherit;color:inherit}
   document.addEventListener('keydown', e => {
     if (e.key !== 'Escape') return;
     if (S.alvyOpen) closeAlvy();
-    else if (S.qOpen){ S.qOpen = false; render(); }
+    else if (S.qOpen) setQ(false);
   });
   addEventListener('resize', fit);
 
@@ -1498,16 +1577,18 @@ button,select,input{font:inherit;color:inherit}
     wait:'#1 + #4: a wait screen with live loading steps replaces the blank page.',
     waitError:'#4: if loading fails, say so and offer Try again instead of an endless spinner.',
     webview:'Most of the drop at the permission step fires no event at all — not even a refusal. An in-app browser that silently has no camera fits that shape. Caught here, before it costs them a step.',
-    permission:'Same order as web: permissions first. The practice question rides on this screen as the reason for the ask, instead of getting a step of its own.',
+    permission:'Same order as web. Continue hands off to the browser’s own dialog; it says Continue, not Allow, because the real Allow comes next and two in a row reads as being asked twice.',
     blocked:'#2: a blocked or busy camera gets its own screen, with the steps for this phone and a drawing of where to tap.',
-    record:'The one departure from web: #2 + #3 — test device and practice answer are one screen. The shutter is the gate — it unlocks when the mic is heard, so no step can be skipped and none is wasted.',
+    test:'Same step as web, as its own screen. Continue stays locked until the mic is heard, so nobody records without having proved the mic works.',
+    question:'The question is read with the camera off, and recording starts only on the candidate’s tap: time to think before being watched.',
+    record:'Start and Stop are the same labelled button in the same place, so the thumb never moves. The question stays one tap away.',
     interrupted:'A large share of iPhone candidates who allow the camera still never submit. A call or a tapped notification ends the track — so stop, keep the take, and say what was kept.',
-    review:'The device check only proves the preview worked. Playing the clip back proves the RECORDING did. Start is held until the answer has actually saved.',
+    review:'Playback proves the RECORDING worked, not just the preview. The answer saves by itself; Submit confirms it and is held until the save lands.',
     countdown:'#4: a short countdown so the start of the timer is never a surprise.',
     assessment:'End of the flow.'
   };
   const CHIPS = [['wait', 'Loading'], ['webview', 'In-app browser'], ['permission', 'Permissions'], ['blocked', 'Blocked'],
-    ['record', 'Record'], ['interrupted', 'Interrupted'], ['review', 'Review'], ['countdown', 'Countdown']];
+    ['test', 'Test device'], ['question', 'Question'], ['record', 'Record'], ['interrupted', 'Interrupted'], ['review', 'Review'], ['countdown', 'Countdown']];
   function updateProto(){
     const jc = $('jumpChips');
     if (jc && !jc.children.length) jc.innerHTML = CHIPS.map(([k, l]) => `<button type="button" data-go="${k}">${l}</button>`).join('');
@@ -1525,7 +1606,7 @@ button,select,input{font:inherit;color:inherit}
 
   function jump(st){
     S.inuseCleared = false;
-    if (['record', 'review', 'interrupted'].includes(st)) S.permitted = true;
+    if (['test', 'question', 'record', 'review', 'interrupted'].includes(st)) S.permitted = true;
     else if (['wait', 'webview', 'permission'].includes(st)) S.permitted = false;
     if (st === 'blocked'){
       S.permitted = S.permMode === 'inuse';
@@ -1548,7 +1629,7 @@ button,select,input{font:inherit;color:inherit}
     else S[key] = s.dataset.val;
     if (key === 'platform'){ renderChrome(); render(); return; }
     if (key === 'permMode'){ S.permitted = false; S.inuseCleared = false; }
-    if (key === 'voiceMode' && s.dataset.val === 'heard' && S.state === 'record' && !S.recording) later(micOk, 600);
+    if (key === 'voiceMode' && s.dataset.val === 'heard' && S.state === 'test') later(micOk, 600);
     if (key === 'netMode') netChanged();
     updateProto();
   });

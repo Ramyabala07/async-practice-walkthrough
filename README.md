@@ -27,41 +27,42 @@ level metering, and a Chat with Alvy panel for help.
 
 `async-practice-walkthrough-mobile.html` is a separate file. It is not a port
 of the desktop tour — no spotlight, no coach marks, no step sheet over the
-page. One flow, four candidate screens, in the same order as the web flow:
+page. It follows the web order and the approved wireframe:
 
     loading -> permissions -> [the browser's own permission dialogs]
-    -> record -> review -> countdown
-
-The one structural difference from web is `record`: web has a separate "test
-device" step, and on a phone that step is merged into the practice answer
-itself (see below).
+    -> test device -> practice question -> record -> review -> countdown
 
 plus the states a phone actually produces: an in-app browser, an interrupted
-recording, and a save that has not landed. Those are in **What the numbers
+recording, and a save that has not landed. Those are in **What the analytics
 changed** below, and they are not edge cases — they are where the funnel
 leaks.
 
-Four decisions it rests on:
+What the flow rests on:
 
-- **Permissions come first, as on web.** A candidate practises in the same
-  order they will meet for the scored questions, so the practice never teaches
-  a different sequence. The permission screen reuses the desktop step's own
-  title and lede, and carries the practice question as a small "what you'll
-  answer" card — the reason for the ask, without a step of its own. Whether
-  that card moves the grant rate is untested; it should be an A/B on the
-  permission grant rate, not settled in a design review.
-- **Test device and the practice answer are one screen** with three phases. The round
-  shutter, bottom-centre where a phone camera puts it, is both the gate and
-  the action: it unlocks when the microphone is heard. No step can be skipped
-  and none is spent on navigation. On a phone the camera is a full dark screen,
-  so a separate check costs a light-dark-light flip and an extra tap.
+- **Same order as web.** A candidate practises in the sequence they will meet
+  for the scored questions, and there is one flow to spec and QA rather than
+  two. The permission screen reuses the desktop step's title and lede.
+- **The permission button says Continue, not Allow.** The browser's own Allow
+  comes next, and two Allows in a row reads as being asked twice.
+- **The device check is its own screen, gated by Continue.** Continue stays
+  locked until the microphone is heard, so nobody records without having
+  proved the mic works.
+- **The question is read with the camera off,** and recording starts only on
+  the candidate's tap — time to think before being watched.
+- **Start recording and Stop recording are the same labelled button in the
+  same place,** so the thumb never moves. A label beats a camera-app shutter
+  for people who are not photographers.
 - **The clip plays back afterwards.** The device check only proves the live
   preview works; playback is the only thing that proves the recording
   captured them. Recorded with MediaRecorder, falling back to the last frame
   where that API is unavailable.
-- **The review screen says answers save by themselves.** Saving is per
-  answer and automatic, so the candidate meets that fact once, in practice,
-  with nothing at stake.
+- **Answers save per answer, automatically; Submit confirms the take** and is
+  held until the save has landed. The Submit reading is an assumption — see
+  the open questions.
+
+Opening the question sheet or hiding the preview mid-recording repaints around
+the media rather than through it, because a re-render replaces the canvas the
+recorder is reading and would silently destroy the take.
 
 ### Permission dialogs
 
@@ -136,6 +137,16 @@ mid-recording without a re-render dropping the stream.
   from "device error" from "abandoned". Until it does, the drop at the
   permission step can only be guessed at. This is a product ask, not a
   design one.
+- **What does Submit do?** The wireframe has a Submit button, and answers
+  save by themselves with no upload step. The build reads Submit as "this is
+  my answer", not "send it": the take is saved as a draft automatically and
+  Submit confirms it. If Submit actually triggers the save, the save chip and
+  the hold-until-saved logic need rethinking. Confirm with product.
+- **Eight screens before the first word.** Separating the device check and the
+  question costs taps on the platform that already loses people. The test
+  screen's success state and the question screen are both pure Continue
+  screens with no decision on them, so one of them is a candidate to fold if
+  the funnel says so.
 - **Retention contract.** The interrupted screen tells the candidate the
   partial answer is kept. Confirm that is what the backend actually does
   before this copy ships.
