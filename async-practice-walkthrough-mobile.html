@@ -103,35 +103,16 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
 /* ---------- Device rows ---------- */
 .drows{display:grid;gap:var(--space-2)}
 .drow{display:flex;align-items:center;gap:var(--space-3)}
-/* The device field, as in the Test Taker file: the device icon sits inside the field, then the
-   name and a chevron. Tapping it opens a bottom sheet, not a desktop listbox. */
-.devsel{flex:0 0 184px;min-width:0;display:flex;align-items:center;gap:var(--space-2);height:36px;padding:0 var(--space-2);border:1px solid var(--border-primary);border-radius:var(--radius-lg);
-  background:var(--bg-surface);color:var(--text-primary);font:inherit;text-align:left;cursor:pointer;transition:border-color var(--duration-fast) var(--ease-out)}
-.devsel:hover{border-color:var(--border-strong)}
-.devsel:focus-visible{outline:none;box-shadow:var(--focus-ring)}
-.devsel[aria-expanded="true"]{border-color:var(--interactive-primary)}
-.devsel>svg{flex:none;color:var(--text-tertiary)}
-.devsel>svg:last-child{color:var(--text-tertiary)}
-.devsel-val{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.sheet-layer{position:absolute;inset:0;z-index:40}
-.sheet-layer.edge{bottom:-18px}   /* Chrome draws the page edge to edge, behind the gesture bar */
-.sheet{position:absolute;left:0;right:0;bottom:0;z-index:1001;background:var(--bg-surface);border-radius:var(--radius-2xl) var(--radius-2xl) 0 0;box-shadow:var(--shadow-xl);
-  padding:var(--space-2) var(--space-4) var(--space-4);display:grid;gap:var(--space-2);
-  animation:sheet-in var(--duration-moderate) var(--ease-out) both}
-.sheet[data-state="closed"]{transform:translateY(100%);transition:transform var(--duration-base) var(--ease-in)}
-.sheet-layer.edge .sheet{padding-bottom:calc(var(--space-2) + 18px)}
-.sheet-grip{justify-self:center;width:36px;height:4px;border-radius:var(--radius-full);background:var(--border-primary)}
-.sheet-home{position:absolute;left:50%;bottom:7px;width:106px;height:4px;margin-left:-53px;border-radius:2px;background:#18181b;opacity:.75}
-.sheet-head{display:flex;align-items:center;justify-content:space-between}
-.sheet .ts-radio-group__items{display:grid;gap:0}
-.sheet .ts-radio{min-height:48px;display:flex;align-items:center;border-bottom:1px solid var(--border-subtle)}
-.sheet .ts-radio:last-child{border-bottom:0}
-@keyframes sheet-in{from{transform:translateY(100%)}to{transform:translateY(0)}}
-@media (prefers-reduced-motion: reduce){
-  .sheet{animation:fade-in var(--duration-fast) linear both}
-  .sheet[data-state="closed"]{transform:none;opacity:0;transition:opacity var(--duration-fast) linear}
-}
-@keyframes fade-in{from{opacity:0}to{opacity:1}}
+/* The device field: Tessera EditableData (select) with the device icon, a fixed width so it
+   doesn't move with the status chip. */
+.devsel{flex:0 0 184px;min-width:0}
+.devsel .ts-editable{width:100%}
+/* EditableData reads as plain text; on touch its doc asks for a visible cue that it can change. */
+.devsel .ts-editable__data::after{content:"";flex:none;width:16px;height:16px;margin-left:var(--space-1);background:var(--text-tertiary);
+  -webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M4 6l4 4 4-4' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/16px no-repeat;
+          mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M4 6l4 4 4-4' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/16px no-repeat;
+  transition:transform var(--duration-fast) var(--ease-out)}
+.devsel .ts-editable__data[aria-expanded="true"]::after{transform:rotate(180deg)}
 
 /* ---------- Video ---------- */
 .vcard{position:relative;flex:1;min-height:176px;border-radius:var(--radius-lg);overflow:hidden;background:var(--bg-tooltip);isolation:isolate}
@@ -308,7 +289,7 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
   const { useState, useEffect, useRef, Fragment } = React;
   const DS = window.TesseraDS;
   const html = htm.bind(React.createElement);
-  const { Button, IconButton, Icon, Spinner, Toggle, Dropdown, Chip, Tag, Tabs, TabList, Tab, TextLink, TextArea, Input, RadioGroup, Radio, Overlay, Modal, RtIconButton, usePresence,
+  const { Button, IconButton, Icon, Spinner, Toggle, Dropdown, Chip, Tag, Tabs, TabList, Tab, TextLink, TextArea, Input, RadioGroup, Radio, Overlay, Modal, RtIconButton, usePresence, EditableData,
     CandidateTopNavigation, CandidateTimer, CandidateClock, CandidateSoundwave, CandidateBroadcastBanner, ProgressIndicator, SkeletonLoader, ChatPanel } = DS;
 
   /* Glyphs for the simulated browser chrome, the browser's own dialogs and the illustrations.
@@ -322,7 +303,7 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
     batt:'<rect x="2" y="7" width="17" height="10" rx="2.5"/><path d="M22 11v2"/><rect x="4" y="9" width="11" height="6" rx="1" fill="currentColor" stroke="none"/>',
     video:'<path d="M15 10l4.553-2.276A1 1 0 0 1 21 8.618v6.764a1 1 0 0 1-1.447.894L15 14v-4z"/><rect x="3" y="6" width="12" height="12" rx="2"/>',
     mic:'<rect x="9" y="2" width="6" height="11" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M8 21h8M12 17v4"/>',
-    play:'<path d="M8 5.5v13l11-6.5z" fill="currentColor" stroke="none"/>'
+    play:'<path d="M7 4.2c0-.9 1-1.5 1.8-1l11.4 7.3c.7.5.7 1.5 0 2L8.8 19.8c-.8.5-1.8-.1-1.8-1z" fill="currentColor" stroke="none"/>'
   };
   const svg = (n, size = 16) => html`<svg width=${size} height=${size} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" dangerouslySetInnerHTML=${{__html: SVG[n]}} />`;
 
@@ -405,7 +386,7 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
     S.dialog = null;
     S.pendingInterrupt = false;
     S.qExpanded = false;
-    S.sheet = null; S.retakeAsk = false; S.savedFlash = false;
+    S.retakeAsk = false; S.savedFlash = false;
     if (!KEEP_CLIP.includes(next)) dropClip();
     if (next === 'wait') S.waitItems = ['done', 'act', 'pend'];
     if (next === 'test'){ S.heard = false; S.micFailed = false; }
@@ -1127,42 +1108,13 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
   function DeviceRow({kind, status}){
     const cam = kind === 'cam', names = cam ? CAMS : MICS, idx = cam ? S.cam : S.mic;
     return html`<div class="drow">
-      <button type="button" class="devsel" aria-haspopup="dialog" aria-expanded=${S.sheet === kind}
-        aria-label=${`${cam ? 'Camera' : 'Microphone'}: ${names[idx]}. Change`} onClick=${() => { S.sheet = kind; render(); }}>
-        <${Icon} name=${cam ? 'video-camera' : 'microphone'} size=${16} />
-        <span class="p2 devsel-val">${names[idx]}</span>
-        <${Icon} name="chevron-down" size=${16} />
-      </button>
+      <div class="devsel">
+        <${EditableData} type="select" aria-label=${cam ? 'Camera' : 'Microphone'}
+          icon=${html`<${Icon} name=${cam ? 'video-camera' : 'microphone'} size=${20} />`}
+          options=${names.map((n, i) => ({value:String(i), label:n}))} value=${String(idx)}
+          onValueChange=${v => { if (cam) S.cam = +v; else S.mic = +v; render(); }} />
+      </div>
       <${DevStatus} s=${status} />
-    </div>`;
-  }
-  // A phone picks from a list in a sheet from the bottom, in thumb reach, the way both platforms
-  // present a choice. Choosing applies it and closes the sheet. (New pattern: Tessera's Dropdown
-  // panel is built for a pointer and a wide screen.)
-  function DeviceSheet(){
-    const open = !!S.sheet;
-    const kind = useRef('cam');
-    if (S.sheet) kind.current = S.sheet;
-    const {mounted, state} = usePresence(open, 200);
-    const ref = useRef(null);
-    const close = () => { S.sheet = null; render(); };
-    useEffect(() => { if (open) ref.current?.querySelector('input:checked')?.focus({preventScroll:true}); }, [open]);
-    if (!mounted) return null;
-    const cam = kind.current === 'cam', names = cam ? CAMS : MICS, idx = cam ? S.cam : S.mic;
-    return html`<div class=${'sheet-layer' + (S.platform === 'android' ? ' edge' : '')}>
-      <${Overlay} open=${open} portal=${false} onClick=${close} />
-      <section class="sheet" ref=${ref} data-state=${open ? 'open' : 'closed'} role="dialog" aria-modal="true" aria-labelledby="sheet-title">
-        <div class="sheet-grip" aria-hidden="true"></div>
-        <div class="sheet-head">
-          <h2 id="sheet-title" class="h5 ttl">${cam ? 'Choose a camera' : 'Choose a microphone'}</h2>
-          <${IconButton} variant="tertiary-gray" icon="xmark-regular" aria-label="Close" onClick=${close} />
-        </div>
-        <${RadioGroup} aria-labelledby="sheet-title" value=${String(idx)}
-          onValueChange=${v => { if (cam) S.cam = +v; else S.mic = +v; S.sheet = null; render(); }}>
-          ${names.map((n, i) => html`<${Radio} key=${i} value=${String(i)} label=${n} />`)}
-        <//>
-        ${S.platform === 'android' ? html`<span class="sheet-home" aria-hidden="true"></span>` : null}
-      </section>
     </div>`;
   }
 
@@ -1225,10 +1177,9 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
   function PermissionScreen(){
     return html`<${Page} foot=${html`<${Cta} onClick=${askPermission}>Continue<//>`}>
       <div class="art"><${PhoneArt} art=${{title:'Allow access'}} /></div>
-      <${Head} title="Allow camera and microphone">
-        <p class="p2">You’ll answer by video, so we need both.</p>
-      <//>
+      <${Head} title="Allow camera and microphone" />
       <ul class="bullets p2">
+        <li>You’ll answer by video, so we need both.</li>
         <li>Your browser will ask next. Tap <b>Allow</b>.</li>
         ${S.platform === 'android'
           ? html`<li>Chrome asks twice: for this site, then for Chrome.</li>`
@@ -1337,7 +1288,7 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
         <span style=${{width:(total ? Math.min(100, t / total * 100) : 0) + '%'}}></span></div>
       <div class="vctl-row">
         <${RtIconButton} icon="seek-back-5" aria-label="Back 5 seconds" disabled=${disabled} onClick=${() => onSeek(-5)} />
-        <${RtIconButton} icon=${playing ? 'pause' : html`<${Fragment}>${svg('play', 16)}<//>`} aria-label=${playing ? 'Pause' : 'Play'} disabled=${disabled} onClick=${onToggle} />
+        <${RtIconButton} icon=${playing ? 'pause' : html`<${Fragment}>${svg('play', 20)}<//>`} aria-label=${playing ? 'Pause' : 'Play'} disabled=${disabled} onClick=${onToggle} />
         <${RtIconButton} icon="seek-forward-5" aria-label="Forward 5 seconds" disabled=${disabled} onClick=${() => onSeek(5)} />
         <${RtIconButton} icon="volume-high-regular" pressedIcon="volume-slash-regular" pressed=${muted} aria-label="Mute" disabled=${disabled} onClick=${onMute} />
         <${CandidateClock} seconds=${Math.floor(t)} total=${total} mutedTotal size="sm" />
@@ -1366,7 +1317,7 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
     const line = (t > 0 && t < m.len) ? [...m.captions].reverse().find(([at]) => t >= at)?.[1] : null;
     return html`<div class="clip">
       <canvas ref=${cref} role="img" aria-label=${`Video: ${m.caption}`}></canvas>
-      ${(!playing && t === 0) ? html`<div class="vcenter"><${IconButton} variant="overlay" shape="round" aria-label="Play the question" icon=${html`<${Fragment}>${svg('play', 16)}<//>`} onClick=${toggle} /></div>` : null}
+      ${(!playing && t === 0) ? html`<div class="vcenter"><${IconButton} variant="overlay" shape="round" aria-label="Play the question" icon=${html`<${Fragment}>${svg('play', 20)}<//>`} onClick=${toggle} /></div>` : null}
       ${line ? html`<div class="caption" aria-live="polite"><span class="p2">${line}</span></div>` : null}
       ${(playing || t > 0) ? html`<${VideoControls} t=${t} total=${m.len} playing=${playing} muted=${muted} onToggle=${toggle}
         onSeek=${d => setT(p => Math.max(0, Math.min(m.len - 0.1, p + d)))} onMute=${() => setMuted(x => !x)} />` : null}
@@ -1794,7 +1745,7 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
     useEffect(() => {
       const onKey = e => {
         if (e.key !== 'Escape') return;
-        if (S.sheet){ S.sheet = null; render(); } else if (S.alvyOpen) closeAlvy();
+        if (S.alvyOpen) closeAlvy();
       };
       document.addEventListener('keydown', onKey);
       return () => document.removeEventListener('keydown', onKey);
@@ -1807,7 +1758,6 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
             <${ChromeTop} />
             <div id="viewport">
               <div class="topstack"><${TopNav} /><${Broadcast} /></div>
-              <${DeviceSheet} />
               <main id="view">
                 <${Screen} />
                 ${S.alvyOpen ? html`<section class="alvy" aria-label="Chat with Alvy">
