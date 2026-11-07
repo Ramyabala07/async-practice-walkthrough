@@ -105,7 +105,7 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
 .drow{display:flex;align-items:center;gap:var(--space-3)}
 /* The device field, as in the Test Taker file: the device icon sits inside the field, then the
    name and a chevron. Tapping it opens a bottom sheet, not a desktop listbox. */
-.devsel{flex:1;min-width:0;display:flex;align-items:center;gap:var(--space-2);height:36px;padding:0 var(--space-2);border:1px solid var(--border-primary);border-radius:var(--radius-lg);
+.devsel{flex:0 0 184px;min-width:0;display:flex;align-items:center;gap:var(--space-2);height:36px;padding:0 var(--space-2);border:1px solid var(--border-primary);border-radius:var(--radius-lg);
   background:var(--bg-surface);color:var(--text-primary);font:inherit;text-align:left;cursor:pointer;transition:border-color var(--duration-fast) var(--ease-out)}
 .devsel:hover{border-color:var(--border-strong)}
 .devsel:focus-visible{outline:none;box-shadow:var(--focus-ring)}
@@ -171,6 +171,8 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
 .qcard{background:var(--bg-muted);border:1px solid var(--border-subtle);border-radius:var(--radius-xl);display:flex;flex-direction:column;min-height:0}
 .qcard-head{display:flex;align-items:center;min-height:44px;padding:0 var(--space-3);border-bottom:1px solid var(--border-subtle);color:var(--text-primary)}
 .qcard .bullets{gap:var(--space-1)}
+.pg-body>.qcard{flex:1 0 auto}
+.qcard-head{justify-content:space-between;gap:var(--space-2)}
 .qcard .vcard{flex:none;aspect-ratio:4/3;min-height:0}
 .qcard-body{padding:var(--space-3);display:grid;gap:var(--space-3)}
 .qcard-body p{margin:0}
@@ -203,10 +205,29 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
 .wcard .wt.mid{text-align:center}
 .fig{position:relative;width:100%}
 .fig img{display:block;width:100%;height:100%}
+/* Storyset-style ambient motion on the illustration layers: slow, small, looping; off under reduced motion. */
+@keyframes il-float{0%,100%{transform:translateY(0)}50%{transform:translateY(-4%)}}
+@keyframes il-bob{0%,100%{transform:translateY(0) rotate(0)}50%{transform:translateY(-3%) rotate(-2deg)}}
+@keyframes il-shadow{0%,100%{transform:scaleX(1);opacity:1}50%{transform:scaleX(.85);opacity:.6}}
+@keyframes il-drift{0%,100%{transform:translate(0,0)}50%{transform:translate(2%,-3%)}}
+@keyframes il-twinkle{0%,100%{opacity:1}50%{opacity:.55}}
+.fig .il-float{animation:il-float 3.2s var(--ease-in-out) infinite}
+.fig .il-bob{animation:il-bob 3.6s var(--ease-in-out) infinite}
+.fig .il-shadow{animation:il-shadow 3.2s var(--ease-in-out) infinite;transform-origin:center}
+.fig .il-drift{animation:il-drift 4.4s var(--ease-in-out) infinite}
+.fig .il-drift2{animation:il-drift 5s var(--ease-in-out) -2s infinite}
+.fig .il-twinkle{animation:il-twinkle 2.4s var(--ease-in-out) infinite}
+@media (prefers-reduced-motion: reduce){.fig span{animation:none!important}}
 .fig-flat{display:block;width:100%;height:auto}
 .score-n{font:600 30px/38px var(--font-sans);color:var(--text-tertiary)}
 .bars{position:relative;flex:none;width:300px;max-width:100%;height:240px;margin:0 auto;background:var(--bg-surface);border-radius:6px;box-shadow:0 1.5px 18.75px rgba(125,125,125,.12);overflow:hidden}
 .bars img{position:absolute;display:block;width:36.75px;height:151.5px;top:27.75px}
+/* The bars fill up when the score appears: a cover in the track's own colour withdraws from the
+   bottom up, so the exported bar art is untouched. */
+.bars .cover{position:absolute;top:28.5px;width:35.25px;height:150px;border-radius:5.25px;background:var(--blue-50);transform-origin:top;
+  animation:bar-fill 900ms var(--ease-out) both}
+@keyframes bar-fill{from{transform:scaleY(1)}to{transform:scaleY(0)}}
+@media (prefers-reduced-motion: reduce){.bars .cover{display:none}}
 .bars .lab{position:absolute;top:183.75px;display:flex;flex-direction:column;align-items:center;gap:.75px;font-size:9px;line-height:13.5px;text-align:center}
 .bars .lab b{font-weight:500;color:var(--text-primary)}
 .bars .lab span{color:var(--text-tertiary)}
@@ -351,7 +372,7 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
     heard:false, micFailed:false, recording:false, hidePreview:false,
     interruptReason:'away', takeSecs:0, pendingInterrupt:false, lastFrame:null,
     qi:0, qExpanded:false, clipDone:false,
-    prepSecs:15, prepLeft:15, prepStyle:'button', practicePrep:true, limitSecs:120, timerVisible:true,
+    prepSecs:10, prepLeft:10, prepStyle:'button', practicePrep:true, limitSecs:120, timerVisible:true,
     assessing:false, timeLeft:TOTAL_SECS, resuming:false, restoreNote:false,
     saveStep:0, fb:{rating:null, liked:[], text:''},
     alvyOpen:false, alvyMsgs:[], alvyTyping:false, sheet:null, retakeAsk:false, savedFlash:false,
@@ -429,7 +450,7 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
     }
     if (st === 'saving'){
       P.finished = true; saveP();
-      later(() => { S.saveStep = 1; render(); }, 3200);
+      later(() => go('score'), 3200);
     }
   }
 
@@ -1033,8 +1054,8 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
   }
   // Figma illustrations are stacks of layers, each placed by its inset inside a fixed frame.
   const FIG = 'tessera/assets/figma/';
-  const Fig = ({ratio, layers}) => html`<div class="fig" style=${{aspectRatio:ratio}}>${layers.map(([src, inset], i) =>
-    html`<span key=${i} style=${{position:'absolute', inset}}><img src=${FIG + src} alt="" /></span>`)}</div>`;
+  const Fig = ({ratio, layers}) => html`<div class="fig" style=${{aspectRatio:ratio}}>${layers.map(([src, inset, cls], i) =>
+    html`<span key=${i} class=${cls || null} style=${{position:'absolute', inset}}><img src=${FIG + src} alt="" /></span>`)}</div>`;
 
   /* ================= Components ================= */
   function ChromeTop(){
@@ -1099,7 +1120,7 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
   /* ---- device rows: the device field from the Test Taker file plus a status chip ---- */
   function DevStatus({s}){
     if (s === 'ok') return html`<${Chip} color="green" variant="secondary" size="md" icon=${html`<${Icon} name="check" size=${12} />`}>Working<//>`;
-    if (s === 'quiet') return html`<${Chip} color="orange" variant="secondary" size="md" icon=${html`<${Icon} name="mic-off" size=${12} />`}>No sound yet<//>`;
+    if (s === 'quiet') return html`<${Chip} color="red" variant="secondary" size="md" icon=${html`<${Icon} name="mic-off" size=${12} />`}>No sound<//>`;
     return html`<${Chip} color="gray" variant="secondary" size="md" icon=${html`<${Spinner} size=${12} color="blue" label=${null} />`}>Testing<//>`;
   }
   function DeviceRow({kind, status}){
@@ -1182,7 +1203,7 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
     const labels = S.resuming ? RESUME_LABELS : WAIT_LABELS;
     return html`<${Page} mid>
       <div class="centre">
-        <${Spinner} size=${48} color="blue" label="Loading your assessment" />
+        <${Spinner} size=${32} color="blue" label="Loading your assessment" />
         <div class="head" style=${{justifyItems:'center'}}>
           <h1 class="h4 ttl">${S.resuming ? 'Picking up where you left off…' : 'Getting your assessment ready…'}</h1>
           <p class="p2 lines"><span>This can take up to 30 seconds.</span><span>Keep this page open.</span></p>
@@ -1242,7 +1263,7 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
           <${DeviceRow} kind="mic" status=${mic} />
         </div>
         <div class="wavebar"><span class="l1">${S.heard ? 'We can hear you' : 'Say ‘Testing 123’ out loud'}</span><${LiveWave} /></div>
-        ${S.micFailed ? html`<div class="status-line late" role="status"><${Icon} name="mic-off" size=${16} />
+        ${S.micFailed ? html`<div class="status-line bad" role="alert"><${Icon} name="mic-off" size=${16} />
           <span>We can’t hear you. Unmute your phone or pick another microphone.</span></div>
           <${TextLink} as="button" leadingIcon=${html`<${Icon} name="help-circle" />`} onClick=${() => { S.blockedReason = 'nomic'; S.blockedFrom = 'test'; go('blocked'); }}>See how to fix it<//>` : null}
       </div><//>`;
@@ -1252,8 +1273,8 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
   // The assessment card, as in the Test Taker file: a muted card with a header row.
   const answerTime = () => S.limitSecs >= 60 ? Math.round(S.limitSecs / 60) + ' minutes' : S.limitSecs + ' seconds';
   // The assessment card, as in the Test Taker file: a header row, a divider, then the content.
-  const QCard = ({children}) => html`<section class="qcard">
-    <div class="qcard-head"><span class="l1">Question ${S.qi} of ${ASSESS.length}</span></div>
+  const QCard = ({children, title, tag}) => html`<section class="qcard">
+    <div class="qcard-head"><span class="l1">${title || `Question ${S.qi} of ${ASSESS.length}`}</span>${tag || null}</div>
     <div class="qcard-body">${children}</div>
   </section>`;
   // Question text with Read more / Show less at the end of the text itself.
@@ -1264,13 +1285,19 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
     return html`<p id="qtext" class=${cls + ' qtext'}>${shown}${long ? html`${' '}<${TextLink} as="button" size="sm" aria-expanded=${S.qExpanded} aria-controls="qtext"
       onClick=${() => { S.qExpanded = !S.qExpanded; render(); }}>${S.qExpanded ? 'Show less' : 'Read more'}<//>` : null}</p>`;
   }
-  // The rules for answering, in two short bullets above the question. The text never changes while
-  // the screen is open, so the card does not reflow when the video ends.
-  function AnswerRules({media}){
-    const prep = `${S.prepSecs}s`;
-    return html`<ul class="bullets p3">
-      <li>${media ? `${prep} to prepare after the video. Recording starts when it ends.` : `${prep} to prepare. Recording starts when it ends.`}</li>
-      <li>${answerTime()} to answer. You can retake it.</li>
+  // How to answer, in three plain steps above the question, in the order things happen. The text
+  // never changes while the screen is open, so the card does not reflow when the video ends.
+  function AnswerRules({media, practice}){
+    const prep = `${S.prepSecs} seconds`;
+    if (practice) return html`<ul class="bullets p2">
+      <li>Read the question below.</li>
+      <li>${S.practicePrep ? `You get ${prep} to prepare. Then recording starts on its own.` : 'Tap Start recording when you’re ready.'}</li>
+      <li>This one isn’t scored. Record it as many times as you like.</li>
+    </ul>`;
+    return html`<ul class="bullets p2">
+      <li>${media ? 'Watch the video question first.' : 'Read the question below.'}</li>
+      <li>${media ? `When it ends, you get ${prep} to prepare. Then recording starts on its own.` : `You get ${prep} to prepare. Then recording starts on its own.`}</li>
+      <li>You have ${answerTime()} to answer, and you can retake it.</li>
     </ul>`;
   }
 
@@ -1284,16 +1311,13 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
     return html`<div class="prepfill" style=${{'--fill':pct + '%'}}><${Cta} onClick=${startRecordFlow}>Start recording · ${S.prepLeft}s<//></div>`;
   }
 
-  // The practice question: read it, get a short preparation countdown, then the camera opens.
+  // The practice question, in the same card as the scored questions, so it rehearses the real thing.
   function PracticeQuestion(){
     return html`<${Page} foot=${startControls({counting:S.practicePrep})}>
-      <div><${Chip} color="blue" variant="secondary" size="sm">Practice · not scored<//></div>
-      <${Head} title=${Q().text} lg>
-      <//>
-      <ul class="bullets p2">
-        <li>${S.practicePrep ? `${S.prepSecs}s to prepare. Recording starts when it ends.` : 'Tap Start recording when you’re ready.'}</li>
-        <li>You can record it again.</li>
-      </ul><//>`;
+      <${QCard} title="Practice question" tag=${html`<${Chip} color="blue" variant="secondary" size="sm">Not scored<//>`}>
+        <${AnswerRules} practice />
+        <p class="p1 qtext">${Q().text}</p>
+      <//><//>`;
   }
 
   // A video question: the rules, then the question. Recording starts when the prep time ends.
@@ -1301,7 +1325,7 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
     return html`<${Page} foot=${startControls({counting:true})}>
       <${QCard}>
         <${AnswerRules} />
-        <p class="p2 qtext">${Q().text}</p>
+        <p class="p1 qtext">${Q().text}</p>
       <//><//>`;
   }
 
@@ -1479,19 +1503,17 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
   }
 
   /* ================= Wrap-up: the Test Taker file's own screens ================= */
-  // Saving, then saved. The rocket is the file's illustration, placed layer by layer.
+  // Saving, then straight on to the score. The rocket is the file's illustration, placed layer by
+  // layer, with gentle motion on the rocket and its shadow.
   function SavingScreen(){
-    const done = S.saveStep >= 1;
-    return html`<${Page} foot=${html`<${Cta} disabled=${!done} onClick=${() => go('score')}>Next<//>`}>
+    return html`<${Page}>
       <div class="wcard">
         <div class="wt">
           <p class="l1 ttl">📂 Saving your assessment</p>
-          ${done
-            ? html`<div class="status-line ok" role="status"><${Icon} name="circle-check" size=${16} /><span>Your assessment has been saved successfully.</span></div>`
-            : html`<div class="status-line" role="status"><${Spinner} size=${16} color="blue" label=${null} /><span>Rechecking your answers and wrapping things up</span></div>`}
+          <div class="status-line" role="status"><${Spinner} size=${16} color="blue" label=${null} /><span>Rechecking your answers and wrapping things up</span></div>
         </div>
-        <${Fig} ratio="472/434" layers=${[['saving-bg-complete.svg', '4.21% 7.11% 10.03% 14.85%'], ['saving-bg-simple.svg', '0 8.77% 20.81% 3.16%'],
-          ['saving-shadow.svg', '92.66% 0.09% 0.13% 0.03%'], ['saving-device.svg', '52.57% 0.47% 4.07% 36.22%'], ['saving-rocket.svg', '2.7% 15.22% 6.98% 18.6%']]} />
+        <${Fig} ratio="472/434" layers=${[['saving-bg-complete.svg', '4.21% 7.11% 10.03% 14.85%', 'il-drift2'], ['saving-bg-simple.svg', '0 8.77% 20.81% 3.16%'],
+          ['saving-shadow.svg', '92.66% 0.09% 0.13% 0.03%', 'il-shadow'], ['saving-device.svg', '52.57% 0.47% 4.07% 36.22%'], ['saving-rocket.svg', '2.7% 15.22% 6.98% 18.6%', 'il-float']]} />
       </div><//>`;
   }
 
@@ -1537,6 +1559,7 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
         </div>
         <div class="bars" role="img" aria-label="Scores by skill: Critical Thinking 6 of 10, Problem Solving 8 of 10, Behavioural 8 of 10, Aptitude 10 of 10">
           ${BARS.map(([src, left]) => html`<img key=${left} src=${FIG + src} alt="" style=${{left:left + 'px'}} />`)}
+          ${BARS.map(([, left], i) => html`<span class="cover" key=${'c' + left} style=${{left:(left + 0.75) + 'px', animationDelay:(300 + i * 120) + 'ms'}}></span>`)}
           ${BARS.map(([, , left, w, v, l]) => html`<div class="lab" key=${l} style=${{left, width:w}}><b>${v}</b><span>${l}</span></div>`)}
         </div>
         <img class="cert" src=${FIG + 'certificate.png'} alt="Certificate of completion" />
@@ -1565,8 +1588,8 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
             onSelectedChange=${on => { f.liked = on ? [...f.liked, l] : f.liked.filter(x => x !== l); render(); }}>${l}<//>`)}</div>
         </div>
         <${TextArea} label="Additional feedback" optional rows=${4} placeholder="Let us know what we did well and what we can do better" value=${f.text} onValueChange=${v => { f.text = v; }} />
-        <${Fig} ratio="500/396" layers=${[['fb-bubble-1.svg', '0 49.93% 85.32% 27.6%'], ['fb-bg.svg', '7.59% 0.52% 0.17% 0.06%'], ['fb-stars.svg', '13.17% 19.88% 14.03% 19.66%'],
-          ['fb-character.svg', '10.35% 17% 12.01% 17%'], ['fb-bubble-2.svg', '73.15% 0.12% 17.03% 80.65%']]} />
+        <${Fig} ratio="500/396" layers=${[['fb-bubble-1.svg', '0 49.93% 85.32% 27.6%', 'il-drift'], ['fb-bg.svg', '7.59% 0.52% 0.17% 0.06%'], ['fb-stars.svg', '13.17% 19.88% 14.03% 19.66%', 'il-twinkle'],
+          ['fb-character.svg', '10.35% 17% 12.01% 17%', 'il-bob'], ['fb-bubble-2.svg', '73.15% 0.12% 17.03% 80.65%', 'il-drift2']]} />
       </div><//>`;
   }
 
@@ -1642,7 +1665,7 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
     interrupted:'A call or a tapped notification ends the camera track. The answer in progress is lost and starts again; earlier answers stay saved.',
     review:'Stop recording saves the answer. Next (or Finish) and Retake wait on the save.',
     countdown:'A short countdown so the start of the timer is never a surprise.',
-    saving:'The Test Taker file’s own wrap-up screen: saving, then saved successfully.',
+    saving:'The Test Taker file’s saving screen. It moves straight on to the score; there is no separate saved step.',
     score:'The file’s score screen: the bar graph and certificate. The figures are the file’s sample numbers.',
     feedback:'The file’s feedback screen. Submit waits for a rating; Skip does not.',
     thanks:'End of the flow.'
@@ -1733,9 +1756,8 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
         <${Seg} label="Connection" k="netMode" value=${S.netMode} opts=${[['online', 'Online'], ['poor', 'Weak'], ['offline', 'Offline']]} />
         <${Seg} label="Saving the answer" k="saveMode" value=${S.saveMode} opts=${[['ok', 'Saves'], ['slow', 'Slow'], ['fail', 'Fails']]} />
         <${Seg} label="Prep countdown" k="prepStyle" value=${S.prepStyle} opts=${[['button', 'Fills button'], ['bar', 'Bar']]} />
-        <${Seg} label="Prep time" k="prepSecs" value=${String(S.prepSecs)} opts=${[['5', '5s'], ['15', '15s'], ['30', '30s']]} />
+        <${Seg} label="Prep time" k="prepSecs" value=${String(S.prepSecs)} opts=${[['5', '5s'], ['10', '10s'], ['30', '30s']]} />
         <${Seg} label="Countdown on the practice question" k="practicePrep" value=${S.practicePrep ? 'on' : 'off'} opts=${[['on', 'On'], ['off', 'Off']]} />
-        <${Seg} label="Answer time limit" k="limitSecs" value=${String(S.limitSecs)} opts=${[['10', '10s'], ['120', '2 min']]} />
         <div class="proto-group">
           <span class="proto-label">Try it</span>
           <div class="proto-actions">

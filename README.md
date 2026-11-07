@@ -60,8 +60,12 @@ There is no multiple choice. Both types end in the same record flow.
   inside it; no transcript or soundwave. Start recording stays locked until the video
   ends, then the preparation countdown runs and they answer on video.
 
-Both types use one card: "Question n of 2", a divider, two short rule bullets (prep time,
-answer time and retakes), then the question, as text or as the video. Rules come first
+Both types, and the practice question, use one grey card that fills the screen down to
+the footer: the header ("Question n of 2", or "Practice question" with a Not scored chip),
+a divider, three plain steps in the order things happen (watch or read the question, the
+prep time and that recording starts on its own, the answer time and retakes), then the
+question as text or as the video. The steps never change while the screen is open, so the
+card does not reflow when the video ends. Rules come first
 because the prep countdown starts the moment the screen opens, so the candidate needs
 them before they read. The review uses the same card with the recorded answer below the
 question. Videos use the web player's controls: a track, then back 5s, play or pause,
@@ -78,9 +82,13 @@ digits visible by default and the "Hide timer" switch on the component's own ter
   scored questions, so the practice never teaches a different order.
 - **The question comes first, then the camera.** Stop recording sits where Start
   recording was.
-- **Preparation countdown has two treatments to compare** from the prototype panel:
-  the button fills as time runs out, or a bar above the button. The practice question
-  can have the countdown on or off.
+- **Preparation countdown** is 10 seconds by default, with two treatments to compare
+  from the prototype panel: the button fills as time runs out, or a bar above the button.
+- **The practice question keeps the countdown** (on by default; the panel can turn it
+  off). Practice exists to rehearse the scored question's mechanics, and recording
+  starting by itself is the one thing that surprises people in the real thing; rehearsing
+  it while nothing is scored is the point. The cost is a little pressure on first
+  contact, which "Not scored" and unlimited re-recording absorb.
 - **Device selection** uses the Test Taker file's field: the device icon inside the
   field, the device name and a chevron, with a status chip beside it. Tapping it opens a
   bottom sheet of options (Tessera `Overlay` + `RadioGroup`) rather than a desktop
@@ -94,9 +102,13 @@ digits visible by default and the "Hide timer" switch on the component's own ter
   height; the switch centres in it.
 - **Centred text** puts each sentence on its own line (loading, countdown, the player's
   messages). Allow access is a title, one line and two bullets.
-- **Wrap-up**: the grey card runs down to the footer on every screen, confetti bursts when
-  the score appears (skipped under reduced motion), and the share options sit
-  left-aligned under the certificate.
+- **Wrap-up**: saving moves straight on to the score (no separate saved step). The grey
+  card runs down to the footer on every screen. When the score appears the bars fill up
+  one after another and confetti bursts; the share options sit left-aligned under the
+  certificate. The Storyset illustrations (rocket, feedback) have slow ambient motion.
+  All of it is skipped under reduced motion.
+- **Device fields** are a fixed 184px, so they don't change width with the status chip.
+  A silent microphone shows its message in error red with a red "No sound" chip.
 - **Stop recording saves the answer**, with the web flow's copy: a spinner in the player
   while it saves, then "Your response has been saved successfully." over the picture,
   then playback. A failed save says so in the player with Try again. There is no Submit
@@ -174,7 +186,7 @@ full rather than left as edge cases.
 - **Instrumentation gap.** Nothing today distinguishes "dialog never shown" from "device
   error" from "abandoned". Until it does, the drop at the permission step can only be
   guessed at. This is a product ask, not a design one.
-- **Real values.** The preparation time (15 seconds here, 5 to 30 in the panel), the
+- **Real values.** The preparation time (10 seconds here, 5 to 30 in the panel), the
   answer limit (2 minutes), the assessment length (20 minutes), the passing score and the
   point at which a lost connection becomes the error screen (15 seconds here) are
   placeholders to confirm.
