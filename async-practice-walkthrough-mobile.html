@@ -67,7 +67,7 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
 .pg-body.cam{padding:0;gap:0;overflow:hidden;position:relative;background:var(--bg-tooltip)}
 .pg-foot{flex:none;display:grid;gap:var(--space-2);padding:var(--space-4);background:var(--bg-surface);border-top:1px solid var(--border-subtle)}
 .pg-foot .note{margin:0;text-align:center}
-.foot-link{display:flex;justify-content:center}
+.foot-link{display:flex;justify-content:flex-start}
 .head{display:grid;gap:var(--space-2)}
 .head-row{display:flex;align-items:center;gap:var(--space-2)}
 .head-row svg{flex:none;color:var(--success-strong)}
@@ -86,8 +86,8 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
 .checklist li.pend{color:var(--text-subtle)}
 .checklist li.done svg{color:var(--success-strong)}
 .dot{flex:none;width:16px;height:16px;border-radius:50%;border:1.5px solid var(--border-primary)}
-.art{flex:none;display:flex;justify-content:center}
-.art svg{display:block;width:100%;max-width:320px;height:auto}
+.art{flex:none;display:flex;align-items:center;justify-content:center;padding:var(--space-4);border-radius:var(--radius-xl);background:var(--bg-muted)}
+.art svg{display:block;width:100%;max-width:296px;height:auto}
 .status-line{display:flex;align-items:flex-start;gap:var(--space-2);font:500 14px/20px var(--font-sans);color:var(--text-body)}
 .status-line.ok{color:var(--success-strong)}
 .status-line.late{color:var(--warning-emphasis)}
@@ -95,12 +95,34 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
 .status-line svg{flex:none;margin-top:2px}
 
 /* ---------- Device rows ---------- */
-.drows{display:grid;gap:var(--space-1)}
-.drow{display:grid;grid-template-columns:20px minmax(0,1fr) auto;align-items:center;gap:var(--space-2)}
-.drow>svg{color:var(--text-tertiary)}
+.drows{display:grid;gap:var(--space-2)}
+.drow{display:flex;align-items:center;gap:var(--space-3)}
+/* The device field, as in the Test Taker file: the device icon sits inside the field, then the
+   name and a chevron. Tapping it opens a bottom sheet, not a desktop listbox. */
+.devsel{flex:1;min-width:0;display:flex;align-items:center;gap:var(--space-2);height:36px;padding:0 var(--space-2);border:1px solid var(--border-primary);border-radius:var(--radius-lg);
+  background:var(--bg-surface);color:var(--text-primary);font:inherit;text-align:left;cursor:pointer;transition:border-color var(--duration-fast) var(--ease-out)}
+.devsel:hover{border-color:var(--border-strong)}
+.devsel:focus-visible{outline:none;box-shadow:var(--focus-ring)}
+.devsel[aria-expanded="true"]{border-color:var(--interactive-primary)}
+.devsel>svg{flex:none;color:var(--text-subtle)}
+.devsel>svg:last-child{color:var(--text-body)}
+.devsel-val{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sheet{position:absolute;left:0;right:0;bottom:0;z-index:1001;background:var(--bg-surface);border-radius:var(--radius-2xl) var(--radius-2xl) 0 0;box-shadow:var(--shadow-xl);
+  padding:var(--space-2) var(--space-4) var(--space-4);display:grid;gap:var(--space-2);animation:sheet-in var(--duration-base) var(--ease-out)}
+.sheet-grip{justify-self:center;width:36px;height:4px;border-radius:var(--radius-full);background:var(--border-primary)}
+.sheet-head{display:flex;align-items:center;justify-content:space-between}
+.sheet .ts-radio-group__items{display:grid;gap:0}
+.sheet .ts-radio{min-height:48px;display:flex;align-items:center;border-bottom:1px solid var(--border-subtle)}
+.sheet .ts-radio:last-child{border-bottom:0}
+@keyframes sheet-in{from{transform:translateY(100%)}to{transform:none}}
+@media (prefers-reduced-motion: reduce){.sheet{animation:fade-in var(--duration-fast) linear}}
+@keyframes fade-in{from{opacity:0}to{opacity:1}}
 
 /* ---------- Video ---------- */
-.vcard{position:relative;flex:1;min-height:176px;border-radius:var(--radius-lg);overflow:hidden;background:var(--bg-tooltip)}
+.vcard{position:relative;flex:1;min-height:176px;border-radius:var(--radius-lg);overflow:hidden;background:var(--bg-tooltip);isolation:isolate}
+/* Tessera's Modal, contained in the phone: the panel fits the screen less 16px a side. */
+#view .ts-modal--contained{z-index:1002;grid-template-columns:minmax(0,1fr)}
+#view .ts-modal__panel{width:100%}
 .vmedia{position:absolute;inset:0}
 .vmedia.hidden{visibility:hidden}
 .vmedia video,.vmedia canvas,.vmedia img{display:block;width:100%;height:100%;object-fit:cover}
@@ -108,7 +130,6 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
 .vmsg{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:var(--space-2);padding:var(--space-6);text-align:center;color:var(--text-on-primary)}
 .vtop{position:absolute;left:var(--space-3);right:var(--space-3);top:var(--space-3);display:flex;justify-content:space-between;align-items:center;gap:var(--space-2);z-index:2}
 .pill{display:inline-flex;align-items:center;gap:var(--space-1);background:var(--bg-surface);border-radius:var(--radius-full);padding:0 var(--space-2);min-height:28px}
-.pill .left{font:500 12px/18px var(--font-sans);color:var(--text-subtle)}
 .livedot{display:inline-block;width:10px;height:10px;border-radius:50%;background:var(--error-strong);box-shadow:0 0 0 3px rgba(255,255,255,.55)}
 .vstrip{position:absolute;left:0;right:0;bottom:0;z-index:2;display:flex;align-items:center;justify-content:space-between;gap:var(--space-3);padding:var(--space-2) var(--space-3);
   background:var(--bg-overlay-primary);color:var(--text-on-primary);
@@ -132,8 +153,16 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
 .qcard-body p{margin:0}
 .infobox{background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);padding:var(--space-3);display:grid;gap:var(--space-1)}
 .infobox p{margin:0}
-.clip{position:relative;flex:none;aspect-ratio:16/10;width:100%;border-radius:var(--radius-lg);overflow:hidden;background:var(--bg-tooltip)}
+.clip{position:relative;flex:none;aspect-ratio:16/10;width:100%;border-radius:var(--radius-lg);overflow:hidden;background:var(--bg-tooltip);isolation:isolate}
 .clip canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+/* Captions sit inside the video, above the controls. */
+.caption{position:absolute;left:var(--space-3);right:var(--space-3);bottom:52px;z-index:2;display:flex;justify-content:center;pointer-events:none}
+.caption span{padding:var(--space-1) var(--space-2);border-radius:var(--radius-sm);background:var(--bg-overlay-primary);color:var(--text-on-primary);text-align:center}
+.qhead{display:flex;align-items:center;justify-content:space-between;gap:var(--space-2);color:var(--text-primary)}
+/* The review player's saving states cover the picture, as on web. */
+.vstate{position:absolute;inset:0;z-index:3;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:var(--space-3);padding:var(--space-6);text-align:center;color:var(--text-on-primary);background:var(--bg-tooltip)}
+.vstate.note{background:var(--bg-overlay-primary);bottom:52px}
+.vstate p{margin:0}
 
 /* The preparation countdown on the button: a darker blue fills left to right as the time runs out. */
 @property --fill{syntax:'<percentage>';inherits:true;initial-value:0%}
@@ -226,7 +255,7 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
   const { useState, useEffect, useRef, Fragment } = React;
   const DS = window.TesseraDS;
   const html = htm.bind(React.createElement);
-  const { Button, IconButton, Icon, Spinner, Toggle, Dropdown, Chip, Tag, Tabs, TabList, Tab, TextLink, TextArea, Input, RadioGroup, Radio,
+  const { Button, IconButton, Icon, Spinner, Toggle, Dropdown, Chip, Tag, Tabs, TabList, Tab, TextLink, TextArea, Input, RadioGroup, Radio, Overlay, Modal,
     CandidateTopNavigation, CandidateTimer, CandidateClock, CandidateSoundwave, CandidateBroadcastBanner, ProgressIndicator, SkeletonLoader, ChatPanel } = DS;
 
   /* Glyphs for the simulated browser chrome, the browser's own dialogs and the illustrations.
@@ -262,7 +291,7 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
   const QS = [
     {id:'practice', kind:'video', practice:true, text:'Tell us about a project you’re proud of and what you learned from it.'},
     {id:'q1', kind:'media', text:'Priya, our hiring manager, asks: tell her about a time you had to learn something new quickly, and how you went about it.',
-      media:{len:12, caption:'Question from Priya, hiring manager'}},
+      media:{len:12, caption:'Question from Priya, hiring manager', captions:[[0, 'Hi, I’m Priya, the hiring manager.'], [3, 'Tell me about a time you had to learn'], [6, 'something new quickly,'], [8.5, 'and how you went about it.']]}},
     {id:'q2', kind:'video', text:'Share a story where you were able to bounce back from a challenge that was crucial to your success in learning a skill or concept.'}
   ];
   const ASSESS = QS.slice(1);
@@ -293,7 +322,7 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
     prepSecs:15, prepLeft:15, prepStyle:'button', practicePrep:true, limitSecs:120, timerVisible:true,
     assessing:false, timeLeft:TOTAL_SECS, resuming:false, restoreNote:false,
     saveStep:0, fb:{rating:null, liked:[], text:''},
-    alvyOpen:false, alvyMsgs:[], alvyTyping:false,
+    alvyOpen:false, alvyMsgs:[], alvyTyping:false, sheet:null, retakeAsk:false, savedFlash:false,
     recSecs:0, cam:0, mic:0, count:5, waitItems:['done', 'act', 'pend'],
     stream:null, audioCtx:null, analyser:null, abuf:null, level:0, realFailed:false,
     recorder:null, chunks:[], clipURL:null, poster:null, replayOK:false,
@@ -323,6 +352,7 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
     S.dialog = null;
     S.pendingInterrupt = false;
     S.qExpanded = false;
+    S.sheet = null; S.retakeAsk = false; S.savedFlash = false;
     if (!KEEP_CLIP.includes(next)) dropClip();
     if (next === 'wait') S.waitItems = ['done', 'act', 'pend'];
     if (next === 'test'){ S.heard = false; S.micFailed = false; }
@@ -526,7 +556,10 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
     const landed = () => {
       const q = Q();
       if (q.kind === 'video' && !q.practice){ P.answers[q.id] = {saved:true}; saveP(); }
-      S.save = 'saved'; render();
+      S.save = 'saved';
+      // As on web: "Your response has been saved successfully." over the player, then playback.
+      S.savedFlash = true; render();
+      setTimeout(() => { if (tok === saveToken){ S.savedFlash = false; render(); } }, 2500);
     };
     later(() => {
       if (tok !== saveToken || S.state !== 'review') return;
@@ -819,38 +852,38 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
 
   /* ================= Recovery copy: how to fix it, for this browser ================= */
   const SITE_STEPS = {
-    android:['Tap the lock icon at the left of the address bar.', 'Tap <b>Permissions</b>.', 'Turn on <b>Camera</b> and <b>Microphone</b>.', 'Come back here and tap <b>Retry</b>.'],
-    ios:['Tap <b>aA</b> in the address bar, at the bottom of the screen.', 'Tap <b>Website Settings</b>.', 'Set <b>Camera</b> and <b>Microphone</b> to <b>Allow</b>.', 'Tap <b>Done</b>, then <b>Retry</b> here.']
+    android:['Tap the lock icon in the address bar.', 'Tap <b>Permissions</b>.', 'Turn on <b>Camera</b> and <b>Microphone</b>, then tap <b>Retry</b>.'],
+    ios:['Tap <b>aA</b> in the address bar.', 'Tap <b>Website Settings</b>.', 'Set <b>Camera</b> and <b>Microphone</b> to <b>Allow</b>, then tap <b>Retry</b>.']
   };
   const APP_STEPS = {
-    android:['Open your phone’s <b>Settings</b>.', 'Go to <b>Apps › Chrome › Permissions</b>.', 'Allow <b>Camera</b> and <b>Microphone</b>.', 'Come back here and tap <b>Retry</b>.'],
-    ios:['Open your iPhone’s <b>Settings</b>.', 'Tap <b>Safari</b>, then <b>Camera</b> and <b>Microphone</b>.', 'Choose <b>Ask</b> or <b>Allow</b> for both.', 'Come back here and tap <b>Retry</b>.']
+    android:['Open <b>Settings › Apps › Chrome › Permissions</b>.', 'Allow <b>Camera</b> and <b>Microphone</b>.', 'Come back and tap <b>Retry</b>.'],
+    ios:['Open <b>Settings › Safari</b>.', 'Set <b>Camera</b> and <b>Microphone</b> to <b>Allow</b>.', 'Come back and tap <b>Retry</b>.']
   };
-  const INUSE_STEPS = ['Close any app using your camera: a video call, the camera app, or a recorder.', 'Swipe it away so it fully quits, not just goes to the background.', 'Come back here and tap <b>Retry</b>.'];
+  const INUSE_STEPS = ['Close the app using it, like a video call or the camera app.', 'Come back and tap <b>Retry</b>.'];
   const NOCAM_STEPS = {
-    android:['Check that nothing is covering the camera.', 'Close Chrome completely, then open this link again.', 'Restart your phone if the camera still doesn’t appear.', 'Tap <b>Retry</b>.'],
-    ios:['Check that nothing is covering the camera.', 'Close Safari completely, then open this link again.', 'Restart your iPhone if the camera still doesn’t appear.', 'Tap <b>Retry</b>.']
+    android:['Make sure nothing covers the camera.', 'Close Chrome fully and open this link again.', 'Still missing? Restart your phone.'],
+    ios:['Make sure nothing covers the camera.', 'Close Safari fully and open this link again.', 'Still missing? Restart your iPhone.']
   };
   const NOMIC_STEPS = {
-    android:['Check your phone isn’t on silent and nothing covers the microphone.', 'Unplug any headset, or choose a different microphone from the list.', 'Tap the lock icon in the address bar and make sure <b>Microphone</b> is on.', 'Tap <b>Retry</b>.'],
-    ios:['Check your iPhone isn’t on silent and nothing covers the microphone.', 'Disconnect any headset or AirPods, or choose a different microphone.', 'Tap <b>aA</b> › <b>Website Settings</b> and set <b>Microphone</b> to <b>Allow</b>.', 'Tap <b>Retry</b>.']
+    android:['Make sure nothing covers the microphone.', 'Unplug headphones, or pick another microphone.', 'Check <b>Microphone</b> is on under the lock icon.'],
+    ios:['Make sure nothing covers the microphone.', 'Disconnect AirPods or headphones.', 'Check <b>Microphone</b> is allowed under <b>aA › Website Settings</b>.']
   };
-  const NET_STEPS = ['Check that Wi-Fi or mobile data is on.', 'Move closer to your router, or switch between Wi-Fi and mobile data.', 'Tap <b>Retry</b>. Your saved answers are kept.'];
-  // Five blocked states in the layout of the Proctoring Attendee screen. Each says what is wrong
-  // and walks through the fix in this browser's own words.
+  const NET_STEPS = ['Check that Wi-Fi or mobile data is on.', 'Move closer to your router, or switch networks.', 'Tap <b>Retry</b>. Your saved answers are kept.'];
+  // Five blocked states in the layout of the Proctoring Attendee screen: what is wrong in one
+  // line, then the fix in this browser's own words.
   function blockedCopy(){
     const b = BROWSER(), p = S.platform;
     switch (S.blockedReason){
       case 'inuse': return {title:'Your camera is in use', art:{title:'Camera unavailable', items:[{icon:'video', label:'In use', warn:true}]}, topic:'inuse', link:'How to free up your camera',
-        text:'Another app on your phone is using the camera, so we can’t start your preview. Here’s how to free it up:', steps:INUSE_STEPS};
-      case 'os': return {title:`${b} needs camera access`, art:{title:'Permissions blocked', slash:true}, topic:'blocked', link:'How to allow camera and microphone permissions?',
-        text:`You allowed this site, but ${b} itself can’t use your camera and microphone yet. Here’s how to fix it:`, steps:APP_STEPS[p]};
-      case 'nocam': return {title:'We can’t find a camera', art:{title:'No camera found', items:[{icon:'video', label:'Camera', slash:true, warn:true}]}, topic:'blocked', link:'How to fix a missing camera',
-        text:`${b} can’t see a camera on this phone. Here’s what to try:`, steps:NOCAM_STEPS[p]};
-      case 'nomic': return {title:'We can’t hear your microphone', art:{title:'No sound', items:[{icon:'mic', label:'Microphone', slash:true, warn:true}]}, topic:'mic', link:'How to fix your microphone',
-        text:`${b} isn’t getting any sound from your microphone. Here’s what to try:`, steps:NOMIC_STEPS[p]};
-      default: return {title:'Camera & microphone blocked', art:{title:'Permissions blocked', slash:true}, topic:'blocked', link:'How to allow camera and microphone permissions?',
-        text:`${b} is blocking camera and microphone access for this site, and we need both to continue. Here’s how to allow them:`, steps:SITE_STEPS[p]};
+        text:'Another app on your phone is using it.', steps:INUSE_STEPS};
+      case 'os': return {title:`${b} can’t use your camera`, art:{title:'Permissions blocked', slash:true}, topic:'blocked', link:'How to allow access',
+        text:`This site is allowed, but ${b} itself isn’t.`, steps:APP_STEPS[p]};
+      case 'nocam': return {title:'No camera found', art:{title:'No camera found', items:[{icon:'video', label:'Camera', slash:true, warn:true}]}, topic:'blocked', link:'How to fix a missing camera',
+        text:`${b} can’t detect a camera on this phone.`, steps:NOCAM_STEPS[p]};
+      case 'nomic': return {title:'We can’t hear you', art:{title:'No sound', items:[{icon:'mic', label:'Microphone', slash:true, warn:true}]}, topic:'mic', link:'How to fix your microphone',
+        text:'No sound is reaching your microphone.', steps:NOMIC_STEPS[p]};
+      default: return {title:'Camera and microphone blocked', art:{title:'Permissions blocked', slash:true}, topic:'blocked', link:'How to allow access',
+        text:`${b} is blocking them for this site. To allow them:`, steps:SITE_STEPS[p]};
     }
   }
 
@@ -936,36 +969,34 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
   // A phone with a system dialog on it: the picture the permission and error screens use.
   function PhoneArt({art}){
     const items = art.items || CAM_MIC(!!art.slash);
-    const xs = items.length === 1 ? [160] : [128, 192];
-    return html`<svg viewBox="0 0 320 200" role="img" aria-hidden="true" focusable="false">
-      <rect x="0" y="0" width="320" height="200" rx="12" style=${fillv('--bg-muted')} />
-      <rect x="98" y="16" width="124" height="196" rx="20" style=${fillv('--text-secondary')} />
-      <rect x="106" y="30" width="108" height="178" rx="12" style=${fillv('--border-primary')} />
-      <circle cx="160" cy="23" r="3" style=${fillv('--bg-muted')} />
-      <rect x="114" y="42" width="52" height="5" rx="2.5" style=${fillv('--border-strong')} />
-      <rect x="198" y="42" width="10" height="5" rx="2.5" style=${fillv('--border-strong')} />
-      <rect x="114" y="56" width="92" height="28" rx="6" style=${fillv('--bg-surface')} />
-      <rect x="76" y="62" width="168" height="112" rx="10" style=${{fill:'var(--bg-surface)', filter:'drop-shadow(0 4px 10px rgba(0,0,0,.18))'}} />
-      <text x="160" y="86" text-anchor="middle" style=${{font:'500 12px var(--font-sans)', fill:'var(--text-primary)'}}>${art.title}</text>
+    const xs = items.length === 1 ? [148] : [118, 178];
+    return html`<svg viewBox="0 0 296 168" role="img" aria-hidden="true" focusable="false">
+      <rect x="100" y="0" width="96" height="168" rx="16" style=${fillv('--text-secondary')} />
+      <rect x="106" y="10" width="84" height="152" rx="11" style=${fillv('--border-primary')} />
+      <rect x="136" y="4" width="24" height="3" rx="1.5" style=${fillv('--bg-muted')} />
+      <rect x="114" y="20" width="36" height="4" rx="2" style=${fillv('--border-strong')} />
+      <rect x="174" y="20" width="8" height="4" rx="2" style=${fillv('--border-strong')} />
+      <rect x="40" y="40" width="216" height="96" rx="10" style=${{fill:'var(--bg-surface)', filter:'drop-shadow(0 4px 10px rgba(0,0,0,.18))'}} />
+      <text x="148" y="62" text-anchor="middle" style=${{font:'500 12px var(--font-sans)', fill:'var(--text-primary)'}}>${art.title}</text>
       ${items.map((it, i) => html`<g key=${i} transform=${`translate(${xs[i]} 0)`}>
-        <circle cx="0" cy="118" r="17" style=${fillv(it.warn ? '--warning-strong' : '--interactive-primary')} />
-        <g transform="translate(-9 109) scale(.75)" style=${ICON_INK} dangerouslySetInnerHTML=${{__html:SVG[it.icon]}} />
-        ${it.slash ? html`<line x1="-12" y1="106" x2="12" y2="130" style=${{stroke:'#fff', strokeWidth:2.5, strokeLinecap:'round'}} />` : null}
-        <text x="0" y="154" text-anchor="middle" style=${{font:'400 10px var(--font-sans)', fill:'var(--text-body)'}}>${it.label}</text>
+        <circle cx="0" cy="92" r="15" style=${fillv(it.warn ? '--warning-strong' : '--interactive-primary')} />
+        <g transform="translate(-9 83) scale(.75)" style=${ICON_INK} dangerouslySetInnerHTML=${{__html:SVG[it.icon]}} />
+        ${it.slash ? html`<line x1="-11" y1="81" x2="11" y2="103" style=${{stroke:'#fff', strokeWidth:2.5, strokeLinecap:'round'}} />` : null}
+        <text x="0" y="124" text-anchor="middle" style=${{font:'400 10px var(--font-sans)', fill:'var(--text-body)'}}>${it.label}</text>
       </g>`)}
     </svg>`;
   }
   // A browser window with warnings: the network error picture.
   function NetArt(){
     const tri = pts => html`<polygon points=${pts} style=${{fill:'var(--bg-surface)', stroke:'var(--error-strong)', strokeWidth:5, strokeLinejoin:'round'}} />`;
-    const bang = (x, y, h) => html`<g><line x1=${x} y1=${y} x2=${x} y2=${y + h} style=${{stroke:'var(--error-strong)', strokeWidth:5, strokeLinecap:'round'}} /><circle cx=${x} cy=${y + h + 12} r="3" style=${fillv('--error-strong')} /></g>`;
-    return html`<svg viewBox="0 0 320 190" role="img" aria-hidden="true" focusable="false">
-      <rect x="40" y="22" width="240" height="146" rx="6" style=${{fill:'var(--bg-surface)', stroke:'var(--error-strong)', strokeWidth:2}} />
-      <path d="M40 28a6 6 0 0 1 6-6h228a6 6 0 0 1 6 6v14H40z" style=${fillv('--error-strong')} />
-      <circle cx="54" cy="32" r="3" style=${{fill:'#fff'}} /><circle cx="66" cy="32" r="3" style=${{fill:'#fff'}} /><circle cx="78" cy="32" r="3" style=${{fill:'#fff'}} />
-      <rect x="60" y="58" width="200" height="92" rx="4" style=${fillv('--bg-muted')} />
-      ${tri('100,122 126,78 152,122')}${bang(126, 94, 14)}
-      ${tri('178,140 216,72 254,140')}${bang(216, 92, 22)}
+    const bang = (x, y, h) => html`<g><line x1=${x} y1=${y} x2=${x} y2=${y + h} style=${{stroke:'var(--error-strong)', strokeWidth:5, strokeLinecap:'round'}} /><circle cx=${x} cy=${y + h + 11} r="3" style=${fillv('--error-strong')} /></g>`;
+    return html`<svg viewBox="0 0 296 168" role="img" aria-hidden="true" focusable="false">
+      <rect x="38" y="8" width="220" height="152" rx="6" style=${{fill:'var(--bg-surface)', stroke:'var(--error-strong)', strokeWidth:2}} />
+      <path d="M38 14a6 6 0 0 1 6-6h208a6 6 0 0 1 6 6v14H38z" style=${fillv('--error-strong')} />
+      <circle cx="52" cy="18" r="3" style=${{fill:'#fff'}} /><circle cx="64" cy="18" r="3" style=${{fill:'#fff'}} /><circle cx="76" cy="18" r="3" style=${{fill:'#fff'}} />
+      <rect x="56" y="40" width="184" height="104" rx="4" style=${fillv('--bg-muted')} />
+      ${tri('92,124 116,82 140,124')}${bang(116, 96, 10)}
+      ${tri('164,134 200,66 236,134')}${bang(200, 86, 18)}
     </svg>`;
   }
   // Figma illustrations are stacks of layers, each placed by its inset inside a fixed frame.
@@ -1033,7 +1064,7 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
   const Cta = props => html`<${Button} fullWidth ...${props} />`;
   const FootLink = ({children, onClick, icon}) => html`<div class="foot-link"><${TextLink} as="button" leadingIcon=${icon ? html`<${Icon} name=${icon} />` : undefined} onClick=${onClick}>${children}<//></div>`;
 
-  /* ---- device rows: a Tessera underline Dropdown plus a status chip ---- */
+  /* ---- device rows: the device field from the Test Taker file plus a status chip ---- */
   function DevStatus({s}){
     if (s === 'ok') return html`<${Chip} color="green" variant="secondary" size="md" icon=${html`<${Icon} name="check" size=${12} />`}>Working<//>`;
     if (s === 'quiet') return html`<${Chip} color="orange" variant="secondary" size="md" icon=${html`<${Icon} name="mic-off" size=${12} />`}>No sound yet<//>`;
@@ -1042,12 +1073,36 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
   function DeviceRow({kind, status}){
     const cam = kind === 'cam', names = cam ? CAMS : MICS, idx = cam ? S.cam : S.mic;
     return html`<div class="drow">
-      <${Icon} name=${cam ? 'video-camera' : 'microphone'} size=${16} />
-      <${Dropdown} variant="underline" aria-label=${cam ? 'Camera' : 'Microphone'}
-        options=${names.map((n, i) => ({value:String(i), label:n}))} value=${String(idx)}
-        onValueChange=${v => { if (cam) S.cam = +v; else S.mic = +v; render(); }} />
+      <button type="button" class="devsel" aria-haspopup="dialog" aria-expanded=${S.sheet === kind}
+        aria-label=${`${cam ? 'Camera' : 'Microphone'}: ${names[idx]}. Change`} onClick=${() => { S.sheet = kind; render(); }}>
+        <${Icon} name=${cam ? 'video-camera' : 'microphone'} size=${16} />
+        <span class="p2 devsel-val">${names[idx]}</span>
+        <${Icon} name="chevron-down" size=${16} />
+      </button>
       <${DevStatus} s=${status} />
     </div>`;
+  }
+  // A phone picks from a list in a sheet from the bottom, in thumb reach, the way both platforms
+  // present a choice. Choosing applies it and closes the sheet. (New pattern: Tessera's Dropdown
+  // panel is built for a pointer and a wide screen.)
+  function DeviceSheet(){
+    const cam = S.sheet === 'cam', names = cam ? CAMS : MICS, idx = cam ? S.cam : S.mic;
+    const ref = useRef(null);
+    const close = () => { S.sheet = null; render(); };
+    useEffect(() => { ref.current?.querySelector('input:checked')?.focus(); }, []);
+    return html`<${Fragment}>
+      <${Overlay} open portal=${false} onClick=${close} />
+      <section class="sheet" ref=${ref} role="dialog" aria-modal="true" aria-labelledby="sheet-title">
+        <div class="sheet-grip" aria-hidden="true"></div>
+        <div class="sheet-head">
+          <h2 id="sheet-title" class="h5 ttl">${cam ? 'Choose a camera' : 'Choose a microphone'}</h2>
+          <${IconButton} variant="tertiary-gray" icon="xmark-regular" aria-label="Close" onClick=${close} />
+        </div>
+        <${RadioGroup} aria-labelledby="sheet-title" value=${String(idx)}
+          onValueChange=${v => { if (cam) S.cam = +v; else S.mic = +v; S.sheet = null; render(); }}>
+          ${names.map((n, i) => html`<${Radio} key=${i} value=${String(i)} label=${n} />`)}
+        <//>
+      </section><//>`;
   }
 
   /* ---- camera media: the live video or the sample preview, always mounted as one element ---- */
@@ -1146,8 +1201,8 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
         </div>
         <div class="wavebar"><span class="l1">${S.heard ? 'We can hear you' : 'Say ‘Testing 123’ out loud'}</span><${LiveWave} /></div>
         ${S.micFailed ? html`<div class="status-line late" role="status"><${Icon} name="mic-off" size=${16} />
-          <span>We can’t hear you. Check your phone isn’t muted, or pick a different microphone.</span></div>
-          <${TextLink} as="button" leadingIcon=${html`<${Icon} name="help-circle" />`} onClick=${() => { S.blockedReason = 'nomic'; S.blockedFrom = 'test'; go('blocked'); }}>Still can’t hear you? See how to fix it<//>` : null}
+          <span>We can’t hear you. Unmute your phone or pick another microphone.</span></div>
+          <${TextLink} as="button" leadingIcon=${html`<${Icon} name="help-circle" />`} onClick=${() => { S.blockedReason = 'nomic'; S.blockedFrom = 'test'; go('blocked'); }}>See how to fix it<//>` : null}
       </div><//>`;
   }
 
@@ -1159,46 +1214,40 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
     <div class="qcard-body">${children}</div>
   </section>`;
 
-  // The Start recording button, with the preparation countdown on it in one of three ways:
-  // the button fills as time runs out, a ring above, or a bar above the button.
+  // The Start recording button, with the preparation countdown in one of two ways: the button
+  // fills as the time runs out, or a bar above the button.
   function startControls({counting, disabled}){
-    const style = S.prepStyle, used = S.prepSecs - S.prepLeft, pct = Math.round(used / S.prepSecs * 100);
+    const used = S.prepSecs - S.prepLeft, pct = Math.round(used / S.prepSecs * 100);
     const plain = html`<${Cta} disabled=${disabled} onClick=${startRecordFlow}>Start recording<//>`;
-    let foot = plain, ring = null;
-    if (counting && style === 'button') foot = html`<div class="prepfill" style=${{'--fill':pct + '%'}}><${Cta} onClick=${startRecordFlow}>Start recording · ${S.prepLeft}s<//></div>`;
-    if (counting && style === 'bar') foot = html`<${Fragment}><div class="prepbar"><${ProgressIndicator} value=${used} max=${S.prepSecs} label=${`Recording starts in ${S.prepLeft}s`} valuePosition="none" /></div>${plain}<//>`;
-    if (counting && style === 'ring') ring = html`<div class="centre"><${ProgressIndicator} type="circular" value=${used} max=${S.prepSecs} valueText=${S.prepLeft} label=${`Recording starts in ${S.prepLeft} seconds`} /></div>`;
-    return {foot, ring};
+    if (!counting) return plain;
+    if (S.prepStyle === 'bar') return html`<${Fragment}><div class="prepbar"><${ProgressIndicator} value=${used} max=${S.prepSecs} label=${`Recording starts in ${S.prepLeft}s`} valuePosition="none" /></div>${plain}<//>`;
+    return html`<div class="prepfill" style=${{'--fill':pct + '%'}}><${Cta} onClick=${startRecordFlow}>Start recording · ${S.prepLeft}s<//></div>`;
   }
   const PREP_TEXT = 'This is your preparation time. Recording starts when the timer ends. You can also start any time you’re ready.';
 
   // The practice question: read it, get a short preparation countdown, then the camera opens.
   function PracticeQuestion(){
-    const {foot, ring} = startControls({counting:S.practicePrep});
-    return html`<${Page} foot=${foot}>
+    return html`<${Page} foot=${startControls({counting:S.practicePrep})}>
       <div><${Chip} color="blue" variant="secondary" size="sm">Practice · not scored<//></div>
       <${Head} title=${Q().text} lg>
         <p class="p2">${S.practicePrep ? PREP_TEXT : 'Take a moment to think, then tap Start recording.'} Nothing here is scored, and you can record it again.</p>
-      <//>
-      ${ring}<//>`;
+      <//><//>`;
   }
 
   // A video question: preparation time on the question itself, then recording starts by itself.
   function VideoQuestion(){
-    const {foot, ring} = startControls({counting:true});
-    return html`<${Page} foot=${foot}>
+    return html`<${Page} foot=${startControls({counting:true})}>
       <${QCard}>
         <p class="l1 qtext">${Q().text}</p>
         <div class="infobox">
           <p class="p2">${PREP_TEXT}</p>
           <p class="p3 muted">You’ll have ${S.limitSecs >= 60 ? Math.round(S.limitSecs / 60) + ' minutes' : S.limitSecs + ' seconds'} to answer. You can retake it.</p>
         </div>
-        ${ring}
       <//><//>`;
   }
 
-  // A multimedia question: someone asks it in a clip. When the clip ends the preparation time
-  // starts, then the candidate answers on video.
+  // A multimedia question: someone asks it in a video. Instructions sit above it, captions inside
+  // it. When it ends the preparation time starts, then the candidate answers on video.
   function MediaClip({m, onEnded}){
     const cref = useRef(null);
     const [t, setT] = useState(0), [playing, setPlaying] = useState(false);
@@ -1215,35 +1264,30 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
       return () => clearInterval(id);
     }, [playing]);
     const toggle = () => { if (!playing && t >= m.len) setT(0); setPlaying(p => !p); };
+    const line = (t > 0 && t < m.len) ? [...m.captions].reverse().find(([at]) => t >= at)?.[1] : null;
     return html`<div class="clip">
       <canvas ref=${cref} role="img" aria-label=${`Video: ${m.caption}`}></canvas>
       ${(!playing && t === 0) ? html`<div class="vcenter"><${IconButton} variant="overlay" shape="round" aria-label="Play the question" icon=${html`<${Fragment}>${svg('play', 16)}<//>`} onClick=${toggle} /></div>` : null}
+      ${line ? html`<div class="caption" aria-live="polite"><span class="p2">${line}</span></div>` : null}
       <div class="vstrip">
         <div class="grp">
-          <${IconButton} variant="tertiary-gray" aria-label=${playing ? 'Pause' : t >= m.len ? 'Watch again' : 'Play'} aria-pressed=${playing}
+          <${IconButton} variant="overlay" aria-label=${playing ? 'Pause' : t >= m.len ? 'Watch again' : 'Play'} aria-pressed=${playing}
             icon=${playing ? 'pause' : html`<${Fragment}>${svg('play', 16)}<//>`} onClick=${toggle} />
           <${CandidateClock} seconds=${Math.floor(t)} total=${m.len} mutedTotal size="sm" />
         </div>
-        <${CandidateSoundwave} mode="playback" barCount=${18} progress=${Math.min(1, t / m.len)} label="Clip progress" />
       </div>
     </div>`;
   }
+  const answerTime = () => S.limitSecs >= 60 ? Math.round(S.limitSecs / 60) + ' minutes' : S.limitSecs + ' seconds';
   function MediaQuestion(){
-    const q = Q(), m = q.media;
-    const {foot, ring} = startControls({counting:S.clipDone, disabled:!S.clipDone});
-    return html`<${Page} foot=${foot}>
-      <${QCard}>
-        <${MediaClip} m=${m} onEnded=${clipEnded} />
-        <div style=${{display:'grid', gap:'var(--space-1)'}}>
-          <span class="p3 muted">${m.caption}</span>
-          <p class="l1 qtext">${q.text}</p>
-        </div>
-        <div class="infobox">
-          <p class="p2">${S.clipDone ? PREP_TEXT : 'Watch the question first. Your preparation time starts when the clip ends, then you’ll answer on video.'}</p>
-          <p class="p3 muted">You’ll have ${S.limitSecs >= 60 ? Math.round(S.limitSecs / 60) + ' minutes' : S.limitSecs + ' seconds'} to answer. You can retake it.</p>
-        </div>
-        ${ring}
-      <//><//>`;
+    const m = Q().media;
+    return html`<${Page} foot=${startControls({counting:S.clipDone, disabled:!S.clipDone})}>
+      <div class="qhead"><span class="l1">Question ${S.qi} of ${ASSESS.length}</span>
+        <${IconButton} variant="tertiary-gray" icon="circle-exclamation" aria-label="Report a problem with this question" onClick=${openAlvy} /></div>
+      <p class="p2">${S.clipDone
+        ? `Your preparation time has started. Recording starts when it ends, or tap Start recording. You’ll have ${answerTime()} to answer.`
+        : `Watch Priya’s question, then answer on video. Your preparation time starts when the video ends.`}</p>
+      <${MediaClip} m=${m} onEnded=${clipEnded} /><//>`;
   }
   function QuestionScreen(){
     const q = Q();
@@ -1257,12 +1301,12 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
   function RecordScreen(){
     // The recorder needs the canvas to exist, so it starts once this screen has mounted.
     useEffect(() => { startRecorder(); runRecClock(); startLevel(); }, []);
-    const q = Q(), left = q.practice ? null : Math.max(0, S.limitSecs - S.recSecs);
+    const q = Q(), left = q.practice ? null : Math.max(0, S.limitSecs - S.recSecs);   // answer time; the assessment timer stays in the top bar
     return html`<${Page} cam foot=${html`<${Cta} onClick=${endRecording}>Stop recording<//>`}>
       <${VideoLayer} />
-      ${S.hidePreview ? html`<div class="vmsg"><${Icon} name="eye-closed-regular" size=${24} /><span>Preview hidden. You’re still recording.</span></div>` : null}
+      ${S.hidePreview ? html`<div class="vmsg"><${Icon} name="eye-closed-regular" size=${24} /><span>You’re still being recorded. Only the preview is hidden.</span></div>` : null}
       <div class="camtop">
-        <span class="pill"><${CandidateClock} live seconds=${left ?? S.recSecs} size="sm" />${left !== null ? html`<span class="left">left</span>` : null}</span>
+        <span class="pill" role="group" aria-label=${left !== null ? 'Time left to answer' : 'Recording time'}><${CandidateClock} live seconds=${left ?? S.recSecs} size="sm" /></span>
         <span class="pill"><${Toggle} size="sm" label="Hide preview" checked=${S.hidePreview} onCheckedChange=${v => { S.hidePreview = v; render(); }} /></span>
       </div>
       <div class="camcard float">
@@ -1273,58 +1317,58 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
       </div><//>`;
   }
 
-  // An interruption loses the answer in progress. It says so, and that earlier answers are safe.
+  // An interruption loses the answer in progress. It says so in a line, and that earlier answers are safe.
   function InterruptedScreen(){
     const away = S.interruptReason === 'away';
     return html`<${Page} foot=${html`<${Fragment}>
-        <${Cta} onClick=${() => go('test')}>Check my camera and try again<//>
+        <${Cta} onClick=${() => go('test')}>Try again<//>
         <${FootLink} icon="help-circle" onClick=${() => helpFlow('retake')}>Why did this happen?<//>
       <//>`}>
       <div class="art"><${PhoneArt} art=${{title:'Recording stopped', items:[{icon:'video', label:'Interrupted', warn:true}]}} /></div>
-      <${Head} title="Your recording was interrupted">
-        <p class="p2">${away
-          ? 'Switching apps, locking the screen or opening a notification turns the camera off.'
-          : 'A call, or another app opening the camera, took it away from this page.'}${' '}This answer wasn’t saved, so you’ll need to answer this question again.</p>
-      <//>
-      <div class="infobox"><p class="p2">The answers you saved before this are safe. You won’t lose them.</p></div><//>`;
+      <${Head} title="Recording interrupted">
+        <p class="p2">${away ? 'You left the page, so the camera stopped.' : 'A call or another app took the camera.'}${' '}This answer wasn’t saved. Your earlier answers are safe.</p>
+      <//><//>`;
   }
 
-  function SaveLine(){
-    if (S.save === 'saved') return html`<div class="status-line ok" role="status"><${Icon} name="circle-check" size=${16} /><span>Saved automatically</span></div>`;
-    if (S.save === 'saving') return html`<div class="status-line" role="status"><${Spinner} size=${16} color="blue" label=${null} /><span>Saving your answer…</span></div>`;
-    if (S.save === 'retry') return html`<div class="status-line late" role="status"><${Spinner} size=${16} color="blue" label=${null} /><span>Still saving. Keep this page open.</span></div>`;
-    return html`<div class="status-line bad" role="alert"><${Icon} name="circle-exclamation" size=${16} />
-      <span>We couldn’t save that answer. Nothing is lost: it’s still here on this page. Check your connection, then${' '}<${TextLink} as="button" size="md" onClick=${startSave}>try again<//>.</span></div>`;
-  }
+  // The response player. Saving happens inside it, as on web: a spinner while the answer saves,
+  // then "Your response has been saved successfully." over the picture, then playback.
   function ReviewPlayer(){
     const ref = useRef(null);
     const [t, setT] = useState(0), [dur, setDur] = useState(0), [playing, setPlaying] = useState(false);
-    const clip = S.replayOK && S.clipURL;
+    const clip = S.replayOK && S.clipURL, saving = S.save === 'saving' || S.save === 'retry';
     useEffect(() => {
       const v = ref.current;
       if (!v) return;
       const sync = () => { setT(v.currentTime || 0); setDur(v.duration); setPlaying(!v.paused); };
       ['timeupdate', 'loadedmetadata', 'play', 'pause'].forEach(e => v.addEventListener(e, sync));
-      v.play().catch(() => {});
+      if (!saving) v.play().catch(() => {});
       return () => ['timeupdate', 'loadedmetadata', 'play', 'pause'].forEach(e => v.removeEventListener(e, sync));
-    }, [clip]);
+    }, [clip, saving]);
     // MediaRecorder output often reports an infinite duration; fall back to what we timed.
     const total = Number.isFinite(dur) && dur > 0 ? Math.round(dur) : S.takeSecs;
     const toggle = () => { const v = ref.current; if (!v) return; v.paused ? v.play().catch(() => {}) : v.pause(); };
+    let cover = null;
+    if (saving) cover = html`<div class="vstate" role="status"><${Spinner} size=${32} color="white" label="Saving your response" />
+      ${S.save === 'retry' ? html`<p class="p2">Still saving. Keep this page open.</p>` : null}</div>`;
+    else if (S.save === 'failed') cover = html`<div class="vstate" role="alert"><${Icon} name="circle-exclamation" size=${24} />
+      <p class="p2">We couldn’t save your response. Check your connection and try again.</p>
+      <${Button} onClick=${startSave}>Try again<//></div>`;
+    else if (S.savedFlash) cover = html`<div class="vstate note" role="status"><p class="p2">Your response has been saved successfully.</p></div>`;
     return html`<div class="vcard">
       <div class="vmedia">${clip
-        ? html`<video ref=${ref} src=${S.clipURL} playsInline loop autoPlay muted=${!S.stream} aria-label="Your recording"></video>`
+        ? html`<video ref=${ref} src=${S.clipURL} playsInline loop muted=${!S.stream} aria-label="Your recording"></video>`
         : S.poster ? html`<img src=${S.poster} alt="The last frame of your recording" />` : null}</div>
-      ${clip ? html`<div class="vcenter"><${IconButton} variant="overlay" shape="round" aria-label=${playing ? 'Pause' : 'Play'} aria-pressed=${playing}
-        icon=${playing ? 'pause' : html`<${Fragment}>${svg('play', 16)}<//>`} onClick=${toggle} /></div>` : html`<div class="vtop"><${Chip} color="gray" size="sm">Playback isn’t available in this preview<//></div>`}
-      <div class="vstrip">
+      ${cover}
+      ${(!clip && !saving && S.save !== 'failed') ? html`<div class="vtop"><${Chip} color="gray" size="sm">Playback isn’t available in this preview<//></div>` : null}
+      ${saving || S.save === 'failed' ? null : html`<div class="vstrip"><div class="grp">
+        <${IconButton} variant="overlay" disabled=${!clip} aria-label=${playing ? 'Pause' : 'Play'} aria-pressed=${playing}
+          icon=${playing ? 'pause' : html`<${Fragment}>${svg('play', 16)}<//>`} onClick=${toggle} />
         <${CandidateClock} seconds=${Math.floor(t)} total=${total} mutedTotal size="sm" />
-        <${CandidateSoundwave} mode="playback" barCount=${20} progress=${total ? Math.min(1, t / total) : 0} label="Playback progress" />
-      </div>
+      </div></div>`}
     </div>`;
   }
   // After Stop recording. In onboarding it says that is how every answer works; in the assessment
-  // it is the saved response with Next (or Finish) and Retake. The primary action waits for the save.
+  // it is the response with Next (or Finish) and Retake. The primary action waits for the save.
   function ReviewScreen(){
     const q = Q(), locked = S.save !== 'saved', last = S.qi >= QS.length - 1;
     if (q.practice) return html`<${Page} foot=${html`<${Fragment}>
@@ -1332,21 +1376,16 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
         <${Cta} variant="secondary-gray" onClick=${() => go('question')}>Practice again<//>
       <//>`}>
       <${Head} title="That’s how it’s done" icon=${html`<${Icon} name="circle-check" size=${24} />`}>
-        <p class="p2">Your answer is saved automatically, so there’s nothing to submit. Watch it back, then practice again or start the assessment when you’re ready.</p>
+        <p class="p2">Your answer saves automatically, so there’s nothing to submit. Watch it back, then practice again or start the assessment.</p>
       <//>
-      <${ReviewPlayer} />
-      <${SaveLine} /><//>`;
+      <${ReviewPlayer} /><//>`;
     return html`<${Page} foot=${html`<${Fragment}>
         <${Cta} disabled=${locked} onClick=${nextQuestion}>${last ? 'Finish' : 'Next'}<//>
-        <${Cta} variant="secondary-gray" onClick=${() => go('question')}>Retake<//>
+        <${Cta} variant="secondary-gray" onClick=${() => { S.retakeAsk = true; render(); }}>Retake<//>
       <//>`}>
       <${QCard}>
-        <${Head} title=${S.save === 'saved' ? 'Your response has been saved' : S.save === 'failed' ? 'We couldn’t save your response' : 'Saving your response'}
-          icon=${S.save === 'saved' ? html`<${Icon} name="circle-check" size=${24} />` : S.save === 'failed' ? html`<${Icon} name="circle-exclamation" size=${24} />` : html`<${Spinner} size=${24} color="blue" label=${null} />`}>
-          <p class="p2">Watch it back, or retake it if you’d like to try again.</p>
-        <//>
+        <p class="p2 qtext">${q.text}</p>
         <${ReviewPlayer} />
-        <${SaveLine} />
       <//><//>`;
   }
 
@@ -1365,17 +1404,15 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
   // After a long loss of connection, in the layout of the Proctoring Attendee error screen.
   function NetErrorScreen(){
     const lost = S.neterrKind === 'lost';
-    return html`<${Page} mid foot=${html`<${Fragment}>
+    return html`<${Page} foot=${html`<${Fragment}>
         <${Cta} onClick=${retryNet}>Retry<//>
-        <${FootLink} onClick=${() => helpFlow('net')}>Need help?<//>
+        <${FootLink} icon="help-circle" onClick=${() => helpFlow('net')}>Need help?<//>
       <//>`}>
       <div class="art"><${NetArt} /></div>
-      <div class="centre">
-        <h1 class="h4 ttl">Error occurred</h1>
-        <p class="p2">We couldn’t load the page. Check your network connection and refresh to try again.</p>
-        ${lost && P.onboarded ? html`<p class="p3 muted">Your saved answers are kept. The answer you’re giving right now isn’t saved, so you’ll answer this question again.</p>` : null}
-        ${S.retryFail ? html`<div class="status-line bad" role="alert"><${Icon} name="circle-exclamation" size=${16} /><span>Still no connection. Check your network and retry.</span></div>` : null}
-      </div><//>`;
+      <${Head} title="No internet connection">
+        <p class="p2">Check your Wi-Fi or mobile data, then tap Retry.${lost && P.onboarded ? ' Saved answers are kept; you’ll redo the current one.' : ''}</p>
+      <//>
+      ${S.retryFail ? html`<div class="status-line bad" role="alert"><${Icon} name="circle-exclamation" size=${16} /><span>Still offline. Check your connection and retry.</span></div>` : null}<//>`;
   }
 
   /* ================= Wrap-up: the Test Taker file's own screens ================= */
@@ -1510,7 +1547,7 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
     permission:'Same order as web. Continue hands off to the browser’s own dialog, so it says Continue, not Allow: the real Allow comes next and two in a row reads as being asked twice.',
     blocked:'Five blocked states in the Proctoring Attendee layout. Each says what is wrong, walks through the fix in this browser, and offers Retry and a help link.',
     test:'The camera fills the space between the solid top bar and footer. Continue stays locked until the mic is heard.',
-    question:'The question comes first, with a preparation countdown, then the camera opens. Three treatments to compare: the button fills, a ring, or a bar.',
+    question:'The question comes first, with a preparation countdown, then the camera opens. Two treatments to compare: the button fills, or a bar above it.',
     record:'Stop recording sits where Start recording was. The top bar and footer stay solid and the camera fills between them. A lost connection shows a banner here.',
     interrupted:'A call or a tapped notification ends the camera track. The answer in progress is lost and starts again; earlier answers stay saved.',
     review:'Stop recording saves the answer. Next (or Finish) and Retake wait on the save.',
@@ -1605,7 +1642,7 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
         <${Seg} label="Loading" k="loadMode" value=${S.loadMode} opts=${[['ok', 'Succeeds'], ['fail', 'Fails']]} />
         <${Seg} label="Connection" k="netMode" value=${S.netMode} opts=${[['online', 'Online'], ['poor', 'Weak'], ['offline', 'Offline']]} />
         <${Seg} label="Saving the answer" k="saveMode" value=${S.saveMode} opts=${[['ok', 'Saves'], ['slow', 'Slow'], ['fail', 'Fails']]} />
-        <${Seg} label="Prep countdown" k="prepStyle" value=${S.prepStyle} opts=${[['button', 'Fills button'], ['ring', 'Ring'], ['bar', 'Bar']]} />
+        <${Seg} label="Prep countdown" k="prepStyle" value=${S.prepStyle} opts=${[['button', 'Fills button'], ['bar', 'Bar']]} />
         <${Seg} label="Prep time" k="prepSecs" value=${String(S.prepSecs)} opts=${[['5', '5s'], ['15', '15s'], ['30', '30s']]} />
         <${Seg} label="Countdown on the practice question" k="practicePrep" value=${S.practicePrep ? 'on' : 'off'} opts=${[['on', 'On'], ['off', 'Off']]} />
         <${Seg} label="Answer time limit" k="limitSecs" value=${String(S.limitSecs)} opts=${[['10', '10s'], ['120', '2 min']]} />
@@ -1645,7 +1682,10 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
       return () => removeEventListener('resize', fit);
     }, [S.platform]);
     useEffect(() => {
-      const onKey = e => { if (e.key === 'Escape' && S.alvyOpen) closeAlvy(); };
+      const onKey = e => {
+        if (e.key !== 'Escape') return;
+        if (S.sheet){ S.sheet = null; render(); } else if (S.alvyOpen) closeAlvy();
+      };
       document.addEventListener('keydown', onKey);
       return () => document.removeEventListener('keydown', onKey);
     }, []);
@@ -1665,6 +1705,13 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
                     composer=${{onSend:sendChat, placeholder:'Ask a question…'}} />
                 </section>` : null}
                 ${S.dialog ? html`<${Dialog} />` : null}
+                ${S.sheet ? html`<${DeviceSheet} />` : null}
+                <${Modal} open=${S.retakeAsk} portal=${false} title="Retake response"
+                  onOpenChange=${o => { if (!o){ S.retakeAsk = false; render(); } }}
+                  primaryAction=${{label:'Yes, retake', onClick:() => go('question')}}
+                  secondaryAction=${{label:'Go back'}}>
+                  Your current answer will be deleted if you choose to retake it. Are you sure you want to proceed?
+                <//>
               </main>
             </div>
             <${ChromeBottom} />

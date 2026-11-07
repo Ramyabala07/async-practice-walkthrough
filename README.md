@@ -56,9 +56,10 @@ There is no multiple choice. Both types end in the same record flow.
 
 - **Video question.** The question is on screen, a preparation countdown runs, then
   recording starts by itself (or the candidate taps Start recording early).
-- **Multimedia question.** Someone asks the question in a short clip. The candidate
-  watches it (Start recording stays locked until it ends), the preparation countdown
-  runs, then they answer on video. No transcript.
+- **Multimedia question.** Someone asks the question in a short video. The instructions
+  sit above it and captions run inside it; there is no card, transcript or soundwave.
+  Start recording stays locked until the video ends, then the preparation countdown
+  runs and they answer on video.
 
 The assessment card, the timer row, the review and the wrap-up follow the Test Taker
 file. The timer is Tessera's `CandidateTimer` in its own row under the top bar, with
@@ -70,12 +71,23 @@ digits visible by default and the "Hide timer" switch on the component's own ter
   scored questions, so the practice never teaches a different order.
 - **The question comes first, then the camera.** Stop recording sits where Start
   recording was.
-- **Preparation countdown has three treatments to compare** from the prototype panel:
-  the button fills as time runs out, a ring, or a bar above the button. The practice
-  question can have the countdown on or off.
-- **Stop recording saves the answer.** There is no Submit and no upload step. The
-  primary action (Next, Finish, Start assessment) is held until the save has landed, and
-  the heading and status line say whether it is saving, saved, or failed.
+- **Preparation countdown has two treatments to compare** from the prototype panel:
+  the button fills as time runs out, or a bar above the button. The practice question
+  can have the countdown on or off.
+- **Device selection** uses the Test Taker file's field: the device icon inside the
+  field, the device name and a chevron, with a status chip beside it. Tapping it opens a
+  bottom sheet of options (Tessera `Overlay` + `RadioGroup`) rather than a desktop
+  listbox; choosing applies it and closes. The sheet is a new pattern: Tessera's
+  Dropdown panel is built for a pointer and a wide screen. In production a native
+  `<select>` styled the same way would hand the choice to the phone's own picker.
+- **While answering**, the overall assessment timer stays in the top bar and the answer
+  time sits on the camera (no "left" label).
+- **Stop recording saves the answer**, with the web flow's copy: a spinner in the player
+  while it saves, then "Your response has been saved successfully." over the picture,
+  then playback. A failed save says so in the player with Try again. There is no Submit
+  and no upload step, and Next, Finish or Start assessment waits for the save. Retake
+  asks first ("Your current answer will be deleted if you choose to retake it"), in
+  Tessera's Modal contained to the phone.
 - **Finish goes straight to saving.** No confirm screen.
 - **Network messages are broadcast banners** under the top bar: "No internet detected"
   (red), weak connection, back online, and the welcome-back note after a reload. After a
@@ -88,8 +100,11 @@ digits visible by default and the "Hide timer" switch on the component's own ter
   carries on, and the current answer starts again. Progress is kept in `sessionStorage`
   where the viewer allows it. After a reload the browser asks for the camera again.
 - **Blocked states** follow the Proctoring Attendee screen: a picture of a phone with
-  the dialog, a plain explanation, **how to fix it in this browser** (Chrome and Safari
-  have different steps), Retry, and the help link pinned at the foot. There are five:
+  the dialog, one line on what is wrong, **how to fix it in this browser** (Chrome and
+  Safari have different steps), Retry, and the help link left-aligned at the foot. The
+  illustration sits in a box as wide as the text, with 16px inside it, matching the 16px
+  gap to the title. The network error and interrupted screens use the same layout.
+  The interrupted screen's action is simply "Try again". There are five:
   the site is blocked, Chrome or Safari itself lacks permission, the camera is in use,
   no camera is found, and no sound from the microphone. There is no "Try with another
   device".
