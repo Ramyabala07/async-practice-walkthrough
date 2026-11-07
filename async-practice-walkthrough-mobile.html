@@ -103,16 +103,35 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
 /* ---------- Device rows ---------- */
 .drows{display:grid;gap:var(--space-2)}
 .drow{display:flex;align-items:center;gap:var(--space-3)}
-/* The device field: Tessera EditableData (select) with the device icon, a fixed width so it
-   doesn't move with the status chip. */
-.devsel{flex:0 0 184px;min-width:0}
-.devsel .ts-editable{width:100%}
-/* EditableData reads as plain text; on touch its doc asks for a visible cue that it can change. */
-.devsel .ts-editable__data::after{content:"";flex:none;width:16px;height:16px;margin-left:var(--space-1);background:var(--text-tertiary);
-  -webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M4 6l4 4 4-4' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/16px no-repeat;
-          mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M4 6l4 4 4-4' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/16px no-repeat;
-  transition:transform var(--duration-fast) var(--ease-out)}
-.devsel .ts-editable__data[aria-expanded="true"]::after{transform:rotate(180deg)}
+/* The device field, as in the Test Taker file: the device icon sits inside the field, then the
+   name and a chevron. Tapping it opens a bottom sheet, not a desktop listbox. */
+.devsel{flex:0 0 184px;min-width:0;display:flex;align-items:center;gap:var(--space-2);height:36px;padding:0 var(--space-2);border:1px solid var(--border-primary);border-radius:var(--radius-lg);
+  background:var(--bg-surface);color:var(--text-primary);font:inherit;text-align:left;cursor:pointer;transition:border-color var(--duration-fast) var(--ease-out)}
+.devsel:hover{border-color:var(--border-strong)}
+.devsel:focus-visible{outline:none;box-shadow:var(--focus-ring)}
+.devsel[aria-expanded="true"]{border-color:var(--interactive-primary)}
+.devsel>svg{flex:none;color:var(--text-tertiary)}
+.devsel>svg:last-child{color:var(--text-tertiary)}
+.devsel-val{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sheet-layer{position:absolute;inset:0;z-index:40}
+.sheet-layer.edge{bottom:-18px}   /* Chrome draws the page edge to edge, behind the gesture bar */
+.sheet{position:absolute;left:0;right:0;bottom:0;z-index:1001;background:var(--bg-surface);border-radius:var(--radius-2xl) var(--radius-2xl) 0 0;box-shadow:var(--shadow-xl);
+  padding:var(--space-2) var(--space-4) var(--space-4);display:grid;gap:var(--space-2);
+  animation:sheet-in var(--duration-moderate) var(--ease-out) both}
+.sheet[data-state="closed"]{transform:translateY(100%);transition:transform var(--duration-base) var(--ease-in)}
+.sheet-layer.edge .sheet{padding-bottom:calc(var(--space-2) + 18px)}
+.sheet-grip{justify-self:center;width:36px;height:4px;border-radius:var(--radius-full);background:var(--border-primary)}
+.sheet-home{position:absolute;left:50%;bottom:7px;width:106px;height:4px;margin-left:-53px;border-radius:2px;background:#18181b;opacity:.75}
+.sheet-head{display:flex;align-items:center;justify-content:space-between}
+.sheet .ts-radio-group__items{display:grid;gap:0}
+.sheet .ts-radio{min-height:48px;display:flex;align-items:center;border-bottom:1px solid var(--border-subtle)}
+.sheet .ts-radio:last-child{border-bottom:0}
+@keyframes sheet-in{from{transform:translateY(100%)}to{transform:translateY(0)}}
+@media (prefers-reduced-motion: reduce){
+  .sheet{animation:fade-in var(--duration-fast) linear both}
+  .sheet[data-state="closed"]{transform:none;opacity:0;transition:opacity var(--duration-fast) linear}
+}
+@keyframes fade-in{from{opacity:0}to{opacity:1}}
 
 /* ---------- Video ---------- */
 .vcard{position:relative;flex:1;min-height:176px;border-radius:var(--radius-lg);overflow:hidden;background:var(--bg-tooltip);isolation:isolate}
@@ -356,7 +375,7 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
     prepSecs:10, prepLeft:10, prepStyle:'button', practicePrep:true, limitSecs:120, timerVisible:true,
     assessing:false, timeLeft:TOTAL_SECS, resuming:false, restoreNote:false,
     saveStep:0, fb:{rating:null, liked:[], text:''},
-    alvyOpen:false, alvyMsgs:[], alvyTyping:false, sheet:null, retakeAsk:false, savedFlash:false,
+    alvyOpen:false, alvyMsgs:[], alvyTyping:false, sheet:null, videoMode:'ok', videoState:'ok', linkCopied:false, retakeAsk:false, savedFlash:false,
     recSecs:0, cam:0, mic:0, count:5, waitItems:['done', 'act', 'pend'],
     stream:null, audioCtx:null, analyser:null, abuf:null, level:0, realFailed:false,
     recorder:null, chunks:[], clipURL:null, poster:null, replayOK:false,
@@ -386,11 +405,12 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
     S.dialog = null;
     S.pendingInterrupt = false;
     S.qExpanded = false;
-    S.retakeAsk = false; S.savedFlash = false;
+    S.sheet = null; S.retakeAsk = false; S.savedFlash = false; S.waitingPrompt = false;
     if (!KEEP_CLIP.includes(next)) dropClip();
     if (next === 'wait') S.waitItems = ['done', 'act', 'pend'];
     if (next === 'test'){ S.heard = false; S.micFailed = false; }
-    if (next === 'question'){ S.prepLeft = S.prepSecs; S.clipDone = false; }
+    if (next === 'question'){ S.prepLeft = S.prepSecs; S.clipDone = false; S.videoState = S.videoMode === 'fail' ? 'failed' : 'ok'; }
+    S.linkCopied = false;
     if (next === 'record'){ S.recSecs = 0; S.hidePreview = false; S.lastFrame = null; }
     if (next === 'countdown') S.count = 5;
     if (next === 'saving') S.saveStep = 0;
@@ -447,8 +467,12 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
   function clipEnded(){ if (S.clipDone) return; S.clipDone = true; startPrep(); }
 
   // After loading: a first visit goes to onboarding; a reload goes straight back to the question.
+  // Production checks the browser itself: !navigator.mediaDevices?.getUserMedia. That tests what
+  // the browser can do rather than guessing from its name. The prototype panel simulates it.
+  const noCameraAPI = () => S.permMode === 'noapi';
   function afterLoad(){
     if (P.finished){ go('thanks'); return; }
+    if (noCameraAPI()){ S.blockedReason = 'noapi'; S.blockedFrom = 'permission'; go('blocked'); return; }
     if (P.onboarded){
       S.assessing = true; S.timeLeft = P.timeLeft; startAssessTimer();
       if (P.qi >= QS.length){ go('saving'); return; }
@@ -496,10 +520,18 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
   }
 
   /* ---------- Permission: the screen primes it, the platform asks ---------- */
+  const NO_PROMPT_MS = 10000;
   function askPermission(){
     S.askFrom = S.state;
     if (S.dialog) return;
     if (S.permMode === 'granted'){ return granted(); }
+    if (S.permMode === 'noapi'){ S.blockedReason = 'noapi'; if (S.askFrom !== 'blocked') S.blockedFrom = S.askFrom; return go('blocked'); }
+    if (S.permMode === 'silent'){
+      // Nothing comes back: no allow, no deny, no error. Today this is the funnel's silent drop.
+      S.waitingPrompt = true; render();
+      later(() => { S.waitingPrompt = false; S.blockedReason = 'noprompt'; if (S.askFrom !== 'blocked') S.blockedFrom = S.askFrom; go('blocked'); }, NO_PROMPT_MS);
+      return;
+    }
     if (canUseCamera()){
       // A real camera is reachable (the file opened directly in a browser): let the real
       // browser ask, so what the candidate sees is genuinely their own prompt.
@@ -920,6 +952,14 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
         text:`${b} can’t detect a camera on this phone.`, steps:NOCAM_STEPS[p]};
       case 'nomic': return {title:'We can’t hear you', art:{title:'No sound', items:[{icon:'mic', label:'Microphone', slash:true, warn:true}]}, topic:'mic', link:'How to fix your microphone',
         text:'No sound is reaching your microphone.', steps:NOMIC_STEPS[p]};
+      case 'noapi': return {title:`Open this link in ${b}`, art:{title:'Camera not available', items:[{icon:'video', label:'Not available', slash:true, warn:true}]}, topic:'noapi', link:'Need help?', copyLink:true,
+        text:'This browser can’t use your camera. It’s often the one built into an app like Gmail or LinkedIn.',
+        steps:[`Tap <b>Copy link</b>, then paste it into ${b}’s address bar.`, `Or use the app’s menu and choose <b>Open in ${b}</b>.`]};
+      case 'noprompt': return {title:'We didn’t get a response', art:{title:'No request shown', slash:true}, topic:'noprompt', link:'Need help?',
+        text:`${b} didn’t show the camera request.`,
+        steps:p === 'ios'
+          ? ['Tap <b>aA</b> › <b>Website Settings</b> and set <b>Camera</b> and <b>Microphone</b> to <b>Ask</b>.', 'Opened this from an app? Open it in Safari instead.', 'Then tap <b>Retry</b>.']
+          : ['Tap the lock icon › <b>Permissions</b> and reset <b>Camera</b> and <b>Microphone</b>.', 'Opened this from an app? Open it in Chrome instead.', 'Then tap <b>Retry</b>.']};
       default: return {title:'Camera and microphone blocked', art:{title:'Permissions blocked', slash:true}, topic:'blocked', link:'How to allow access',
         text:`${b} is blocking your camera and microphone for this site.`, steps:SITE_STEPS[p]};
     }
@@ -967,6 +1007,16 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
       ask:'Hi, can I record an answer again?',
       search:'retaking a video answer', title:'Retaking a video answer',
       steps:['After you stop recording, watch your answer back and tap <b>Retake</b> if you want another go.', 'Your new recording replaces the old one when it saves.', 'If a call or another app interrupts a recording, that answer isn’t saved and you’ll start the question again. Earlier answers are kept.']
+    };
+    if (topic === 'noapi') return {
+      ask:'Hi, it says to open the link in another browser. Can you help?',
+      search:'opening the assessment in your browser', title:`Opening the assessment in ${name}`,
+      steps:[`Apps like Gmail or LinkedIn open links in their own browser, which can’t use the camera.`, `Tap <b>Copy link</b>, open ${name}, and paste it into the address bar.`, 'Your progress is saved, so you’ll pick up where you left off.']
+    };
+    if (topic === 'noprompt') return {
+      ask:'Hi, I tapped Continue but nothing asked for my camera. Can you help?',
+      search:'camera request not showing', title:'When the camera request doesn’t appear',
+      steps:[...(S.platform === 'ios' ? ['Tap <b>aA</b> › <b>Website Settings</b> and set Camera and Microphone to <b>Ask</b>.'] : ['Tap the lock icon › <b>Permissions</b> and reset Camera and Microphone.']), `If you opened the link from an app, open it in ${name} instead.`, 'Then tap <b>Retry</b>.']
     };
     if (topic === 'other') return {
       ask:'Hi, I have a different question.',
@@ -1112,13 +1162,42 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
   function DeviceRow({kind, status}){
     const cam = kind === 'cam', names = cam ? CAMS : MICS, idx = cam ? S.cam : S.mic;
     return html`<div class="drow">
-      <div class="devsel">
-        <${EditableData} type="select" aria-label=${cam ? 'Camera' : 'Microphone'}
-          icon=${html`<${Icon} name=${cam ? 'video-camera' : 'microphone'} size=${20} />`}
-          options=${names.map((n, i) => ({value:String(i), label:n}))} value=${String(idx)}
-          onValueChange=${v => { if (cam) S.cam = +v; else S.mic = +v; render(); }} />
-      </div>
+      <button type="button" class="devsel" aria-haspopup="dialog" aria-expanded=${S.sheet === kind}
+        aria-label=${`${cam ? 'Camera' : 'Microphone'}: ${names[idx]}. Change`} onClick=${() => { S.sheet = kind; render(); }}>
+        <${Icon} name=${cam ? 'video-camera' : 'microphone'} size=${16} />
+        <span class="p2 devsel-val">${names[idx]}</span>
+        <${Icon} name="chevron-down" size=${16} />
+      </button>
       <${DevStatus} s=${status} />
+    </div>`;
+  }
+  // A phone picks from a list in a sheet from the bottom, in thumb reach, the way both platforms
+  // present a choice. Choosing applies it and closes the sheet. (New pattern: Tessera's Dropdown
+  // panel is built for a pointer and a wide screen.)
+  function DeviceSheet(){
+    const open = !!S.sheet;
+    const kind = useRef('cam');
+    if (S.sheet) kind.current = S.sheet;
+    const {mounted, state} = usePresence(open, 200);
+    const ref = useRef(null);
+    const close = () => { S.sheet = null; render(); };
+    useEffect(() => { if (open) ref.current?.querySelector('input:checked')?.focus({preventScroll:true}); }, [open]);
+    if (!mounted) return null;
+    const cam = kind.current === 'cam', names = cam ? CAMS : MICS, idx = cam ? S.cam : S.mic;
+    return html`<div class=${'sheet-layer' + (S.platform === 'android' ? ' edge' : '')}>
+      <${Overlay} open=${open} portal=${false} onClick=${close} />
+      <section class="sheet" ref=${ref} data-state=${open ? 'open' : 'closed'} role="dialog" aria-modal="true" aria-labelledby="sheet-title">
+        <div class="sheet-grip" aria-hidden="true"></div>
+        <div class="sheet-head">
+          <h2 id="sheet-title" class="h5 ttl">${cam ? 'Choose a camera' : 'Choose a microphone'}</h2>
+          <${IconButton} variant="tertiary-gray" icon="xmark-regular" aria-label="Close" onClick=${close} />
+        </div>
+        <${RadioGroup} aria-labelledby="sheet-title" value=${String(idx)}
+          onValueChange=${v => { if (cam) S.cam = +v; else S.mic = +v; S.sheet = null; render(); }}>
+          ${names.map((n, i) => html`<${Radio} key=${i} value=${String(i)} label=${n} />`)}
+        <//>
+        ${S.platform === 'android' ? html`<span class="sheet-home" aria-hidden="true"></span>` : null}
+      </section>
     </div>`;
   }
 
@@ -1179,7 +1258,9 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
 
   // Allow access: the picture, the reason, Continue. The browser's own dialog comes next.
   function PermissionScreen(){
-    return html`<${Page} foot=${html`<${Cta} onClick=${askPermission}>Continue<//>`}>
+    return html`<${Page} foot=${S.waitingPrompt
+        ? html`<${Cta} disabled leadingIcon=${html`<${Spinner} size=${16} color="white" label=${null} />`}>Waiting for your browser…<//>`
+        : html`<${Cta} onClick=${askPermission}>Continue<//>`}>
       <div class="art"><${PhoneArt} art=${{title:'Allow access'}} /></div>
       <${Head} title="Allow camera and microphone" />
       <ul class="bullets p2">
@@ -1195,8 +1276,11 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
   // it in this browser, Retry, and the help link at the foot.
   function BlockedScreen(){
     const c = blockedCopy();
+    const copy = () => { try { navigator.clipboard?.writeText(location.href)?.catch(() => {}); } catch (e) {} S.linkCopied = true; render(); };
     return html`<${Page} foot=${html`<${Fragment}>
-        <${Cta} onClick=${retryBlocked}>Retry<//>
+        ${c.copyLink
+          ? html`<${Cta} leadingIcon=${html`<${Icon} name=${S.linkCopied ? 'check' : 'copy'} />`} onClick=${copy}>${S.linkCopied ? 'Link copied' : 'Copy link'}<//>`
+          : html`<${Cta} onClick=${retryBlocked}>Retry<//>`}
         <${FootLink} icon="help-circle" onClick=${() => helpFlow(c.topic)}>${c.link}<//>
       <//>`}>
       <div class="art"><${PhoneArt} art=${c.art} /></div>
@@ -1319,6 +1403,17 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
     }, [playing]);
     const toggle = () => { if (!playing && t >= m.len) setT(0); setPlaying(p => !p); };
     const line = (t > 0 && t < m.len) ? [...m.captions].reverse().find(([at]) => t >= at)?.[1] : null;
+    // A video that doesn't load would otherwise lock Start recording for good.
+    if (S.videoState !== 'ok') return html`<div class="clip">
+      <canvas ref=${cref} aria-hidden="true"></canvas>
+      <div class="vstate" role=${S.videoState === 'failed' ? 'alert' : 'status'}>
+        ${S.videoState === 'loading'
+          ? html`<${Spinner} size=${32} color="white" label="Loading the video" />`
+          : html`<${Fragment}><${Icon} name="circle-exclamation" size=${24} />
+              <p class="p2 lines"><span>The video didn’t load.</span><span>Check your connection and try again.</span></p>
+              <${Button} onClick=${() => { S.videoState = 'loading'; render(); setTimeout(() => { S.videoState = 'ok'; render(); }, 1500); }}>Try again<//><//>`}
+      </div>
+    </div>`;
     return html`<div class="clip">
       <canvas ref=${cref} role="img" aria-label=${`Video: ${m.caption}`}></canvas>
       ${(!playing && t === 0) ? html`<div class="vcenter"><${IconButton} variant="overlay" shape="round" aria-label="Play the question" icon=${html`<${Fragment}>${svg('play', 20)}<//>`} onClick=${toggle} /></div>` : null}
@@ -1435,7 +1530,7 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
       <div class="centre">
         <div class="head" style=${{justifyItems:'center'}}>
           <h1 class="h4 ttl">Starting your assessment</h1>
-          <p class="p2 lines"><span>Get comfortable.</span><span>The timer starts with the first question.</span></p>
+          <p class="p2 lines"><span>Turn on Do Not Disturb so calls can’t stop a recording.</span><span>The timer starts with the first question.</span></p>
         </div>
         <${ProgressIndicator} type="circular" value=${S.count} max=${5} valueText=${S.count} label="Starting your assessment in" />
       </div><//>`;
@@ -1611,7 +1706,7 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
     wait:'#1 + #4: loading steps replace the blank page, centred. After a reload it says it is picking up where you left off.',
     neterror:'After a long loss of connection the page is replaced by an error screen. Retry reloads: saved answers and onboarding are kept, the answer in progress is not.',
     permission:'Same order as web. Continue hands off to the browser’s own dialog, so it says Continue, not Allow: the real Allow comes next and two in a row reads as being asked twice.',
-    blocked:'Five blocked states in the Proctoring Attendee layout. Each says what is wrong, walks through the fix in this browser, and offers Retry and a help link.',
+    blocked:'Seven blocked states. Two catch today’s silent drop: a browser with no camera access (often an app’s built-in browser: Copy link) and a request that never appears (after 10 seconds).',
     test:'The camera fills the space between the solid top bar and footer. Continue stays locked until the mic is heard.',
     question:'The question comes first, with a preparation countdown, then the camera opens. Two treatments to compare: the button fills, or a bar above it.',
     record:'Stop recording sits where Start recording was. The top bar and footer stay solid and the camera fills between them. A lost connection shows a banner here.',
@@ -1701,12 +1796,13 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
           <//>
         </div>`)}
         <${Seg} label="Device" k="platform" value=${S.platform} opts=${[['android', 'Chrome'], ['ios', 'iPhone']]} />
-        <${Seg} label="Blocked screen shows" k="blockedReason" value=${S.blockedReason} opts=${[['denied', 'Site'], ['os', 'App'], ['inuse', 'In use'], ['nocam', 'No cam'], ['nomic', 'No mic']]} />
-        <${Seg} label="Site permission" k="permMode" value=${S.permMode} opts=${[['ask', 'Asks'], ['granted', 'Allowed'], ['inuse', 'Camera in use']]} />
+        <${Seg} label="Blocked screen shows" k="blockedReason" value=${S.blockedReason} opts=${[['denied', 'Site'], ['os', 'App'], ['inuse', 'In use'], ['nocam', 'No cam'], ['nomic', 'No mic'], ['noapi', 'No camera API'], ['noprompt', 'No request']]} />
+        <${Seg} label="Site permission" k="permMode" value=${S.permMode} opts=${[['ask', 'Asks'], ['granted', 'Allowed'], ['inuse', 'Camera in use'], ['noapi', 'No camera API'], ['silent', 'Never asks']]} />
         <${Seg} label="Chrome's app permission" k="osGranted" value=${S.osGranted ? 'yes' : 'no'} opts=${[['no', 'Asks the OS'], ['yes', 'Already has it']]} hidden=${S.platform !== 'android'} />
         <${Seg} label="Voice check" k="voiceMode" value=${S.voiceMode} opts=${[['heard', 'Voice heard'], ['silent', 'Silent']]} />
         <${Seg} label="Loading" k="loadMode" value=${S.loadMode} opts=${[['ok', 'Succeeds'], ['fail', 'Fails']]} />
         <${Seg} label="Connection" k="netMode" value=${S.netMode} opts=${[['online', 'Online'], ['poor', 'Weak'], ['offline', 'Offline']]} />
+        <${Seg} label="Question video" k="videoMode" value=${S.videoMode} opts=${[['ok', 'Loads'], ['fail', 'Fails']]} />
         <${Seg} label="Saving the answer" k="saveMode" value=${S.saveMode} opts=${[['ok', 'Saves'], ['slow', 'Slow'], ['fail', 'Fails']]} />
         <${Seg} label="Prep countdown" k="prepStyle" value=${S.prepStyle} opts=${[['button', 'Fills button'], ['bar', 'Bar']]} />
         <${Seg} label="Prep time" k="prepSecs" value=${String(S.prepSecs)} opts=${[['5', '5s'], ['10', '10s'], ['30', '30s']]} />
@@ -1749,7 +1845,7 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
     useEffect(() => {
       const onKey = e => {
         if (e.key !== 'Escape') return;
-        if (S.alvyOpen) closeAlvy();
+        if (S.sheet){ S.sheet = null; render(); } else if (S.alvyOpen) closeAlvy();
       };
       document.addEventListener('keydown', onKey);
       return () => document.removeEventListener('keydown', onKey);
@@ -1762,6 +1858,7 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
             <${ChromeTop} />
             <div id="viewport">
               <div class="topstack"><${TopNav} /><${Broadcast} /></div>
+              <${DeviceSheet} />
               <main id="view">
                 <${Screen} />
                 ${S.alvyOpen ? html`<section class="alvy" aria-label="Chat with Alvy">
