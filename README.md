@@ -94,7 +94,7 @@ digits visible by default and the "Hide timer" switch on the component's own ter
   starting by itself is the one thing that surprises people in the real thing; rehearsing
   it while nothing is scored is the point. The cost is a little pressure on first
   contact, which "Not scored" and unlimited re-recording absorb.
-- **Device selection** uses the Test Taker file's field: the device icon inside the
+- **Device selection** uses the Test Taker file's field (a fixed 184px): the device icon inside the
   field, the device name and a chevron, with a status chip beside it. Tapping it opens a
   bottom sheet of options (Tessera `Overlay` + `RadioGroup`) rather than a desktop
   listbox; choosing applies it and closes. The sheet dims the whole page, runs to the
@@ -139,14 +139,27 @@ digits visible by default and the "Hide timer" switch on the component's own ter
   primer; the microphone help screen's Retry returns to the device check. The
   illustration sits in a box as wide as the text, with 16px inside it, matching the 16px
   gap to the title. The network error and interrupted screens use the same layout.
-  The interrupted screen's action is simply "Try again". There are five:
+  The interrupted screen's action is simply "Try again". There are seven:
   the site is blocked, Chrome or Safari itself lacks permission, the camera is in use,
-  no camera is found, and no sound from the microphone. There is no "Try with another
+  no camera is found, no sound from the microphone, and two that catch the funnel's silent
+  drop (below). There is no "Try with another
   device".
 - **Alvy opens as a full-page overlay** under the top bar, closed with the X, so the
   timer and the bar stay visible. It offers topics, then answers with a short article.
-- **No in-app browser screen.** It was removed by decision. Detecting a webview from the
-  user agent is a guess, and the flow does not depend on it.
+- **The silent drop gets two states.** In the funnel, most candidates lost at the camera step
+  leave no event: no allow, no deny, no error. Two causes are covered:
+  - *The browser has no camera access*, often the one built into an app like Gmail or
+    LinkedIn. Production checks the browser itself on load
+    (`navigator.mediaDevices?.getUserMedia`), before the primer, rather than guessing from
+    the user agent, which was the objection to the earlier in-app browser screen. The
+    screen says to open the link in Safari or Chrome, with **Copy link** as its action.
+  - *The request never appears.* Continue shows "Waiting for your browser…"; after 10
+    seconds with no answer the candidate sees "We didn't get a response" with the fix and
+    Retry.
+- **Before the first question**, the countdown says to turn on Do Not Disturb, because a
+  call or notification on a phone stops the recording and costs the answer.
+- **A question video that fails to load** shows "The video didn't load" with Try again
+  inside the player, instead of leaving Start recording locked for good.
 - **The clip plays back afterwards.** The device check only proves the live preview
   works; playback proves the recording did. Recorded with MediaRecorder, falling back
   to the last frame where that API is unavailable.
@@ -192,8 +205,11 @@ full rather than left as edge cases.
 ### Open questions and known gaps
 
 - **Instrumentation gap.** Nothing today distinguishes "dialog never shown" from "device
-  error" from "abandoned". Until it does, the drop at the permission step can only be
-  guessed at. This is a product ask, not a design one.
+  error" from "abandoned". The events to add: permission requested; permission result
+  (granted, denied, error name, timed out); camera API missing; practice completed;
+  recording interrupted (reason); answer save failed or retried; connection lost
+  (duration); resumed after reload. Until they exist, the effect of this redesign can't be
+  measured. This is a product ask, not a design one.
 - **Real values.** The preparation time (10 seconds here, 5 to 30 in the panel), the
   answer limit (2 minutes), the assessment length (20 minutes), the passing score and the
   point at which a lost connection becomes the error screen (15 seconds here) are
