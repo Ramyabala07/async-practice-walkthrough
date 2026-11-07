@@ -62,9 +62,9 @@ There is no multiple choice. Both types end in the same record flow.
 
 Both types, and the practice question, use one grey card that fills the screen down to
 the footer: the header ("Question n of 2", or "Practice question" with a Not scored chip),
-a divider, three plain steps in the order things happen (watch or read the question, the
-prep time and that recording starts on its own, the answer time and retakes), then the
-question as text or as the video. The steps never change while the screen is open, so the
+a divider, the question as text or as the video, then three plain steps in the order
+things happen (watch or read the question, the prep time and that recording starts on its
+own, the answer time and retakes). The steps never change while the screen is open, so the
 card does not reflow when the video ends. Rules come first
 because the prep countdown starts the moment the screen opens, so the candidate needs
 them before they read. The review uses the same card with the recorded answer below the
@@ -127,8 +127,9 @@ digits visible by default and the "Hide timer" switch on the component's own ter
   carries on, and the current answer starts again. Progress is kept in `sessionStorage`
   where the viewer allows it. After a reload the browser asks for the camera again.
 - **Blocked states** follow the Proctoring Attendee screen: a picture of a phone with
-  the dialog, one line on what is wrong, **how to fix it in this browser** (Chrome and
-  Safari have different steps), Retry, and the help link centred at the foot. The
+  the dialog, the title, then one bulleted list: what is wrong, then **how to fix it in
+  this browser** (Chrome and Safari have different steps). Retry and the help link sit
+  centred at the foot. The
   illustration sits in a box as wide as the text, with 16px inside it, matching the 16px
   gap to the title. The network error and interrupted screens use the same layout.
   The interrupted screen's action is simply "Try again". There are five:
