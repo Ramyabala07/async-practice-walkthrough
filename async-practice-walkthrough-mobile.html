@@ -245,6 +245,12 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
 /* ---------- Alvy: a full-page overlay under the top bar, closed with the X ---------- */
 .alvy{position:absolute;inset:0;z-index:30;display:flex;flex-direction:column;background:var(--bg-surface)}
 .alvy>*{flex:1;min-height:0}
+/* Mobile composer: Tessera's ChatInput is laid out for desktop (field, then an action row).
+   On a phone the send button sits beside the field in one 52px row. */
+.alvy .ts-chat-input__main{flex-direction:row;align-items:flex-end;gap:var(--space-2);padding:var(--space-2) var(--space-2) var(--space-2) var(--space-4)}
+.alvy .ts-chat-input__field{flex:1;min-width:0;padding:var(--space-2) 0}
+.alvy .ts-chat-input__actions{gap:0}
+.alvy .ts-chat-input__tools:empty{display:none}
 
 /* ---------- Prototype controls (not part of the design) ---------- */
 .proto{flex:none;position:relative;z-index:70;width:300px;height:100%;overflow:auto;display:flex;flex-direction:column;background:var(--bg-surface);border-left:1px solid var(--border-subtle);color:var(--text-body)}
@@ -1785,7 +1791,7 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
                 ${S.alvyOpen ? html`<section class="alvy" aria-label="Chat with Alvy">
                   <${ChatPanel} header=${{title:'Chat with Alvy', icon:html`<${Icon} name="sparkle" size=${18} />`, onClose:closeAlvy, closeLabel:'Close chat'}}
                     messages=${S.alvyMsgs} typing=${S.alvyTyping ? ['Alvy'] : null}
-                    composer=${{onSend:sendChat, placeholder:'Ask a question…'}} />
+                    composer=${{onSend:sendChat, placeholder:'Ask a question…', maxRows:4}} />
                 </section>` : null}
                 ${S.dialog ? html`<${Dialog} />` : null}
                 <${Modal} open=${S.retakeAsk} portal=${false} title="Retake response"
