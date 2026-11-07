@@ -134,7 +134,9 @@ digits visible by default and the "Hide timer" switch on the component's own ter
 - **Blocked states** follow the Proctoring Attendee screen: a picture of a phone with
   the dialog, the title, then one bulleted list: what is wrong, then **how to fix it in
   this browser** (Chrome and Safari have different steps). Retry and the help link sit
-  centred at the foot. The
+  centred at the foot. Retry asks again from the blocked screen itself, so a candidate who
+  fixed the setting goes straight on to the device check rather than back through the
+  primer; the microphone help screen's Retry returns to the device check. The
   illustration sits in a box as wide as the text, with 16px inside it, matching the 16px
   gap to the title. The network error and interrupted screens use the same layout.
   The interrupted screen's action is simply "Try again". There are five:

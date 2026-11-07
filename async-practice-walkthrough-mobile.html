@@ -511,7 +511,7 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
         if (err?.fallback){ S.dialog = 'site'; return render(); }
         S.blockedReason = (err.name === 'NotReadableError' || err.name === 'AbortError') ? 'inuse' : (err.name === 'NotFoundError' || err.name === 'OverconstrainedError') ? 'nocam' : 'denied';
         S.permitted = S.blockedReason === 'inuse';
-        S.blockedFrom = S.askFrom;
+        if (S.askFrom !== 'blocked') S.blockedFrom = S.askFrom;
         go('blocked');
       });
       return;
@@ -534,18 +534,22 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
     S.dialog = null;
     S.permitted = false;
     S.blockedReason = atOS ? 'os' : 'denied';
-    S.blockedFrom = S.askFrom;
+    if (S.askFrom !== 'blocked') S.blockedFrom = S.askFrom;
     go('blocked');
   }
   function granted(){
-    if (S.permMode === 'inuse' && !S.inuseCleared){ S.blockedReason = 'inuse'; S.permitted = true; S.blockedFrom = S.askFrom; return go('blocked'); }
+    if (S.permMode === 'inuse' && !S.inuseCleared){ S.blockedReason = 'inuse'; S.permitted = true; if (S.askFrom !== 'blocked') S.blockedFrom = S.askFrom; return go('blocked'); }
     S.permitted = true;
-    const from = S.askFrom; S.askFrom = null;
+    const from = S.askFrom === 'blocked' ? S.blockedFrom : S.askFrom; S.askFrom = null;
     go(from === 'question' ? 'record' : 'test');
   }
+  // Retry asks again from the blocked screen itself, so a candidate who fixed the setting goes
+  // straight on, instead of back through the Allow access primer they've already read.
   function retryBlocked(){
-    S.inuseCleared = true; S.permitted = false;
-    go(S.blockedFrom === 'question' ? 'question' : 'permission');
+    S.inuseCleared = true;
+    if (S.blockedReason === 'nomic' && S.blockedFrom === 'test') return go('test');   // no new permission needed
+    S.permitted = false;
+    askPermission();
   }
 
   /* ---------- Interruption: the half of mobile the happy path never shows ----------
