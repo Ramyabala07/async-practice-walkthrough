@@ -56,16 +56,16 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
 #viewport{flex:1;min-height:0;position:relative;display:flex;flex-direction:column;background:var(--bg-surface)}
 .topstack{flex:none;position:relative;z-index:6}
 #view{flex:1;min-height:0;position:relative;display:flex;flex-direction:column}
-/* Camera screens go full page: the picture runs behind the top bar and the footer. */
-#viewport.camfull .topstack{position:absolute;top:0;left:0;right:0}
-#viewport.camfull .topstack>header{background:rgba(255,255,255,.8);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px)}
-#viewport.camfull #view{position:absolute;inset:0}
 
+/* One spacing system on every screen: 16 around the page and the footer, 16 between blocks,
+   8 between a title and its text, 12 inside a card. */
 .pg{flex:1;min-height:0;display:flex;flex-direction:column;background:var(--bg-surface)}
 .pg-body{flex:1;min-height:0;overflow:auto;padding:var(--space-4);display:flex;flex-direction:column;gap:var(--space-4)}
+.pg-body>*{flex-shrink:0}
 .pg-body.mid{justify-content:center}
-/* The footer is fixed: it never scrolls away, and it holds every call to action at full width. */
-.pg-foot{flex:none;display:grid;gap:var(--space-2);padding:var(--space-3) var(--space-4) var(--space-4);background:var(--bg-surface);border-top:1px solid var(--border-subtle)}
+/* Camera screens: the top bar and the footer stay solid; the camera fills the space between. */
+.pg-body.cam{padding:0;gap:0;overflow:hidden;position:relative;background:var(--bg-tooltip)}
+.pg-foot{flex:none;display:grid;gap:var(--space-2);padding:var(--space-4);background:var(--bg-surface);border-top:1px solid var(--border-subtle)}
 .pg-foot .note{margin:0;text-align:center}
 .foot-link{display:flex;justify-content:center}
 .head{display:grid;gap:var(--space-2)}
@@ -75,19 +75,19 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
 .ttl{margin:0;color:var(--text-primary)}
 .ttl.err{color:var(--error-emphasis)}
 .muted{color:var(--text-subtle)}
-.centre{display:flex;flex-direction:column;align-items:center;gap:var(--space-3);text-align:center}
+.centre{display:flex;flex-direction:column;align-items:center;gap:var(--space-4);text-align:center}
+.centre>*{margin:0}
 .mark{flex:none;width:48px;height:48px;border-radius:var(--radius-full);display:flex;align-items:center;justify-content:center;background:var(--bg-accent);color:var(--interactive-link)}
 .mark.err{background:var(--error-surface);color:var(--error-emphasis)}
 .steps{margin:0;padding-left:var(--space-5);display:grid;gap:var(--space-2);color:var(--text-body)}
 .steps b{font-weight:500;color:var(--text-primary)}
-.checklist{list-style:none;margin:0;padding:0;width:100%;text-align:left}
+.checklist{list-style:none;margin:0;padding:0;width:fit-content;max-width:100%;text-align:left}
 .checklist li{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-2) 0;color:var(--text-primary)}
 .checklist li.pend{color:var(--text-subtle)}
 .checklist li.done svg{color:var(--success-strong)}
 .dot{flex:none;width:16px;height:16px;border-radius:50%;border:1.5px solid var(--border-primary)}
 .art{flex:none;display:flex;justify-content:center}
 .art svg{display:block;width:100%;max-width:320px;height:auto}
-.art img{display:block;width:100%;max-width:260px;height:auto}
 .status-line{display:flex;align-items:flex-start;gap:var(--space-2);font:500 14px/20px var(--font-sans);color:var(--text-body)}
 .status-line.ok{color:var(--success-strong)}
 .status-line.late{color:var(--warning-emphasis)}
@@ -99,13 +99,12 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
 .drow{display:grid;grid-template-columns:20px minmax(0,1fr) auto;align-items:center;gap:var(--space-2)}
 .drow>svg{color:var(--text-tertiary)}
 
-/* ---------- Video: a card on light screens, a full page on camera screens ---------- */
-.vcard{position:relative;flex:1;min-height:176px;border-radius:var(--radius-xl);overflow:hidden;background:var(--bg-tooltip)}
+/* ---------- Video ---------- */
+.vcard{position:relative;flex:1;min-height:176px;border-radius:var(--radius-lg);overflow:hidden;background:var(--bg-tooltip)}
 .vmedia{position:absolute;inset:0}
 .vmedia.hidden{visibility:hidden}
 .vmedia video,.vmedia canvas,.vmedia img{display:block;width:100%;height:100%;object-fit:cover}
 .vmedia video.mirror{transform:scaleX(-1)}
-.vmedia.frozen video,.vmedia.frozen img,.vmedia.frozen canvas{filter:grayscale(.55) brightness(.55)}
 .vmsg{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:var(--space-2);padding:var(--space-6);text-align:center;color:var(--text-on-primary)}
 .vtop{position:absolute;left:var(--space-3);right:var(--space-3);top:var(--space-3);display:flex;justify-content:space-between;align-items:center;gap:var(--space-2);z-index:2}
 .pill{display:inline-flex;align-items:center;gap:var(--space-1);background:var(--bg-surface);border-radius:var(--radius-full);padding:0 var(--space-2);min-height:28px}
@@ -114,29 +113,27 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
 .vstrip{position:absolute;left:0;right:0;bottom:0;z-index:2;display:flex;align-items:center;justify-content:space-between;gap:var(--space-3);padding:var(--space-2) var(--space-3);
   background:var(--bg-overlay-primary);color:var(--text-on-primary);
   --text-tertiary:var(--text-on-primary);--text-primary:var(--text-on-primary);--interactive-link:var(--blue-300)}
-.vstrip .say{font:500 14px/20px var(--font-sans);min-width:0}
 .vstrip .grp{display:flex;align-items:center;gap:var(--space-2);min-width:0}
 .vcenter{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;z-index:2;pointer-events:none}
 .vcenter>*{pointer-events:auto}
-
-/* Full-page camera: the picture fills the viewport; the footer and a floating card sit on top. */
-.camlayer{position:absolute;inset:0;background:var(--bg-tooltip)}
-.camtop{position:absolute;left:var(--space-3);right:var(--space-3);top:calc(var(--tsh,56px) + var(--space-3));display:flex;justify-content:space-between;align-items:center;gap:var(--space-2);z-index:4}
-.camfoot{position:absolute;left:0;right:0;bottom:0;z-index:4;display:grid;gap:var(--space-3);padding:var(--space-10) var(--space-4) var(--space-4);
-  background:linear-gradient(to top,rgba(24,24,27,.9) 45%,rgba(24,24,27,0))}
-.float{background:var(--bg-surface);border-radius:var(--radius-xl);padding:var(--space-3) var(--space-4);box-shadow:var(--shadow-lg);display:grid;gap:var(--space-2)}
+.camtop{position:absolute;left:var(--space-4);right:var(--space-4);top:var(--space-4);display:flex;justify-content:space-between;align-items:center;gap:var(--space-2);z-index:4}
+.camcard{position:absolute;left:var(--space-4);right:var(--space-4);bottom:var(--space-4);z-index:4}
+.float{background:var(--bg-surface);border-radius:var(--radius-xl);padding:var(--space-4);box-shadow:var(--shadow-lg);display:grid;gap:var(--space-2)}
 .float p{margin:0}
 .wavebar{display:flex;align-items:center;justify-content:space-between;gap:var(--space-3);padding:var(--space-2) var(--space-3);border-radius:var(--radius-lg);background:var(--bg-muted);color:var(--text-primary)}
-.qline{display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden;color:var(--text-primary)}
-
-/* ---------- Questions ---------- */
-.qmeta{display:flex;align-items:center;justify-content:space-between;color:var(--text-subtle)}
+/* The question text is always full strength: expanding it must not change its colour. */
 .qtext{margin:0;color:var(--text-primary)}
-.infobox{background:var(--bg-muted);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);padding:var(--space-3);display:grid;gap:var(--space-1)}
+.qline{display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden}
+
+/* ---------- The assessment card, as in the Test Taker file ---------- */
+.qcard{background:var(--bg-muted);border:1px solid var(--border-subtle);border-radius:var(--radius-xl);display:flex;flex-direction:column;min-height:0}
+.qcard-head{display:flex;align-items:center;justify-content:space-between;padding:var(--space-1) var(--space-3);border-bottom:1px solid var(--border-subtle);color:var(--text-primary)}
+.qcard-body{padding:var(--space-4) var(--space-3);display:grid;gap:var(--space-4)}
+.qcard-body p{margin:0}
+.infobox{background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);padding:var(--space-3);display:grid;gap:var(--space-1)}
 .infobox p{margin:0}
-.clip{position:relative;flex:none;aspect-ratio:16/10;width:100%;border-radius:var(--radius-xl);overflow:hidden;background:var(--bg-tooltip)}
+.clip{position:relative;flex:none;aspect-ratio:16/10;width:100%;border-radius:var(--radius-lg);overflow:hidden;background:var(--bg-tooltip)}
 .clip canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
-.transcript{margin:0;padding:var(--space-3);background:var(--bg-muted);border-radius:var(--radius-lg);color:var(--text-body)}
 
 /* The preparation countdown on the button: a darker blue fills left to right as the time runs out. */
 @property --fill{syntax:'<percentage>';inherits:true;initial-value:0%}
@@ -145,17 +142,26 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
 .prepfill .ts-button--primary:hover:not(:disabled){background:linear-gradient(90deg,var(--interactive-click) var(--fill),var(--interactive-hover) var(--fill))}
 .prepbar{display:grid;gap:var(--space-1)}
 
-/* ---------- Wrap-up ---------- */
-.bigscore{font:600 40px/48px var(--font-sans);color:var(--text-primary);margin:0}
-.rrow{display:flex;align-items:center;justify-content:space-between;gap:var(--space-3);padding:var(--space-2) 0;border-top:1px solid var(--border-subtle)}
-.rrow:first-child{border-top:0}
-.rrow .l{display:grid;min-width:0}
-.cert{border:2px solid var(--border-primary);border-radius:var(--radius-lg);padding:var(--space-4);text-align:center;background:var(--bg-muted);display:grid;gap:var(--space-1)}
-.cert .t{font:600 20px/28px var(--font-sans);color:var(--text-primary)}
-.rate{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:var(--space-1)}
-.rate button{display:grid;justify-items:center;gap:2px;padding:var(--space-2) 2px;border:1px solid var(--border-subtle);border-radius:var(--radius-lg);background:var(--bg-surface);color:var(--text-body);font:400 11px/14px var(--font-sans);cursor:pointer}
-.rate button .e{font-size:22px;line-height:28px}
-.rate button[aria-checked="true"]{border-color:var(--interactive-link);background:var(--bg-accent);color:var(--interactive-link)}
+/* ---------- Wrap-up cards, as in the Test Taker file ---------- */
+.wcard{background:var(--bg-muted);border:1px solid var(--border-subtle);border-radius:var(--radius-xl);padding:var(--space-4) var(--space-3);display:flex;flex-direction:column;gap:var(--space-6)}
+.wcard .wt{display:grid;gap:var(--space-2)}
+.wcard .wt p{margin:0}
+.wcard .wt.mid{text-align:center}
+.fig{position:relative;width:100%}
+.fig img{display:block;width:100%;height:100%}
+.fig-flat{display:block;width:100%;height:auto}
+.score-n{font:600 30px/38px var(--font-sans);color:var(--text-tertiary)}
+.bars{position:relative;flex:none;width:300px;max-width:100%;height:240px;margin:0 auto;background:var(--bg-surface);border-radius:6px;box-shadow:0 1.5px 18.75px rgba(125,125,125,.12);overflow:hidden}
+.bars img{position:absolute;display:block;width:36.75px;height:151.5px;top:27.75px}
+.bars .lab{position:absolute;top:183.75px;display:flex;flex-direction:column;align-items:center;gap:.75px;font-size:9px;line-height:13.5px;text-align:center}
+.bars .lab b{font-weight:500;color:var(--text-primary)}
+.bars .lab span{color:var(--text-tertiary)}
+.cert{display:block;width:100%;height:auto;border-radius:var(--radius-sm)}
+.acts{display:grid;gap:var(--space-2)}
+.rate{display:flex;justify-content:space-between;gap:var(--space-1)}
+.rate button{flex:1 1 0;min-width:0;display:grid;justify-items:center;gap:var(--space-1);padding:var(--space-2);border:1px solid var(--border-subtle);border-radius:6px;background:var(--bg-surface);color:var(--text-primary);font:400 10px/14px var(--font-sans);cursor:pointer;text-align:center}
+.rate button img{width:32px;height:32px;display:block}
+.rate button[aria-checked="true"]{border-color:var(--interactive-link);background:var(--bg-accent)}
 .rate button:focus-visible{outline:2px solid var(--interactive-link);outline-offset:2px}
 .tags{display:flex;flex-wrap:wrap;gap:var(--space-2)}
 .skel{display:grid;gap:var(--space-3)}
@@ -184,7 +190,6 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
 
 /* ---------- Alvy: a full-page overlay under the top bar, closed with the X ---------- */
 .alvy{position:absolute;inset:0;z-index:30;display:flex;flex-direction:column;background:var(--bg-surface)}
-#viewport.camfull .alvy{top:var(--tsh,56px)}
 .alvy>*{flex:1;min-height:0}
 
 /* ---------- Prototype controls (not part of the design) ---------- */
@@ -249,27 +254,23 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
   const NET_LOSS_MS = 15000;     // how long offline before the error screen (shortened for the prototype)
 
   /* ================= The questions =================
-     Index 0 is the practice question, used in onboarding. The rest are the sample assessment.
-     Written questions save when the candidate taps Next. A video answer saves the moment the
-     recording stops. Anything still in progress when the page reloads is lost; everything
-     already saved is kept. */
+     Index 0 is the practice question, used in onboarding. The assessment has two questions and
+     both are answered on video: a multimedia question (someone asks it in a clip) and a video
+     question (it is written). Each video answer saves the moment the recording stops. Anything
+     still in progress when the page reloads, or when a call interrupts the recording, is lost;
+     everything already saved is kept. */
   const QS = [
     {id:'practice', kind:'video', practice:true, text:'Tell us about a project you’re proud of and what you learned from it.'},
-    {id:'q1', kind:'mcq', skill:'Aptitude', text:'What is the next number in the sequence: 2, 4, 8, 16, ___?',
-      options:['32', '24', '20', '46'], answer:'32'},
-    {id:'q2', kind:'media', skill:'Comprehension', text:'Watch the clip, then answer: what is the main reason the speaker gives for the delay?',
-      media:{len:24, caption:'Project update from Priya', transcript:'“Quick update on the dashboard. We’re two weeks behind, and the reason is simple: our data supplier missed their delivery deadline, so we couldn’t start the final testing. The team is fine and the budget is on track. We’ll ship as soon as the data arrives.”'},
-      options:['A supplier missed a deadline', 'The team ran out of budget', 'A requirement changed late', 'The release was cancelled'], answer:'A supplier missed a deadline'},
-    {id:'q3', kind:'video', skill:'Behavioral', text:'Share a story where you were able to bounce back from a challenge that was crucial to your success in learning a skill or concept.'},
-    {id:'q4', kind:'mcq', skill:'Problem solving', text:'Solve for x in the equation 2x + 3 = 7.',
-      options:['x = 1', 'x = 2', 'x = 3', 'x = 4'], answer:'x = 2'}
+    {id:'q1', kind:'media', text:'Priya, our hiring manager, asks: tell her about a time you had to learn something new quickly, and how you went about it.',
+      media:{len:12, caption:'Question from Priya, hiring manager'}},
+    {id:'q2', kind:'video', text:'Share a story where you were able to bounce back from a challenge that was crucial to your success in learning a skill or concept.'}
   ];
   const ASSESS = QS.slice(1);
 
   /* ================= Saved progress =================
      What survives a reload: onboarding done, the answers already saved, where the candidate is
      and the time left. Kept in sessionStorage where the viewer allows it, in memory otherwise. */
-  const KEY = 'tessera-async-proto-v2';
+  const KEY = 'tessera-async-proto-v3';
   const BLANK = () => ({onboarded:false, qi:1, answers:{}, timeLeft:TOTAL_SECS, finished:false});
   const loadP = () => { try { const j = sessionStorage.getItem(KEY); if (j) return {...BLANK(), ...JSON.parse(j)}; } catch (e){} return BLANK(); };
   let P = loadP();
@@ -287,9 +288,9 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
     save:'saving',
     permitted:false, blockedReason:'denied', inuseCleared:false,
     heard:false, micFailed:false, recording:false, hidePreview:false,
-    interruptReason:'away', keptSecs:0, takeSecs:0, pendingInterrupt:false, lastFrame:null, reviewKept:false,
-    qi:0, sel:{}, transcript:false, qExpanded:false,
-    prepSecs:15, prepLeft:15, prepStyle:'button', limitSecs:120,
+    interruptReason:'away', takeSecs:0, pendingInterrupt:false, lastFrame:null,
+    qi:0, qExpanded:false, clipDone:false,
+    prepSecs:15, prepLeft:15, prepStyle:'button', practicePrep:true, limitSecs:120, timerVisible:true,
     assessing:false, timeLeft:TOTAL_SECS, resuming:false, restoreNote:false,
     saveStep:0, fb:{rating:null, liked:[], text:''},
     alvyOpen:false, alvyMsgs:[], alvyTyping:false,
@@ -310,7 +311,7 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
 
   const showPreview = () => (S.state === 'test' || S.state === 'record') && S.permitted;
   const KEEP_CLIP = ['review', 'interrupted'];   // states that must not throw the take away
-  const NO_CAMERA = ['wait', 'neterror', 'permission', 'blocked', 'otherdevice', 'interrupted', 'countdown', 'finish', 'saving', 'score', 'feedback', 'thanks'];
+  const NO_CAMERA = ['wait', 'neterror', 'permission', 'blocked', 'interrupted', 'countdown', 'saving', 'score', 'feedback', 'thanks'];
   const online = () => S.netMode === 'offline' ? false : S.online;
   const BROWSER = () => S.platform === 'ios' ? 'Safari' : 'Chrome';
 
@@ -325,7 +326,7 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
     if (!KEEP_CLIP.includes(next)) dropClip();
     if (next === 'wait') S.waitItems = ['done', 'act', 'pend'];
     if (next === 'test'){ S.heard = false; S.micFailed = false; }
-    if (next === 'question'){ S.prepLeft = S.prepSecs; S.transcript = false; }
+    if (next === 'question'){ S.prepLeft = S.prepSecs; S.clipDone = false; }
     if (next === 'record'){ S.recSecs = 0; S.hidePreview = false; S.lastFrame = null; }
     if (next === 'countdown') S.count = 5;
     if (next === 'saving') S.saveStep = 0;
@@ -351,15 +352,10 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
       later(() => { if (!S.heard) micNone(); }, 7000);
     }
     if (st === 'question'){
-      // A video question in the real assessment gives preparation time, then records by itself.
+      // Preparation time, then the system starts recording. A written video question starts it
+      // now; a multimedia question starts it when the clip has finished.
       const q = Q();
-      if (q.kind === 'video' && !q.practice){
-        every(() => {
-          S.prepLeft = Math.max(0, S.prepLeft - 1);   // never below zero, even if a dialog is holding the start
-          if (S.prepLeft <= 0){ startRecordFlow(); return; }
-          render();
-        }, 1000);
-      }
+      if (q.kind === 'video' && (!q.practice || S.practicePrep)) startPrep();
     }
     if (st === 'review') startSave();
     if (st === 'countdown'){
@@ -371,19 +367,27 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
     }
     if (st === 'saving'){
       P.finished = true; saveP();
-      later(() => { S.saveStep = 1; render(); }, 1100);
-      later(() => { S.saveStep = 2; render(); }, 2300);
-      later(() => { S.saveStep = 3; render(); }, 3300);
-      later(() => go('score'), 4100);
+      later(() => { S.saveStep = 1; render(); }, 3200);
     }
   }
+
+  function startPrep(){
+    S.prepLeft = S.prepSecs;
+    render();
+    every(() => {
+      S.prepLeft = Math.max(0, S.prepLeft - 1);   // never below zero, even if a dialog is holding the start
+      if (S.prepLeft <= 0){ startRecordFlow(); return; }
+      render();
+    }, 1000);
+  }
+  function clipEnded(){ if (S.clipDone) return; S.clipDone = true; startPrep(); }
 
   // After loading: a first visit goes to onboarding; a reload goes straight back to the question.
   function afterLoad(){
     if (P.finished){ go('thanks'); return; }
     if (P.onboarded){
       S.assessing = true; S.timeLeft = P.timeLeft; startAssessTimer();
-      if (P.qi >= QS.length){ go('finish'); return; }
+      if (P.qi >= QS.length){ go('saving'); return; }
       S.qi = P.qi; go('question'); return;
     }
     S.qi = 0; go('permission');
@@ -411,15 +415,14 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
   function stopAssessTimer(){ clearInterval(assessIv); }
 
   /* ---------- Moving through the questions ---------- */
+  // Both questions are answered on video, and each answer saved when its recording stopped, so
+  // Next only moves on. The last one finishes straight into saving.
   function nextQuestion(){
-    const q = Q();
-    if (q.kind !== 'video') P.answers[q.id] = {value: S.sel[q.id] ?? P.answers[q.id]?.value};   // saved on Next
     S.restoreNote = false;   // the welcome-back note has done its job once they move on
-    if (S.qi >= QS.length - 1){ P.qi = QS.length; saveP(); go('finish'); return; }
+    if (S.qi >= QS.length - 1){ P.qi = QS.length; saveP(); S.assessing = false; stopAssessTimer(); go('saving'); return; }
     S.qi++; P.qi = S.qi; saveP();
     go('question');
   }
-  function finishAssessment(){ S.assessing = false; stopAssessTimer(); go('saving'); }
 
   // Start the camera screen. After a reload the page has no camera yet, so ask first.
   function startRecordFlow(){
@@ -442,7 +445,7 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
       }).catch(err => {
         if (S.state !== S.askFrom || err?.stale) return;
         if (err?.fallback){ S.dialog = 'site'; return render(); }
-        S.blockedReason = (err.name === 'NotReadableError' || err.name === 'AbortError') ? 'inuse' : 'denied';
+        S.blockedReason = (err.name === 'NotReadableError' || err.name === 'AbortError') ? 'inuse' : (err.name === 'NotFoundError' || err.name === 'OverconstrainedError') ? 'nocam' : 'denied';
         S.permitted = S.blockedReason === 'inuse';
         S.blockedFrom = S.askFrom;
         go('blocked');
@@ -483,24 +486,18 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
 
   /* ---------- Interruption: the half of mobile the happy path never shows ----------
      A call, a notification the candidate taps, the screen locking, switching apps: all of them
-     suspend the page and end the camera track. Carrying on drawing a running timer over a dead
-     stream is the worst available answer, so stop, keep the take, and say what was kept. */
+     suspend the page and end the camera track. The answer in progress cannot be saved from a
+     dead stream, so it is lost and the question starts again. Everything saved before it stays. */
   function interrupt(reason){
     if (S.state !== 'record' || !S.recording) return;
     S.interruptReason = reason;
-    S.keptSecs = S.recSecs;
-    S.poster = grabPoster() || S.lastFrame;
-    stopRecorder(false);
     go('interrupted');
   }
   document.addEventListener('visibilitychange', () => {
     if (document.hidden){
-      // Capture the take now: once we are hidden there is nothing left to read a frame from.
       if (S.state === 'record' && S.recording){
         S.interruptReason = 'away';
-        S.keptSecs = S.recSecs;
-        S.poster = grabPoster() || S.lastFrame;
-        stopRecorder(false);
+        stopRecorder(true);
         S.recording = false;
         S.pendingInterrupt = true;
       }
@@ -577,13 +574,13 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
   // A reload: the page forgets everything in memory, then rebuilds from what was saved.
   function reloadResume(){
     stopStream(); dropClip();
-    S.sel = {}; S.permitted = false; S.dialog = null; S.alvyOpen = false;
+    S.permitted = false; S.dialog = null; S.alvyOpen = false;
     S.resuming = P.onboarded; S.restoreNote = P.onboarded && !P.finished;
     go('wait');
   }
   function resetProgress(){
     resetP(); stopAssessTimer(); stopStream(); dropClip();
-    Object.assign(S, {assessing:false, timeLeft:TOTAL_SECS, qi:0, sel:{}, resuming:false, restoreNote:false, permitted:false, fb:{rating:null, liked:[], text:''}, alvyOpen:false, alvyMsgs:[]});
+    Object.assign(S, {assessing:false, timeLeft:TOTAL_SECS, qi:0, resuming:false, restoreNote:false, permitted:false, fb:{rating:null, liked:[], text:''}, alvyOpen:false, alvyMsgs:[]});
     go('wait');
   }
 
@@ -717,13 +714,11 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
   function runRecClock(){
     every(() => {
       S.recSecs++;
-      if (S.recSecs % 2 === 0) S.lastFrame = grabPoster() || S.lastFrame;
       if (!Q().practice && S.recSecs >= S.limitSecs){ endRecording(); return; }
       render();
     }, 1000);
   }
   function endRecording(){
-    S.reviewKept = false;
     S.takeSecs = S.recSecs;
     S.poster = grabPoster() || S.lastFrame;
     stopRecorder(false);
@@ -822,40 +817,55 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
   }
 
 
-  /* ================= Recovery copy ================= */
+  /* ================= Recovery copy: how to fix it, for this browser ================= */
   const SITE_STEPS = {
-    android:['Tap the lock icon at the left of the address bar, at the top of the screen.', 'Tap <b>Permissions</b>.', 'Turn on <b>Camera</b> and <b>Microphone</b>.', 'Come back here and tap <b>Retry</b>.'],
+    android:['Tap the lock icon at the left of the address bar.', 'Tap <b>Permissions</b>.', 'Turn on <b>Camera</b> and <b>Microphone</b>.', 'Come back here and tap <b>Retry</b>.'],
     ios:['Tap <b>aA</b> in the address bar, at the bottom of the screen.', 'Tap <b>Website Settings</b>.', 'Set <b>Camera</b> and <b>Microphone</b> to <b>Allow</b>.', 'Tap <b>Done</b>, then <b>Retry</b> here.']
   };
-  const OS_STEPS = ['Open your phone’s <b>Settings</b>.', 'Go to <b>Apps › Chrome › Permissions</b>.', 'Allow <b>Camera</b> and <b>Microphone</b>.', 'Come back here and tap <b>Retry</b>.'];
-  const INUSE_STEPS = ['Close any app using your camera: a video call, the camera app, or a recorder.', 'Swipe it away so it fully quits, not just goes to the background.', 'Tap <b>Retry</b>.'];
+  const APP_STEPS = {
+    android:['Open your phone’s <b>Settings</b>.', 'Go to <b>Apps › Chrome › Permissions</b>.', 'Allow <b>Camera</b> and <b>Microphone</b>.', 'Come back here and tap <b>Retry</b>.'],
+    ios:['Open your iPhone’s <b>Settings</b>.', 'Tap <b>Safari</b>, then <b>Camera</b> and <b>Microphone</b>.', 'Choose <b>Ask</b> or <b>Allow</b> for both.', 'Come back here and tap <b>Retry</b>.']
+  };
+  const INUSE_STEPS = ['Close any app using your camera: a video call, the camera app, or a recorder.', 'Swipe it away so it fully quits, not just goes to the background.', 'Come back here and tap <b>Retry</b>.'];
+  const NOCAM_STEPS = {
+    android:['Check that nothing is covering the camera.', 'Close Chrome completely, then open this link again.', 'Restart your phone if the camera still doesn’t appear.', 'Tap <b>Retry</b>.'],
+    ios:['Check that nothing is covering the camera.', 'Close Safari completely, then open this link again.', 'Restart your iPhone if the camera still doesn’t appear.', 'Tap <b>Retry</b>.']
+  };
+  const NOMIC_STEPS = {
+    android:['Check your phone isn’t on silent and nothing covers the microphone.', 'Unplug any headset, or choose a different microphone from the list.', 'Tap the lock icon in the address bar and make sure <b>Microphone</b> is on.', 'Tap <b>Retry</b>.'],
+    ios:['Check your iPhone isn’t on silent and nothing covers the microphone.', 'Disconnect any headset or AirPods, or choose a different microphone.', 'Tap <b>aA</b> › <b>Website Settings</b> and set <b>Microphone</b> to <b>Allow</b>.', 'Tap <b>Retry</b>.']
+  };
   const NET_STEPS = ['Check that Wi-Fi or mobile data is on.', 'Move closer to your router, or switch between Wi-Fi and mobile data.', 'Tap <b>Retry</b>. Your saved answers are kept.'];
-  // The same three blocked states the Proctoring Attendee screens cover, in their words.
+  // Five blocked states in the layout of the Proctoring Attendee screen. Each says what is wrong
+  // and walks through the fix in this browser's own words.
   function blockedCopy(){
-    if (S.blockedReason === 'inuse') return {
-      title:'Your camera is in use', art:'inuse', topic:'inuse', link:'How to free up your camera',
-      text:'Another app on your phone is using the camera. Close it, then retry.'
-    };
-    if (S.blockedReason === 'os') return {
-      title:'Chrome needs camera access', art:'blocked', topic:'blocked', link:'How to allow camera and microphone permissions?',
-      text:'You allowed this site, but Chrome itself can’t use your camera and microphone yet. Open Settings › Apps › Chrome › Permissions, allow both, and retry.'
-    };
-    return {
-      title:'Camera & microphone blocked', art:'blocked', topic:'blocked', link:'How to allow camera and microphone permissions?',
-      text: S.platform === 'ios'
-        ? 'We need your camera and microphone access to continue. Tap aA in the address bar, open Website Settings, allow both and retry.'
-        : 'We need your camera and microphone access to continue. Tap the lock icon next to the address, allow both and retry.'
-    };
+    const b = BROWSER(), p = S.platform;
+    switch (S.blockedReason){
+      case 'inuse': return {title:'Your camera is in use', art:{title:'Camera unavailable', items:[{icon:'video', label:'In use', warn:true}]}, topic:'inuse', link:'How to free up your camera',
+        text:'Another app on your phone is using the camera, so we can’t start your preview. Here’s how to free it up:', steps:INUSE_STEPS};
+      case 'os': return {title:`${b} needs camera access`, art:{title:'Permissions blocked', slash:true}, topic:'blocked', link:'How to allow camera and microphone permissions?',
+        text:`You allowed this site, but ${b} itself can’t use your camera and microphone yet. Here’s how to fix it:`, steps:APP_STEPS[p]};
+      case 'nocam': return {title:'We can’t find a camera', art:{title:'No camera found', items:[{icon:'video', label:'Camera', slash:true, warn:true}]}, topic:'blocked', link:'How to fix a missing camera',
+        text:`${b} can’t see a camera on this phone. Here’s what to try:`, steps:NOCAM_STEPS[p]};
+      case 'nomic': return {title:'We can’t hear your microphone', art:{title:'No sound', items:[{icon:'mic', label:'Microphone', slash:true, warn:true}]}, topic:'mic', link:'How to fix your microphone',
+        text:`${b} isn’t getting any sound from your microphone. Here’s what to try:`, steps:NOMIC_STEPS[p]};
+      default: return {title:'Camera & microphone blocked', art:{title:'Permissions blocked', slash:true}, topic:'blocked', link:'How to allow camera and microphone permissions?',
+        text:`${b} is blocking camera and microphone access for this site, and we need both to continue. Here’s how to allow them:`, steps:SITE_STEPS[p]};
+    }
   }
 
   /* ================= Chat with Alvy ================= */
   const nowTime = () => new Date().toLocaleTimeString([], {hour:'numeric', minute:'2-digit'});
   let msgId = 0, chatTimers = [];
   function pushMsg(m){ S.alvyMsgs = [...S.alvyMsgs, {id:'m' + (++msgId), time:nowTime(), ...m}]; render(); }
+  const ALVY_TOPICS = [['Camera or microphone', 'blocked'], ['Connection problem', 'net'], ['The timer', 'timer'], ['Retaking an answer', 'retake'], ['Something else', 'other']];
   function openAlvy(){
     S.alvyOpen = true;
-    if (!S.alvyMsgs.length) pushMsg({from:'agent', author:'Alvy', children:'Need help? Type your question or describe the issue, and I’ll instantly find the right steps or guide you to support.'});
-    else render();
+    if (!S.alvyMsgs.length){
+      pushMsg({from:'agent', author:'Alvy', children:'Need help? Pick a topic, or type your question and I’ll find the right steps or guide you to support.'});
+      S.alvyMsgs = [...S.alvyMsgs, {id:'topics', kind:'custom', align:'left', content:html`<div class="tags">${ALVY_TOPICS.map(([l, t]) => html`<${Tag} key=${t} variant="secondary" color="blue" size="md" selected=${false} onSelectedChange=${() => helpFlow(t)}>${l}<//>`)}</div>`}];
+      render();
+    } else render();
   }
   function closeAlvy(){ S.alvyOpen = false; render(); }
   // Help-centre articles Alvy summarises (prototype copy; the real articles need confirming).
@@ -865,26 +875,37 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
       ask:`Hi, my camera and microphone are blocked in ${name} on my phone. Can you help?`,
       search:`${name} permission steps on mobile`,
       title:`Allowing camera and microphone in ${name}`,
-      steps:[...(S.blockedReason === 'os' ? OS_STEPS : SITE_STEPS[S.platform]),
-        S.platform === 'ios' ? 'Still blocked? Check <b>Settings › Safari › Camera</b> is set to Ask or Allow.' : 'Still blocked? Check <b>Settings › Apps › Chrome › Permissions</b> on your phone.']
+      steps:[...(S.blockedReason === 'os' ? APP_STEPS[S.platform] : SITE_STEPS[S.platform]), 'Still blocked? Restart your phone and open the link again.']
     };
     if (topic === 'inuse') return {
       ask:'Hi, it says my camera is being used by another app. Can you help?',
-      search:'camera troubleshooting steps',
-      title:'Fixing “Camera in use”',
+      search:'camera troubleshooting steps', title:'Fixing “Camera in use”',
       steps:[...INUSE_STEPS, 'Still not working? Restart your phone and open the link again.']
     };
     if (topic === 'net') return {
       ask:'Hi, the page says it couldn’t load and to check my connection. Can you help?',
-      search:'connection problems during an assessment',
-      title:'When the page can’t load',
+      search:'connection problems during an assessment', title:'When the page can’t load',
       steps:[...NET_STEPS, 'Your timer keeps running while you reconnect, and answers you already saved are kept.']
+    };
+    if (topic === 'timer') return {
+      ask:'Hi, how does the timer work?',
+      search:'how the assessment timer works', title:'The assessment timer',
+      steps:['The timer starts when the first question appears, and keeps running if you lose your connection.', 'Use the switch under the top bar to show or hide the digits. The bar still shows how much time is left.', 'Preparation time before a video answer counts toward your total time.']
+    };
+    if (topic === 'retake') return {
+      ask:'Hi, can I record an answer again?',
+      search:'retaking a video answer', title:'Retaking a video answer',
+      steps:['After you stop recording, watch your answer back and tap <b>Retake</b> if you want another go.', 'Your new recording replaces the old one when it saves.', 'If a call or another app interrupts a recording, that answer isn’t saved and you’ll start the question again. Earlier answers are kept.']
+    };
+    if (topic === 'other') return {
+      ask:'Hi, I have a different question.',
+      search:'your question', title:'Getting more help',
+      steps:['Tell me what’s happening in a message below and I’ll look for the right steps.', 'If I can’t solve it, I’ll hand you to the support team with your details so you don’t repeat yourself.']
     };
     return {
       ask:'Hi, you can’t hear my microphone. Can you help?',
-      search:'microphone troubleshooting steps',
-      title:'Fixing “Microphone not detected”',
-      steps:['Choose a different microphone from the list on the screen.', 'Check your phone isn’t muted and nothing is covering the mic.', 'Unplug your headset and try the phone microphone instead.', `Make sure ${name} can use your microphone in your phone’s settings.`]
+      search:'microphone troubleshooting steps', title:'Fixing “Microphone not detected”',
+      steps:[...NOMIC_STEPS[S.platform], 'Still silent? Restart your phone and open the link again.']
     };
   }
   function helpFlow(topic){
@@ -907,20 +928,14 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
     chatTimers.push(setTimeout(() => pushMsg({from:'agent', author:'Alvy', children:'Thanks, I’m looking into that now.'}), 900));
   }
 
-  /* ================= Results ================= */
-  function results(){
-    return ASSESS.map(q => {
-      if (q.kind === 'video') return {q, status:'review'};
-      const v = P.answers[q.id]?.value;
-      return {q, status: v === q.answer ? 'correct' : 'wrong'};
-    });
-  }
 
   /* ================= Illustrations (drawn after the Proctoring Attendee frames) ================= */
   const fillv = v => ({fill:`var(${v})`});
   const ICON_INK = {stroke:'#fff', fill:'none', strokeWidth:2, strokeLinecap:'round', strokeLinejoin:'round'};
-  // A phone with a system dialog on it: the picture the permission screens use.
-  function PhoneArt({title, items}){
+  const CAM_MIC = slash => [{icon:'video', label:'Camera', slash}, {icon:'mic', label:'Microphone', slash}];
+  // A phone with a system dialog on it: the picture the permission and error screens use.
+  function PhoneArt({art}){
+    const items = art.items || CAM_MIC(!!art.slash);
     const xs = items.length === 1 ? [160] : [128, 192];
     return html`<svg viewBox="0 0 320 200" role="img" aria-hidden="true" focusable="false">
       <rect x="0" y="0" width="320" height="200" rx="12" style=${fillv('--bg-muted')} />
@@ -931,7 +946,7 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
       <rect x="198" y="42" width="10" height="5" rx="2.5" style=${fillv('--border-strong')} />
       <rect x="114" y="56" width="92" height="28" rx="6" style=${fillv('--bg-surface')} />
       <rect x="76" y="62" width="168" height="112" rx="10" style=${{fill:'var(--bg-surface)', filter:'drop-shadow(0 4px 10px rgba(0,0,0,.18))'}} />
-      <text x="160" y="86" text-anchor="middle" style=${{font:'500 12px var(--font-sans)', fill:'var(--text-primary)'}}>${title}</text>
+      <text x="160" y="86" text-anchor="middle" style=${{font:'500 12px var(--font-sans)', fill:'var(--text-primary)'}}>${art.title}</text>
       ${items.map((it, i) => html`<g key=${i} transform=${`translate(${xs[i]} 0)`}>
         <circle cx="0" cy="118" r="17" style=${fillv(it.warn ? '--warning-strong' : '--interactive-primary')} />
         <g transform="translate(-9 109) scale(.75)" style=${ICON_INK} dangerouslySetInnerHTML=${{__html:SVG[it.icon]}} />
@@ -940,10 +955,9 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
       </g>`)}
     </svg>`;
   }
-  const CAM_MIC = (slash) => [{icon:'video', label:'Camera', slash}, {icon:'mic', label:'Microphone', slash}];
   // A browser window with warnings: the network error picture.
   function NetArt(){
-    const tri = (pts) => html`<polygon points=${pts} style=${{fill:'var(--bg-surface)', stroke:'var(--error-strong)', strokeWidth:5, strokeLinejoin:'round'}} />`;
+    const tri = pts => html`<polygon points=${pts} style=${{fill:'var(--bg-surface)', stroke:'var(--error-strong)', strokeWidth:5, strokeLinejoin:'round'}} />`;
     const bang = (x, y, h) => html`<g><line x1=${x} y1=${y} x2=${x} y2=${y + h} style=${{stroke:'var(--error-strong)', strokeWidth:5, strokeLinecap:'round'}} /><circle cx=${x} cy=${y + h + 12} r="3" style=${fillv('--error-strong')} /></g>`;
     return html`<svg viewBox="0 0 320 190" role="img" aria-hidden="true" focusable="false">
       <rect x="40" y="22" width="240" height="146" rx="6" style=${{fill:'var(--bg-surface)', stroke:'var(--error-strong)', strokeWidth:2}} />
@@ -954,6 +968,10 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
       ${tri('178,140 216,72 254,140')}${bang(216, 92, 22)}
     </svg>`;
   }
+  // Figma illustrations are stacks of layers, each placed by its inset inside a fixed frame.
+  const FIG = 'tessera/assets/figma/';
+  const Fig = ({ratio, layers}) => html`<div class="fig" style=${{aspectRatio:ratio}}>${layers.map(([src, inset], i) =>
+    html`<span key=${i} style=${{position:'absolute', inset}}><img src=${FIG + src} alt="" /></span>`)}</div>`;
 
   /* ================= Components ================= */
   function ChromeTop(){
@@ -972,13 +990,16 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
       <div class="i-home"><span></span></div></div>`;
   }
 
-  // The Tessera mobile top bar. During the assessment it carries the timer in its own row.
+  // The Tessera mobile top bar. In the assessment it carries the timer in its own row, as in
+  // the Test Taker file: hidden by default, with a switch to show the digits.
   const NO_TIMER = ['wait', 'neterror', 'countdown', 'saving', 'score', 'feedback', 'thanks'];
   function TopNav(){
     const timed = S.assessing && !NO_TIMER.includes(S.state);
     return html`<${CandidateTopNavigation} device="mobile"
       logo=${html`<img src="tessera/assets/logos/talview-logo-vector.svg" alt="Talview" height="28" />`}
-      timer=${timed ? html`<${CandidateTimer} device="mobile" remaining=${S.timeLeft} total=${TOTAL_SECS} format="mm:ss" />` : undefined}
+      timer=${timed ? html`<${CandidateTimer} device="mobile" remaining=${S.timeLeft} total=${TOTAL_SECS}
+        timeVisible=${S.timerVisible} onTimeVisibleChange=${v => { S.timerVisible = v; render(); }}
+        hideLabel="Hide timer" />` : undefined}
       actions=${html`<${Fragment}>
         <${IconButton} variant="tertiary-gray" icon="language" aria-label="Change language, currently English" />
         <${IconButton} variant="gradient" icon="sparkle-solid" aria-label="Chat with Alvy" onClick=${openAlvy} />
@@ -989,8 +1010,8 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
   function Broadcast(){
     if (S.state === 'neterror') return null;
     let b = null;
-    if (!online()) b = {color:'red', heading:'You’re offline',
-      description: S.state === 'record' ? 'Keep recording. We’ll save your answer when you’re back.' : 'We’re trying to reconnect. Your answers save as soon as you’re back.'};
+    if (!online()) b = {color:'red', heading:'No internet detected',
+      description: S.state === 'record' ? 'Keep recording. We’ll save your answer when your connection is back.' : 'We’re trying to reconnect. Your answers save as soon as you’re back online.'};
     else if (S.netMode === 'poor') b = {color:'orange', heading:'Your connection is weak', description:'Your answers keep saving, but it may take a little longer.'};
     else if (S.restoreNote) b = {color:'blue', heading:'Welcome back',
       description:'Your earlier answers are saved. The answer you were giving when the page reloaded wasn’t, so please answer this question again.',
@@ -1000,8 +1021,9 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
   }
 
   // The screen frame: content from the top, every call to action full width in a fixed footer.
-  const Page = ({foot, mid, children}) => html`<div class="pg">
-    <div class=${'pg-body' + (mid ? ' mid' : '')}>${children}</div>
+  // Camera screens have no padding, so the picture fills the space between the bar and the footer.
+  const Page = ({foot, mid, cam, children}) => html`<div class="pg">
+    <div class=${'pg-body' + (mid ? ' mid' : '') + (cam ? ' cam' : '')}>${children}</div>
     ${foot ? html`<div class="pg-foot">${foot}</div>` : null}
   </div>`;
   const Head = ({title, err, icon, lg, children}) => html`<div class="head">
@@ -1034,19 +1056,17 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
     useEffect(() => { const el = ref.current; startSim(el); return () => stopSim(el); }, []);
     return html`<canvas id="simCam" ref=${ref} role="img" aria-label="Sample camera preview"></canvas>`;
   }
-  function VideoLayer({frozen}){
+  function VideoLayer(){
     const vref = useRef(null);
     useEffect(() => {
       const v = vref.current;
       if (v && S.stream && v.srcObject !== S.stream){ v.srcObject = S.stream; v.play?.().catch(() => {}); }
     });
     const hidden = S.hidePreview && S.state === 'record';
-    let inner = null;
-    if (S.state === 'interrupted') inner = S.poster ? html`<img src=${S.poster} alt="The last frame before the recording stopped" />` : null;
-    else if (showPreview()) inner = S.stream
+    const inner = showPreview() ? (S.stream
       ? html`<video id="liveVideo" ref=${vref} class="mirror" autoPlay muted playsInline aria-label="Your camera preview"></video>`
-      : html`<${SimCanvas} />`;
-    return html`<div class=${'vmedia' + (hidden ? ' hidden' : '') + (frozen ? ' frozen' : '')}>${inner}</div>`;
+      : html`<${SimCanvas} />`) : null;
+    return html`<div class=${'vmedia' + (hidden ? ' hidden' : '')}>${inner}</div>`;
   }
   const simChip = () => (showPreview() && !S.stream) ? html`<${Chip} color="gray" size="sm">Sample preview<//>` : null;
 
@@ -1062,30 +1082,33 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
 
   /* ================= Onboarding screens ================= */
   // Loading, and the same screen when the page reloads and rebuilds from what was saved.
+  // The spinner, the title, the text and the steps share one centred column.
   function WaitScreen(){
-    const SR = {done:'done', act:'in progress', pend:'not started', fail:'failed'};
+    const SR = {done:'done', act:'in progress', pend:'not started'};
     const labels = S.resuming ? RESUME_LABELS : WAIT_LABELS;
     return html`<${Page} mid>
       <div class="centre">
         <${Spinner} size=${48} color="blue" label="Loading your assessment" />
-        <h1 class="h4 ttl">${S.resuming ? 'Picking up where you left off…' : 'Getting your assessment ready…'}</h1>
-        <p class="p2">This can take up to 30 seconds. Keep this page open.</p>
-      </div>
-      <ul class="checklist p2" aria-live="polite">
-        ${labels.map((t, i) => {
-          const s = S.waitItems[i];
-          const mark = s === 'done' ? html`<${Icon} name="circle-check" size=${16} />`
-            : s === 'act' ? html`<${Spinner} size=${16} color="blue" label=${null} />`
-            : html`<span class="dot"></span>`;
-          return html`<li key=${i} class=${s}>${mark}<span>${t}</span><span class="sr-only">, ${SR[s]}</span></li>`;
-        })}
-      </ul><//>`;
+        <div class="head" style=${{justifyItems:'center'}}>
+          <h1 class="h4 ttl">${S.resuming ? 'Picking up where you left off…' : 'Getting your assessment ready…'}</h1>
+          <p class="p2">This can take up to 30 seconds. Keep this page open.</p>
+        </div>
+        <ul class="checklist p2" aria-live="polite">
+          ${labels.map((t, i) => {
+            const s = S.waitItems[i];
+            const mark = s === 'done' ? html`<${Icon} name="circle-check" size=${16} />`
+              : s === 'act' ? html`<${Spinner} size=${16} color="blue" label=${null} />`
+              : html`<span class="dot"></span>`;
+            return html`<li key=${i} class=${s}>${mark}<span>${t}</span><span class="sr-only">, ${SR[s]}</span></li>`;
+          })}
+        </ul>
+      </div><//>`;
   }
 
   // Allow access: the picture, the reason, Continue. The browser's own dialog comes next.
   function PermissionScreen(){
     return html`<${Page} foot=${html`<${Cta} onClick=${askPermission}>Continue<//>`}>
-      <div class="art"><${PhoneArt} title="Allow access" items=${CAM_MIC(false)} /></div>
+      <div class="art"><${PhoneArt} art=${{title:'Allow access'}} /></div>
       <${Head} title="Allow camera and microphone">
         <p class="p2">You answer this assessment by recording video, so we need your camera and microphone. Your browser will ask for permission.</p>
       <//>
@@ -1094,104 +1117,91 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
         : 'Safari will ask. Choose Allow. It asks again each time you open the assessment, and that’s normal.'}</p><//>`;
   }
 
-  // Blocked, in the layout of the Proctoring Attendee screen: picture, a plain explanation,
-  // Retry, a way out on another device, and the how-to pinned at the foot.
+  // Blocked, in the layout of the Proctoring Attendee screen: picture, what is wrong, how to fix
+  // it in this browser, Retry, and the help link at the foot.
   function BlockedScreen(){
     const c = blockedCopy();
-    const items = c.art === 'inuse' ? [{icon:'video', label:'Camera in use', slash:false, warn:true}] : CAM_MIC(true);
     return html`<${Page} foot=${html`<${Fragment}>
         <${Cta} onClick=${retryBlocked}>Retry<//>
-        <${Cta} variant="secondary-color" onClick=${() => go('otherdevice')}>Try with another device<//>
         <${FootLink} icon="help-circle" onClick=${() => helpFlow(c.topic)}>${c.link}<//>
       <//>`}>
-      <div class="art"><${PhoneArt} title=${c.art === 'inuse' ? 'Camera unavailable' : 'Permissions blocked'} items=${items} /></div>
-      <${Head} title=${c.title}><p class="p2">${c.text}</p><//><//>`;
-  }
-  function CopyLink(){
-    const [msg, setMsg] = useState('');
-    const copy = () => {
-      const p = navigator.clipboard?.writeText?.(location.href);
-      if (p) p.then(() => setMsg('Link copied'), () => setMsg('Copy the address from the bar instead'));
-      else setMsg('Copy the address from the bar instead');
-    };
-    return html`<div style=${{display:'grid', gap:'var(--space-2)'}}>
-      <${Input} label="Assessment link" readOnly value=${location.href.split('#')[0]} variant="underline" />
-      <${Button} variant="secondary-gray" leadingIcon=${html`<${Icon} name="link" />`} onClick=${copy}>${msg || 'Copy link'}<//>
-    </div>`;
-  }
-  function OtherDeviceScreen(){
-    return html`<${Page} foot=${html`<${Cta} variant="secondary-gray" onClick=${() => go('blocked')}>Back<//>`}>
-      <${Head} title="Continue on another device">
-        <p class="p2">Open the link below on a phone or laptop with a working camera and microphone. Sign in again and you’ll pick up where you left off.</p>
-      <//>
-      <${CopyLink} /><//>`;
+      <div class="art"><${PhoneArt} art=${c.art} /></div>
+      <${Head} title=${c.title}><p class="p2">${c.text}</p><//>
+      <${Steps} items=${c.steps} /><//>`;
   }
 
-  // Camera and mic test: the camera fills the page, the top bar and footer sit on top of it.
+  // Camera and mic test: the camera fills the space between the solid top bar and footer.
   function TestScreen(){
     const mic = S.heard ? 'ok' : S.micFailed ? 'quiet' : 'testing';
-    return html`<${Fragment}>
-      <div class="camlayer">
-        <${VideoLayer} />
-        ${showPreview() ? null : html`<div class="vmsg"><${Spinner} size=${24} color="white" label=${null} /><span>Starting your camera…</span></div>`}
-      </div>
+    return html`<${Page} cam foot=${html`<${Cta} disabled=${!S.heard} onClick=${() => go('question')}>Continue<//>`}>
+      <${VideoLayer} />
+      ${showPreview() ? null : html`<div class="vmsg"><${Spinner} size=${24} color="white" label=${null} /><span>Starting your camera…</span></div>`}
       <div class="camtop"><span class="livedot" role="img" aria-label="Live preview, not recording"></span>${simChip()}</div>
-      <div class="camfoot">
-        <div class="float">
-          <h1 class="h5 ttl">Check your camera and microphone</h1>
-          <p class="p3 muted">We’ll make sure we can see and hear you before you start.</p>
-          <div class="drows">
-            <${DeviceRow} kind="cam" status="ok" />
-            <${DeviceRow} kind="mic" status=${mic} />
-          </div>
-          <div class="wavebar"><span class="l1">${S.heard ? 'We can hear you' : 'Say ‘Testing 123’ out loud'}</span><${LiveWave} /></div>
-          ${S.micFailed ? html`<div class="status-line late" role="status"><${Icon} name="mic-off" size=${16} />
-            <span>We can’t hear you. Check your phone isn’t muted, or pick a different microphone.</span></div>
-            <${TextLink} as="button" leadingIcon=${html`<${Icon} name="help-circle" />`} onClick=${() => helpFlow('mic')}>Get help from Alvy<//>` : null}
+      <div class="camcard float">
+        <h1 class="h5 ttl">Check your camera and microphone</h1>
+        <p class="p3 muted">We’ll make sure we can see and hear you before you start.</p>
+        <div class="drows">
+          <${DeviceRow} kind="cam" status="ok" />
+          <${DeviceRow} kind="mic" status=${mic} />
         </div>
-        <${Cta} disabled=${!S.heard} onClick=${() => go('question')}>Continue<//>
+        <div class="wavebar"><span class="l1">${S.heard ? 'We can hear you' : 'Say ‘Testing 123’ out loud'}</span><${LiveWave} /></div>
+        ${S.micFailed ? html`<div class="status-line late" role="status"><${Icon} name="mic-off" size=${16} />
+          <span>We can’t hear you. Check your phone isn’t muted, or pick a different microphone.</span></div>
+          <${TextLink} as="button" leadingIcon=${html`<${Icon} name="help-circle" />`} onClick=${() => { S.blockedReason = 'nomic'; S.blockedFrom = 'test'; go('blocked'); }}>Still can’t hear you? See how to fix it<//>` : null}
       </div><//>`;
   }
 
   /* ================= Questions ================= */
-  const QHead = () => html`<div class="qmeta"><span class="l1">Question ${S.qi} of ${ASSESS.length}</span>
-    <${IconButton} variant="tertiary-gray" icon="circle-exclamation" aria-label="Report a problem with this question" onClick=${openAlvy} /></div>`;
+  // The assessment card, as in the Test Taker file: a muted card with a header row.
+  const QCard = ({children}) => html`<section class="qcard">
+    <div class="qcard-head"><span class="l1">Question ${S.qi} of ${ASSESS.length}</span>
+      <${IconButton} variant="tertiary-gray" icon="circle-exclamation" aria-label="Report a problem with this question" onClick=${openAlvy} /></div>
+    <div class="qcard-body">${children}</div>
+  </section>`;
 
-  // The practice question: read first, then Start recording opens the camera.
+  // The Start recording button, with the preparation countdown on it in one of three ways:
+  // the button fills as time runs out, a ring above, or a bar above the button.
+  function startControls({counting, disabled}){
+    const style = S.prepStyle, used = S.prepSecs - S.prepLeft, pct = Math.round(used / S.prepSecs * 100);
+    const plain = html`<${Cta} disabled=${disabled} onClick=${startRecordFlow}>Start recording<//>`;
+    let foot = plain, ring = null;
+    if (counting && style === 'button') foot = html`<div class="prepfill" style=${{'--fill':pct + '%'}}><${Cta} onClick=${startRecordFlow}>Start recording · ${S.prepLeft}s<//></div>`;
+    if (counting && style === 'bar') foot = html`<${Fragment}><div class="prepbar"><${ProgressIndicator} value=${used} max=${S.prepSecs} label=${`Recording starts in ${S.prepLeft}s`} valuePosition="none" /></div>${plain}<//>`;
+    if (counting && style === 'ring') ring = html`<div class="centre"><${ProgressIndicator} type="circular" value=${used} max=${S.prepSecs} valueText=${S.prepLeft} label=${`Recording starts in ${S.prepLeft} seconds`} /></div>`;
+    return {foot, ring};
+  }
+  const PREP_TEXT = 'This is your preparation time. Recording starts when the timer ends. You can also start any time you’re ready.';
+
+  // The practice question: read it, get a short preparation countdown, then the camera opens.
   function PracticeQuestion(){
-    return html`<${Page} foot=${html`<${Cta} onClick=${startRecordFlow}>Start recording<//>`}>
+    const {foot, ring} = startControls({counting:S.practicePrep});
+    return html`<${Page} foot=${foot}>
       <div><${Chip} color="blue" variant="secondary" size="sm">Practice · not scored<//></div>
       <${Head} title=${Q().text} lg>
-        <p class="p2">Take a moment to think, then tap Start recording. Your camera turns on when you start. Nothing here is scored, and you can record it again.</p>
+        <p class="p2">${S.practicePrep ? PREP_TEXT : 'Take a moment to think, then tap Start recording.'} Nothing here is scored, and you can record it again.</p>
+      <//>
+      ${ring}<//>`;
+  }
+
+  // A video question: preparation time on the question itself, then recording starts by itself.
+  function VideoQuestion(){
+    const {foot, ring} = startControls({counting:true});
+    return html`<${Page} foot=${foot}>
+      <${QCard}>
+        <p class="l1 qtext">${Q().text}</p>
+        <div class="infobox">
+          <p class="p2">${PREP_TEXT}</p>
+          <p class="p3 muted">You’ll have ${S.limitSecs >= 60 ? Math.round(S.limitSecs / 60) + ' minutes' : S.limitSecs + ' seconds'} to answer. You can retake it.</p>
+        </div>
+        ${ring}
       <//><//>`;
   }
 
-  // A video question in the real assessment: preparation time first, on the question itself.
-  // Three ways to show the countdown, so they can be compared: filling the button, a ring, a bar.
-  function VideoQuestion(){
-    const q = Q(), style = S.prepStyle;
-    const pct = Math.round((S.prepSecs - S.prepLeft) / S.prepSecs * 100);
-    const start = style === 'button'
-      ? html`<div class="prepfill" style=${{'--fill':pct + '%'}}><${Cta} onClick=${startRecordFlow}>Start recording · ${S.prepLeft}s<//></div>`
-      : html`<${Cta} onClick=${startRecordFlow}>Start recording<//>`;
-    const foot = style === 'bar'
-      ? html`<${Fragment}><div class="prepbar"><${ProgressIndicator} value=${S.prepSecs - S.prepLeft} max=${S.prepSecs} label=${`Recording starts in ${S.prepLeft}s`} valuePosition="none" /></div>${start}<//>`
-      : start;
-    return html`<${Page} foot=${foot}>
-      <${QHead} />
-      <${Head} title=${q.text} lg />
-      <div class="infobox">
-        <p class="p2">This is your preparation time. Recording starts when the timer ends. You can also start any time you’re ready.</p>
-        <p class="p3 muted">You’ll have ${Math.round(S.limitSecs / 60) >= 1 ? Math.round(S.limitSecs / 60) + ' minutes' : S.limitSecs + ' seconds'} to answer. You can retake it.</p>
-      </div>
-      ${style === 'ring' ? html`<div class="centre"><${ProgressIndicator} type="circular" value=${S.prepSecs - S.prepLeft} max=${S.prepSecs} valueText=${S.prepLeft} label=${`Recording starts in ${S.prepLeft} seconds`} /></div>` : null}
-    <//>`;
-  }
-
-  // A multimedia question: a short clip with controls and a transcript, then the answer options.
-  function MediaClip({m}){
+  // A multimedia question: someone asks it in a clip. When the clip ends the preparation time
+  // starts, then the candidate answers on video.
+  function MediaClip({m, onEnded}){
     const cref = useRef(null);
-    const [t, setT] = useState(0), [playing, setPlaying] = useState(false), [showTx, setShowTx] = useState(false);
+    const [t, setT] = useState(0), [playing, setPlaying] = useState(false);
     useEffect(() => {
       const c = cref.current, ctx = c.getContext('2d');
       const dpr = Math.min(window.devicePixelRatio || 1, 2), w = c.clientWidth, h = c.clientHeight;
@@ -1200,91 +1210,83 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
       draw();
       const id = setInterval(() => {
         draw();
-        if (playing) setT(p => { const n = p + 0.08; if (n >= m.len){ setPlaying(false); return m.len; } return n; });
+        if (playing) setT(p => { const n = p + 0.08; if (n >= m.len){ setPlaying(false); setTimeout(onEnded, 0); return m.len; } return n; });
       }, 80);
       return () => clearInterval(id);
     }, [playing]);
     const toggle = () => { if (!playing && t >= m.len) setT(0); setPlaying(p => !p); };
-    return html`<${Fragment}>
-      <div class="clip">
-        <canvas ref=${cref} role="img" aria-label=${`Video: ${m.caption}`}></canvas>
-        ${(!playing && t === 0) ? html`<div class="vcenter"><${IconButton} variant="overlay" shape="round" aria-label="Play the clip" icon=${html`<${Fragment}>${svg('play', 16)}<//>`} onClick=${toggle} /></div>` : null}
-        <div class="vstrip">
-          <div class="grp">
-            <${IconButton} variant="tertiary-gray" aria-label=${playing ? 'Pause the clip' : 'Play the clip'} aria-pressed=${playing}
-              icon=${playing ? 'pause' : html`<${Fragment}>${svg('play', 16)}<//>`} onClick=${toggle} />
-            <${CandidateClock} seconds=${Math.floor(t)} total=${m.len} mutedTotal size="sm" />
-          </div>
-          <${CandidateSoundwave} mode="playback" barCount=${18} progress=${Math.min(1, t / m.len)} label="Clip progress" />
+    return html`<div class="clip">
+      <canvas ref=${cref} role="img" aria-label=${`Video: ${m.caption}`}></canvas>
+      ${(!playing && t === 0) ? html`<div class="vcenter"><${IconButton} variant="overlay" shape="round" aria-label="Play the question" icon=${html`<${Fragment}>${svg('play', 16)}<//>`} onClick=${toggle} /></div>` : null}
+      <div class="vstrip">
+        <div class="grp">
+          <${IconButton} variant="tertiary-gray" aria-label=${playing ? 'Pause' : t >= m.len ? 'Watch again' : 'Play'} aria-pressed=${playing}
+            icon=${playing ? 'pause' : html`<${Fragment}>${svg('play', 16)}<//>`} onClick=${toggle} />
+          <${CandidateClock} seconds=${Math.floor(t)} total=${m.len} mutedTotal size="sm" />
         </div>
+        <${CandidateSoundwave} mode="playback" barCount=${18} progress=${Math.min(1, t / m.len)} label="Clip progress" />
       </div>
-      <div style=${{display:'grid', gap:'var(--space-2)'}}>
-        <span class="p3 muted">${m.caption}</span>
-        <div><${TextLink} as="button" size="sm" aria-expanded=${showTx} onClick=${() => setShowTx(v => !v)}>${showTx ? 'Hide transcript' : 'Show transcript'}<//></div>
-        ${showTx ? html`<p class="p2 transcript">${m.transcript}</p>` : null}
-      </div>
-    <//>`;
+    </div>`;
   }
-
-  // A written question. Next saves the answer; it stays locked until one is chosen.
-  function McqQuestion(){
-    const q = Q(), sel = S.sel[q.id] ?? P.answers[q.id]?.value ?? null, last = S.qi >= QS.length - 1;
-    return html`<${Page} foot=${html`<${Cta} disabled=${!sel} onClick=${nextQuestion}>${last ? 'Finish' : 'Next'}<//>`}>
-      <${QHead} />
-      ${q.media ? html`<${MediaClip} m=${q.media} />` : null}
-      <p class="p1 qtext">${q.text}</p>
-      <${RadioGroup} label=${html`<span class="sr-only">Choose one answer</span>`} value=${sel} onValueChange=${v => { S.sel[q.id] = v; render(); }}>
-        ${q.options.map(o => html`<${Radio} key=${o} value=${o} label=${o} />`)}
+  function MediaQuestion(){
+    const q = Q(), m = q.media;
+    const {foot, ring} = startControls({counting:S.clipDone, disabled:!S.clipDone});
+    return html`<${Page} foot=${foot}>
+      <${QCard}>
+        <${MediaClip} m=${m} onEnded=${clipEnded} />
+        <div style=${{display:'grid', gap:'var(--space-1)'}}>
+          <span class="p3 muted">${m.caption}</span>
+          <p class="l1 qtext">${q.text}</p>
+        </div>
+        <div class="infobox">
+          <p class="p2">${S.clipDone ? PREP_TEXT : 'Watch the question first. Your preparation time starts when the clip ends, then you’ll answer on video.'}</p>
+          <p class="p3 muted">You’ll have ${S.limitSecs >= 60 ? Math.round(S.limitSecs / 60) + ' minutes' : S.limitSecs + ' seconds'} to answer. You can retake it.</p>
+        </div>
+        ${ring}
       <//><//>`;
   }
   function QuestionScreen(){
     const q = Q();
     if (q.practice) return html`<${PracticeQuestion} />`;
-    if (q.kind === 'video') return html`<${VideoQuestion} />`;
-    return html`<${McqQuestion} />`;
+    if (q.kind === 'media') return html`<${MediaQuestion} />`;
+    return html`<${VideoQuestion} />`;
   }
 
-  // Recording: the camera fills the page. Start opened it; Stop is where Start was.
+  // Recording: the camera fills the space between the solid bar and footer. Stop recording sits
+  // where Start recording was, and the question stays on screen at full strength.
   function RecordScreen(){
     // The recorder needs the canvas to exist, so it starts once this screen has mounted.
     useEffect(() => { startRecorder(); runRecClock(); startLevel(); }, []);
     const q = Q(), left = q.practice ? null : Math.max(0, S.limitSecs - S.recSecs);
-    return html`<${Fragment}>
-      <div class="camlayer">
-        <${VideoLayer} />
-        ${S.hidePreview ? html`<div class="vmsg"><${Icon} name="eye-closed-regular" size=${24} /><span>Preview hidden. You’re still recording.</span></div>` : null}
-      </div>
+    return html`<${Page} cam foot=${html`<${Cta} onClick=${endRecording}>Stop recording<//>`}>
+      <${VideoLayer} />
+      ${S.hidePreview ? html`<div class="vmsg"><${Icon} name="eye-closed-regular" size=${24} /><span>Preview hidden. You’re still recording.</span></div>` : null}
       <div class="camtop">
         <span class="pill"><${CandidateClock} live seconds=${left ?? S.recSecs} size="sm" />${left !== null ? html`<span class="left">left</span>` : null}</span>
         <span class="pill"><${Toggle} size="sm" label="Hide preview" checked=${S.hidePreview} onCheckedChange=${v => { S.hidePreview = v; render(); }} /></span>
       </div>
-      <div class="camfoot">
-        <div class="float">
-          <span class="p3 muted">${q.practice ? 'Practice question · not scored' : `Question ${S.qi} of ${ASSESS.length}`}</span>
-          <p id="qtext" class=${'p2' + (S.qExpanded ? '' : ' qline')}>${q.text}</p>
-          <${TextLink} as="button" size="sm" aria-expanded=${S.qExpanded} aria-controls="qtext"
-            onClick=${() => { S.qExpanded = !S.qExpanded; render(); }}>${S.qExpanded ? 'Show less' : 'Read more'}<//>
-        </div>
-        <${Cta} onClick=${endRecording}>Stop recording<//>
+      <div class="camcard float">
+        <span class="p3 muted">${q.practice ? 'Practice question · not scored' : `Question ${S.qi} of ${ASSESS.length}`}</span>
+        <p id="qtext" class=${'p2 qtext' + (S.qExpanded ? '' : ' qline')}>${q.text}</p>
+        <${TextLink} as="button" size="sm" aria-expanded=${S.qExpanded} aria-controls="qtext"
+          onClick=${() => { S.qExpanded = !S.qExpanded; render(); }}>${S.qExpanded ? 'Show less' : 'Read more'}<//>
       </div><//>`;
   }
 
-  // An interruption stops the take and keeps it, and says so.
+  // An interruption loses the answer in progress. It says so, and that earlier answers are safe.
   function InterruptedScreen(){
-    const away = S.interruptReason === 'away', kept = fmt(S.keptSecs);
+    const away = S.interruptReason === 'away';
     return html`<${Page} foot=${html`<${Fragment}>
-        <${Cta} onClick=${() => go('test')}>Check my camera and retake<//>
-        ${S.keptSecs ? html`<${Cta} variant="secondary-gray" onClick=${() => { S.reviewKept = true; go('review'); }}>Watch what we kept<//>` : null}
+        <${Cta} onClick=${() => go('test')}>Check my camera and try again<//>
+        <${FootLink} icon="help-circle" onClick=${() => helpFlow('retake')}>Why did this happen?<//>
       <//>`}>
-      <${Head} title=${`Recording stopped at ${kept}`} />
-      <div class="vcard">
-        <${VideoLayer} frozen />
-        ${S.poster ? null : html`<div class="vmsg"><${Icon} name="camera-blocked" size=${24} /><span>Your camera is off</span></div>`}
-      </div>
-      <p class="p2">${away
-        ? 'Switching apps, locking the screen or opening a notification turns the camera off, so we can’t keep recording once that happens.'
-        : 'A call, or another app opening the camera, takes it away from this page, and recording stops there.'}
-        We kept the ${kept} you’d already recorded. That part of your answer is saved, so the question isn’t lost.</p><//>`;
+      <div class="art"><${PhoneArt} art=${{title:'Recording stopped', items:[{icon:'video', label:'Interrupted', warn:true}]}} /></div>
+      <${Head} title="Your recording was interrupted">
+        <p class="p2">${away
+          ? 'Switching apps, locking the screen or opening a notification turns the camera off.'
+          : 'A call, or another app opening the camera, took it away from this page.'}${' '}This answer wasn’t saved, so you’ll need to answer this question again.</p>
+      <//>
+      <div class="infobox"><p class="p2">The answers you saved before this are safe. You won’t lose them.</p></div><//>`;
   }
 
   function SaveLine(){
@@ -1292,8 +1294,7 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
     if (S.save === 'saving') return html`<div class="status-line" role="status"><${Spinner} size=${16} color="blue" label=${null} /><span>Saving your answer…</span></div>`;
     if (S.save === 'retry') return html`<div class="status-line late" role="status"><${Spinner} size=${16} color="blue" label=${null} /><span>Still saving. Keep this page open.</span></div>`;
     return html`<div class="status-line bad" role="alert"><${Icon} name="circle-exclamation" size=${16} />
-      <span>We couldn’t save that answer. Nothing is lost: it’s still here on this page. Check your connection, then
-        <${TextLink} as="button" size="md" onClick=${startSave}> try again<//>.</span></div>`;
+      <span>We couldn’t save that answer. Nothing is lost: it’s still here on this page. Check your connection, then${' '}<${TextLink} as="button" size="md" onClick=${startSave}>try again<//>.</span></div>`;
   }
   function ReviewPlayer(){
     const ref = useRef(null);
@@ -1322,33 +1323,40 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
       </div>
     </div>`;
   }
-  // After Stop recording. In onboarding it says that is how every answer works; in the
-  // assessment it is the saved response with Retake and Next. Next waits for the save.
+  // After Stop recording. In onboarding it says that is how every answer works; in the assessment
+  // it is the saved response with Next (or Finish) and Retake. The primary action waits for the save.
   function ReviewScreen(){
-    const q = Q(), kept = S.reviewKept, locked = S.save !== 'saved';
-    const practice = q.practice;
-    const forward = practice
-      ? html`<${Cta} variant=${kept ? 'secondary-gray' : 'primary'} disabled=${locked} onClick=${() => go('countdown')}>Start assessment<//>`
-      : html`<${Cta} variant=${kept ? 'secondary-gray' : 'primary'} disabled=${locked} onClick=${nextQuestion}>Next<//>`;
-    const again = html`<${Cta} variant=${kept ? 'primary' : 'secondary-gray'} onClick=${() => go('question')}>${practice ? 'Practice again' : 'Retake'}<//>`;
-    return html`<${Page} foot=${kept ? html`<${Fragment}>${again}${forward}<//>` : html`<${Fragment}>${forward}${again}<//>`}>
-      ${kept
-        ? html`<${Head} title="Here’s what we kept">
-            <p class="p2">This is the part of your answer we saved before the recording stopped.</p><//>`
-        : practice
-          ? html`<${Head} title="That’s how it’s done" icon=${html`<${Icon} name="circle-check" size=${24} />`}>
-              <p class="p2">Your answer is saved automatically, so there’s nothing to submit. Watch it back, then practice again or start the assessment when you’re ready.</p><//>`
-          : html`<${Head} title="Your response has been saved" icon=${html`<${Icon} name="circle-check" size=${24} />`}>
-              <p class="p2">Watch it back, or retake it if you’d like to try again.</p><//>`}
+    const q = Q(), locked = S.save !== 'saved', last = S.qi >= QS.length - 1;
+    if (q.practice) return html`<${Page} foot=${html`<${Fragment}>
+        <${Cta} disabled=${locked} onClick=${() => go('countdown')}>Start assessment<//>
+        <${Cta} variant="secondary-gray" onClick=${() => go('question')}>Practice again<//>
+      <//>`}>
+      <${Head} title="That’s how it’s done" icon=${html`<${Icon} name="circle-check" size=${24} />`}>
+        <p class="p2">Your answer is saved automatically, so there’s nothing to submit. Watch it back, then practice again or start the assessment when you’re ready.</p>
+      <//>
       <${ReviewPlayer} />
       <${SaveLine} /><//>`;
+    return html`<${Page} foot=${html`<${Fragment}>
+        <${Cta} disabled=${locked} onClick=${nextQuestion}>${last ? 'Finish' : 'Next'}<//>
+        <${Cta} variant="secondary-gray" onClick=${() => go('question')}>Retake<//>
+      <//>`}>
+      <${QCard}>
+        <${Head} title=${S.save === 'saved' ? 'Your response has been saved' : S.save === 'failed' ? 'We couldn’t save your response' : 'Saving your response'}
+          icon=${S.save === 'saved' ? html`<${Icon} name="circle-check" size=${24} />` : S.save === 'failed' ? html`<${Icon} name="circle-exclamation" size=${24} />` : html`<${Spinner} size=${24} color="blue" label=${null} />`}>
+          <p class="p2">Watch it back, or retake it if you’d like to try again.</p>
+        <//>
+        <${ReviewPlayer} />
+        <${SaveLine} />
+      <//><//>`;
   }
 
   function CountdownScreen(){
     return html`<${Page} mid>
       <div class="centre">
-        <h1 class="h4 ttl">Starting your assessment</h1>
-        <p class="p2">Get comfortable. The timer starts when the first question appears.</p>
+        <div class="head" style=${{justifyItems:'center'}}>
+          <h1 class="h4 ttl">Starting your assessment</h1>
+          <p class="p2">Get comfortable. The timer starts when the first question appears.</p>
+        </div>
         <${ProgressIndicator} type="circular" value=${S.count} max=${5} valueText=${S.count} label="Starting your assessment in" />
       </div><//>`;
   }
@@ -1370,73 +1378,80 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
       </div><//>`;
   }
 
-  /* ================= Wrap-up ================= */
-  function FinishScreen(){
-    return html`<${Page} foot=${html`<${Fragment}>
-        <${Cta} onClick=${finishAssessment}>Finish assessment<//>
-        <${Cta} variant="secondary-gray" onClick=${() => { S.qi = QS.length - 1; go('question'); }}>Not yet<//>
-      <//>`}>
-      <${Head} title="Finish your assessment?">
-        <p class="p2">You’ve been through all ${ASSESS.length} questions. Once you finish, you can’t change your answers.</p>
-      <//>
-      <div>${ASSESS.map((q, i) => {
-        const done = q.kind === 'video' ? !!P.answers[q.id]?.saved : P.answers[q.id]?.value != null;
-        return html`<div class="rrow" key=${q.id}><div class="l"><span class="l1">Question ${i + 1}</span><span class="p3 muted">${q.skill}</span></div>
-          ${done ? html`<${Chip} color="green" size="sm" icon=${html`<${Icon} name="check" size=${12} />`}>Saved<//>` : html`<${Chip} color="gray" size="sm">Not answered<//>`}</div>`;
-      })}</div><//>`;
-  }
-
+  /* ================= Wrap-up: the Test Taker file's own screens ================= */
+  // Saving, then saved. The rocket is the file's illustration, placed layer by layer.
   function SavingScreen(){
-    const steps = ['Saving your answers', 'Checking your responses', 'Preparing your result'];
-    return html`<${Page} mid>
-      <div class="art"><img src="tessera/assets/illustrations/success.svg" alt="" /></div>
-      <${Head} title="Saving your assessment"><p class="p2">Rechecking your answers and wrapping things up.</p><//>
-      <ul class="checklist p2" aria-live="polite">${steps.map((t, i) => {
-        const s = S.saveStep > i ? 'done' : S.saveStep === i ? 'act' : 'pend';
-        const mark = s === 'done' ? html`<${Icon} name="circle-check" size=${16} />` : s === 'act' ? html`<${Spinner} size=${16} color="blue" label=${null} />` : html`<span class="dot"></span>`;
-        return html`<li key=${i} class=${s}>${mark}<span>${t}</span></li>`;
-      })}</ul><//>`;
+    const done = S.saveStep >= 1;
+    return html`<${Page} foot=${html`<${Cta} disabled=${!done} onClick=${() => go('score')}>Next<//>`}>
+      <div class="wcard">
+        <div class="wt">
+          <p class="l1 ttl">📂 Saving your assessment</p>
+          ${done
+            ? html`<div class="status-line ok" role="status"><${Icon} name="circle-check" size=${16} /><span>Your assessment has been saved successfully.</span></div>`
+            : html`<div class="status-line" role="status"><${Spinner} size=${16} color="blue" label=${null} /><span>Rechecking your answers and wrapping things up</span></div>`}
+        </div>
+        <${Fig} ratio="472/434" layers=${[['saving-bg-complete.svg', '4.21% 7.11% 10.03% 14.85%'], ['saving-bg-simple.svg', '0 8.77% 20.81% 3.16%'],
+          ['saving-shadow.svg', '92.66% 0.09% 0.13% 0.03%'], ['saving-device.svg', '52.57% 0.47% 4.07% 36.22%'], ['saving-rocket.svg', '2.7% 15.22% 6.98% 18.6%']]} />
+      </div><//>`;
   }
 
+  // Your score: the bar graph and the certificate, exactly as the file draws them. The numbers
+  // are the file's own sample figures, not worked out from the answers.
+  const BARS = [['bar-6.svg', 27, '12.75px', '64.5px', '6/10', 'Critical Thinking'], ['bar-8.svg', 101.25, '90.75px', '57.75px', '8/10', 'Problem Solving'],
+    ['bar-8.svg', 175.5, '166.5px', '54.75px', '8/10', 'Behavioural'], ['bar-10.svg', 249.75, '250.5px', '34.5px', '10/10', 'Aptitude']];
+  const ACTIONS = [['Share on LinkedIn', 'act-linkedin.svg'], ['Send to email', 'act-email.svg'], ['View in Credly', 'act-credly.svg'], ['Download', 'act-download.svg']];
   function ScoreScreen(){
-    const rs = results(), graded = rs.filter(r => r.status !== 'review');
-    const right = graded.filter(r => r.status === 'correct').length, cleared = right >= 2;
-    const chip = st => st === 'correct' ? html`<${Chip} color="green" size="sm" icon=${html`<${Icon} name="check" size=${12} />`}>Correct<//>`
-      : st === 'wrong' ? html`<${Chip} color="red" size="sm">Incorrect<//>` : html`<${Chip} color="gray" size="sm">In review<//>`;
     return html`<${Page} foot=${html`<${Cta} onClick=${() => go('feedback')}>Next<//>`}>
-      <${Head} title="Your result">
-        <p class="bigscore">${right}/${graded.length}</p>
-        <p class="p2">${cleared ? 'You’ve cleared this assessment.' : 'You didn’t reach the passing score this time.'} Your video response will be reviewed by the hiring team.</p>
-      <//>
-      <div>${rs.map((r, i) => html`<div class="rrow" key=${r.q.id}><div class="l"><span class="l1">Question ${i + 1}</span><span class="p3 muted">${r.q.skill}</span></div>${chip(r.status)}</div>`)}</div>
-      ${cleared ? html`<div class="cert"><span class="p3 muted">This certifies that</span><span class="t">John Carter</span>
-        <span class="p3 muted">has completed the requirements of</span><span class="l1">Async Skills Assessment</span><span class="h5 ttl">Certificate of Completion</span></div>` : null}<//>`;
+      <div class="wcard">
+        <div class="wt mid">
+          <p class="p1 ttl">Your score</p>
+          <p class="score-n">32/40</p>
+          <p class="p1" style=${{color:'var(--text-tertiary)'}}>You’ve cleared this assessment.</p>
+        </div>
+        <div class="bars" role="img" aria-label="Scores by skill: Critical Thinking 6 of 10, Problem Solving 8 of 10, Behavioural 8 of 10, Aptitude 10 of 10">
+          ${BARS.map(([src, left]) => html`<img key=${left} src=${FIG + src} alt="" style=${{left:left + 'px'}} />`)}
+          ${BARS.map(([, , left, w, v, l]) => html`<div class="lab" key=${l} style=${{left, width:w}}><b>${v}</b><span>${l}</span></div>`)}
+        </div>
+        <img class="cert" src=${FIG + 'certificate.png'} alt="Certificate of completion" />
+        <div class="acts">${ACTIONS.map(([l, icon]) => html`<${Button} key=${l} variant="tertiary-color" fullWidth trailingIcon=${html`<img src=${FIG + icon} alt="" width="16" height="16" />`}>${l}<//>`)}</div>
+      </div><//>`;
   }
 
-  const RATINGS = [['😠', 'Very bad'], ['🙁', 'Bad'], ['😐', 'Average'], ['🙂', 'Good'], ['😄', 'Very good']];
-  const LIKED = ['User-friendly interface', 'Clear instructions', 'Smooth navigation', 'Other'];
+  const RATINGS = ['Very bad', 'Bad', 'Average', 'Good', 'Very good'];
+  const LIKED = ['User-Friendly Interface', 'Clear instructions', 'Smooth Navigation', 'Other'];
   function FeedbackScreen(){
     const f = S.fb;
     return html`<${Page} foot=${html`<${Fragment}>
         <${Cta} disabled=${f.rating === null} onClick=${() => go('thanks')}>Submit<//>
-        <${Cta} variant="secondary-gray" onClick=${() => go('thanks')}>Skip<//>
+        <${Cta} variant="secondary-color" onClick=${() => go('thanks')}>Skip<//>
       <//>`}>
-      <div class="art"><img src="tessera/assets/illustrations/review.svg" alt="" style=${{maxWidth:160}} /></div>
-      <${Head} title="How was your experience with us?" />
-      <div class="rate" role="radiogroup" aria-label="Rate your experience">${RATINGS.map(([e, l], i) => html`<button key=${l} type="button" role="radio" aria-checked=${f.rating === i}
-        onClick=${() => { f.rating = i; render(); }}><span class="e" aria-hidden="true">${e}</span>${l}</button>`)}</div>
-      <div style=${{display:'grid', gap:'var(--space-2)'}}>
-        <span class="l1 ttl">What did you enjoy?</span>
-        <div class="tags">${LIKED.map(l => html`<${Tag} key=${l} variant="secondary" color="blue" size="md" selected=${f.liked.includes(l)}
-          onSelectedChange=${on => { f.liked = on ? [...f.liked, l] : f.liked.filter(x => x !== l); render(); }}>${l}<//>`)}</div>
-      </div>
-      <${TextArea} label="Additional feedback" optional rows=${4} placeholder="Let us know what we did well and what we can do better" value=${f.text} onValueChange=${v => { f.text = v; }} /><//>`;
+      <div class="wcard">
+        <div class="wt">
+          <p class="p1 ttl">✍ Feedback</p>
+          <p class="p2" style=${{color:'var(--text-tertiary)'}}>How would you rate your experience with us?</p>
+        </div>
+        <div class="rate" role="radiogroup" aria-label="Rate your experience">${RATINGS.map((l, i) => html`<button key=${l} type="button" role="radio" aria-checked=${f.rating === i}
+          onClick=${() => { f.rating = i; render(); }}><img src=${`${FIG}rate-${i + 1}.png`} alt="" width="32" height="32" />${l}</button>`)}</div>
+        <div class="wt">
+          <p class="p2" style=${{color:'var(--text-tertiary)'}}>What are the things you enjoyed?</p>
+          <div class="tags">${LIKED.map(l => html`<${Tag} key=${l} variant="secondary" color="gray" size="md" selected=${f.liked.includes(l)}
+            onSelectedChange=${on => { f.liked = on ? [...f.liked, l] : f.liked.filter(x => x !== l); render(); }}>${l}<//>`)}</div>
+        </div>
+        <${TextArea} label="Additional feedback" optional rows=${4} placeholder="Let us know what we did well and what we can do better" value=${f.text} onValueChange=${v => { f.text = v; }} />
+        <${Fig} ratio="500/396" layers=${[['fb-bubble-1.svg', '0 49.93% 85.32% 27.6%'], ['fb-bg.svg', '7.59% 0.52% 0.17% 0.06%'], ['fb-stars.svg', '13.17% 19.88% 14.03% 19.66%'],
+          ['fb-character.svg', '10.35% 17% 12.01% 17%'], ['fb-bubble-2.svg', '73.15% 0.12% 17.03% 80.65%']]} />
+      </div><//>`;
   }
 
   function ThanksScreen(){
-    return html`<${Page} mid>
-      <div class="art"><img src="tessera/assets/illustrations/bye.svg" alt="" /></div>
-      <div class="centre"><h1 class="h4 ttl">Thank you!</h1><p class="p2">You may close this window now.</p></div><//>`;
+    return html`<${Page}>
+      <div class="wcard">
+        <div class="wt">
+          <p class="l1 ttl">👋 Thank you!</p>
+          <p class="p2" style=${{color:'var(--text-tertiary)'}}>You may close this window now.</p>
+        </div>
+        <img class="fig-flat" src=${FIG + 'thanks.gif'} alt="" />
+      </div><//>`;
   }
 
   function Screen(){
@@ -1445,14 +1460,12 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
       case 'neterror': return html`<${NetErrorScreen} />`;
       case 'permission': return html`<${PermissionScreen} />`;
       case 'blocked': return html`<${BlockedScreen} />`;
-      case 'otherdevice': return html`<${OtherDeviceScreen} />`;
       case 'test': return html`<${TestScreen} />`;
       case 'question': return html`<${QuestionScreen} />`;
       case 'record': return html`<${RecordScreen} />`;
       case 'interrupted': return html`<${InterruptedScreen} />`;
       case 'review': return html`<${ReviewScreen} />`;
       case 'countdown': return html`<${CountdownScreen} />`;
-      case 'finish': return html`<${FinishScreen} />`;
       case 'saving': return html`<${SavingScreen} />`;
       case 'score': return html`<${ScoreScreen} />`;
       case 'feedback': return html`<${FeedbackScreen} />`;
@@ -1492,73 +1505,67 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
   /* ================= Prototype controls (not part of the design) ================= */
   // UX-1224 points: 1 page after OTP feels stuck · 2 practice gives no direction · 3 tracker skips a step · 4 10–30s waits
   const TICKET = {
-    wait:'#1 + #4: loading steps replace the blank page. After a reload it says it is picking up where you left off.',
+    wait:'#1 + #4: loading steps replace the blank page, centred. After a reload it says it is picking up where you left off.',
     neterror:'After a long loss of connection the page is replaced by an error screen. Retry reloads: saved answers and onboarding are kept, the answer in progress is not.',
     permission:'Same order as web. Continue hands off to the browser’s own dialog, so it says Continue, not Allow: the real Allow comes next and two in a row reads as being asked twice.',
-    blocked:'Laid out like the Proctoring Attendee blocked screen: picture, a plain explanation, Retry, another device, and the how-to pinned at the foot.',
-    otherdevice:'The way out when this phone cannot allow the camera: carry on from another device.',
-    test:'The camera fills the page, with the top bar and the footer over it. Continue stays locked until the mic is heard.',
-    question:'The question comes first. In onboarding Start recording opens the camera; in the real assessment the preparation time runs here and fills the button.',
-    record:'Stop recording sits where Start recording was. The question rides over the camera; Read more opens it in place.',
-    interrupted:'A call or a tapped notification ends the camera track. Stop, keep the take, and say what was kept.',
-    review:'Stop recording saves the answer. Next and Retake (or Start assessment and Practice again) wait on the save.',
+    blocked:'Five blocked states in the Proctoring Attendee layout. Each says what is wrong, walks through the fix in this browser, and offers Retry and a help link.',
+    test:'The camera fills the space between the solid top bar and footer. Continue stays locked until the mic is heard.',
+    question:'The question comes first, with a preparation countdown, then the camera opens. Three treatments to compare: the button fills, a ring, or a bar.',
+    record:'Stop recording sits where Start recording was. The top bar and footer stay solid and the camera fills between them. A lost connection shows a banner here.',
+    interrupted:'A call or a tapped notification ends the camera track. The answer in progress is lost and starts again; earlier answers stay saved.',
+    review:'Stop recording saves the answer. Next (or Finish) and Retake wait on the save.',
     countdown:'A short countdown so the start of the timer is never a surprise.',
-    finish:'Finishing cannot be undone, so it asks once and shows what was saved.',
-    saving:'The first of the wrap-up screens from the Test Taker Experience file.',
-    score:'Result, per question, and the certificate when the passing score is reached. The video response is marked as in review.',
-    feedback:'Rating, what they enjoyed, optional notes. Submit waits for a rating; Skip does not.',
+    saving:'The Test Taker file’s own wrap-up screen: saving, then saved successfully.',
+    score:'The file’s score screen: the bar graph and certificate. The figures are the file’s sample numbers.',
+    feedback:'The file’s feedback screen. Submit waits for a rating; Skip does not.',
     thanks:'End of the flow.'
   };
   const SCREENS = [
-    ['Onboarding', [['wait', 'Loading'], ['permission', 'Allow access'], ['blocked', 'Blocked'], ['otherdevice', 'Another device'], ['test', 'Camera and mic test'],
+    ['Onboarding', [['wait', 'Loading'], ['permission', 'Allow access'], ['blocked', 'Blocked'], ['test', 'Camera and mic test'],
       ['practice-q', 'Practice question'], ['practice-rec', 'Practice recording'], ['practice-review', 'Practice review'], ['countdown', 'Countdown']]],
-    ['Assessment', [['mcq', 'Multiple choice'], ['media', 'Multimedia question'], ['video-q', 'Video question'], ['video-rec', 'Video recording'], ['video-review', 'Video review'], ['finish', 'Finish']]],
-    ['Wrap-up', [['saving', 'Saving'], ['score', 'Result'], ['feedback', 'Feedback'], ['thanks', 'Thank you']]],
+    ['Assessment', [['media-q', 'Multimedia question'], ['video-q', 'Video question'], ['video-rec', 'Video recording'], ['video-review', 'Video review']]],
+    ['Wrap-up', [['saving', 'Saving'], ['score', 'Score'], ['feedback', 'Feedback'], ['thanks', 'Thank you']]],
     ['States', [['interrupted', 'Interrupted'], ['neterror', 'Network error']]]
   ];
   function curKey(){
     const q = QS[S.qi];
     switch (S.state){
-      case 'question': return q.practice ? 'practice-q' : q.kind === 'video' ? 'video-q' : q.kind === 'media' ? 'media' : 'mcq';
+      case 'question': return q.practice ? 'practice-q' : q.kind === 'media' ? 'media-q' : 'video-q';
       case 'record': return q.practice ? 'practice-rec' : 'video-rec';
       case 'review': return q.practice ? 'practice-review' : 'video-review';
       default: return S.state;
     }
   }
-  const SAMPLE = {q1:{value:'32'}, q2:{value:'The team ran out of budget'}, q3:{saved:true}, q4:{value:'x = 2'}};
   function jump(key){
     S.inuseCleared = false;
     const at = (i, assess) => {
       S.qi = i; S.assessing = assess;
       if (assess){ P.onboarded = true; P.qi = i; saveP(); startAssessTimer(); } else stopAssessTimer();
     };
-    const prefill = () => { P.answers = {...SAMPLE, ...P.answers}; P.onboarded = true; saveP(); };
     switch (key){
       case 'wait': S.resuming = false; S.restoreNote = false; return go('wait');
       case 'permission': S.permitted = false; at(0, false); return go('permission');
       case 'blocked': S.blockedFrom = 'permission'; S.permitted = S.blockedReason === 'inuse'; return go('blocked');
-      case 'otherdevice': return go('otherdevice');
       case 'test': S.permitted = true; return go('test');
       case 'practice-q': at(0, false); S.permitted = true; return go('question');
       case 'practice-rec': at(0, false); S.permitted = true; return go('record');
       case 'practice-review': at(0, false); S.permitted = true; S.takeSecs = S.takeSecs || 14; S.poster = S.poster || S.lastFrame; return go('review');
       case 'countdown': at(0, false); return go('countdown');
-      case 'mcq': at(1, true); return go('question');
-      case 'media': at(2, true); return go('question');
-      case 'video-q': at(3, true); S.permitted = true; return go('question');
-      case 'video-rec': at(3, true); S.permitted = true; return go('record');
-      case 'video-review': at(3, true); S.permitted = true; S.takeSecs = S.takeSecs || 14; S.poster = S.poster || S.lastFrame; return go('review');
-      case 'finish': prefill(); at(QS.length - 1, true); P.qi = QS.length; saveP(); return go('finish');
-      case 'saving': prefill(); S.assessing = false; return go('saving');
-      case 'score': prefill(); S.assessing = false; return go('score');
+      case 'media-q': at(1, true); return go('question');
+      case 'video-q': at(2, true); S.permitted = true; return go('question');
+      case 'video-rec': at(2, true); S.permitted = true; return go('record');
+      case 'video-review': at(2, true); S.permitted = true; S.takeSecs = S.takeSecs || 14; S.poster = S.poster || S.lastFrame; return go('review');
+      case 'saving': S.assessing = false; return go('saving');
+      case 'score': S.assessing = false; return go('score');
       case 'feedback': S.assessing = false; return go('feedback');
       case 'thanks': S.assessing = false; return go('thanks');
-      case 'interrupted': S.permitted = true; S.keptSecs = S.keptSecs || 14; S.poster = S.poster || S.lastFrame; return go('interrupted');
+      case 'interrupted': S.permitted = true; S.interruptReason = 'away'; return go('interrupted');
       case 'neterror': S.neterrKind = 'lost'; S.retryFail = false; return go('neterror');
     }
   }
   function setOpt(key, val){
     if (key === 'osGranted') S.osGranted = val === 'yes';
+    else if (key === 'practicePrep') S.practicePrep = val === 'on';
     else if (key === 'prepSecs' || key === 'limitSecs') S[key] = +val;
     else S[key] = val;
     if (key === 'permMode'){ S.permitted = false; S.inuseCleared = false; }
@@ -1591,7 +1598,7 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
           <//>
         </div>`)}
         <${Seg} label="Device" k="platform" value=${S.platform} opts=${[['android', 'Chrome'], ['ios', 'iPhone']]} />
-        <${Seg} label="Blocked screen shows" k="blockedReason" value=${S.blockedReason} opts=${[['denied', 'Site'], ['os', 'App'], ['inuse', 'In use']]} />
+        <${Seg} label="Blocked screen shows" k="blockedReason" value=${S.blockedReason} opts=${[['denied', 'Site'], ['os', 'App'], ['inuse', 'In use'], ['nocam', 'No cam'], ['nomic', 'No mic']]} />
         <${Seg} label="Site permission" k="permMode" value=${S.permMode} opts=${[['ask', 'Asks'], ['granted', 'Allowed'], ['inuse', 'Camera in use']]} />
         <${Seg} label="Chrome's app permission" k="osGranted" value=${S.osGranted ? 'yes' : 'no'} opts=${[['no', 'Asks the OS'], ['yes', 'Already has it']]} hidden=${S.platform !== 'android'} />
         <${Seg} label="Voice check" k="voiceMode" value=${S.voiceMode} opts=${[['heard', 'Voice heard'], ['silent', 'Silent']]} />
@@ -1600,6 +1607,7 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
         <${Seg} label="Saving the answer" k="saveMode" value=${S.saveMode} opts=${[['ok', 'Saves'], ['slow', 'Slow'], ['fail', 'Fails']]} />
         <${Seg} label="Prep countdown" k="prepStyle" value=${S.prepStyle} opts=${[['button', 'Fills button'], ['ring', 'Ring'], ['bar', 'Bar']]} />
         <${Seg} label="Prep time" k="prepSecs" value=${String(S.prepSecs)} opts=${[['5', '5s'], ['15', '15s'], ['30', '30s']]} />
+        <${Seg} label="Countdown on the practice question" k="practicePrep" value=${S.practicePrep ? 'on' : 'off'} opts=${[['on', 'On'], ['off', 'Off']]} />
         <${Seg} label="Answer time limit" k="limitSecs" value=${String(S.limitSecs)} opts=${[['10', '10s'], ['120', '2 min']]} />
         <div class="proto-group">
           <span class="proto-label">Try it</span>
@@ -1620,7 +1628,7 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
   function App(){
     const [, setN] = useState(0);
     bump = () => setN(n => n + 1);
-    const stageRef = useRef(null), stackRef = useRef(null), vpRef = useRef(null);
+    const stageRef = useRef(null);
     const [K, setK] = useState(1);
     useEffect(() => {
       const fit = () => {
@@ -1636,22 +1644,19 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
       addEventListener('resize', fit);
       return () => removeEventListener('resize', fit);
     }, [S.platform]);
-    // The camera screens lay their picture behind the top bar, so they need its height.
-    useEffect(() => { if (stackRef.current && vpRef.current) vpRef.current.style.setProperty('--tsh', stackRef.current.offsetHeight + 'px'); });
     useEffect(() => {
       const onKey = e => { if (e.key === 'Escape' && S.alvyOpen) closeAlvy(); };
       document.addEventListener('keydown', onKey);
       return () => document.removeEventListener('keydown', onKey);
     }, []);
     const d = PHONES[S.platform];
-    const camfull = S.state === 'test' || S.state === 'record';
     return html`<div class="app">
       <div class="stage" ref=${stageRef}>
         <div id="phone" role="region" aria-label="Candidate phone screen" style=${{'--pw':d.w + 'px', '--ph':d.h + 'px', '--k':K}}>
           <div id="frame">
             <${ChromeTop} />
-            <div id="viewport" ref=${vpRef} class=${camfull ? 'camfull' : ''}>
-              <div class="topstack" ref=${stackRef}><${TopNav} /><${Broadcast} /></div>
+            <div id="viewport">
+              <div class="topstack"><${TopNav} /><${Broadcast} /></div>
               <main id="view">
                 <${Screen} />
                 ${S.alvyOpen ? html`<section class="alvy" aria-label="Chat with Alvy">

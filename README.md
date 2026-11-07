@@ -30,73 +30,86 @@ Chrome on Android and Safari on iPhone: onboarding, a live assessment with sampl
 questions, and the wrap-up. It is not a port of the desktop tour.
 
     loading -> allow access -> [the browser's own dialogs] -> camera and mic test
-    -> practice question -> practice recording -> practice review -> countdown
-    -> question 1 (multiple choice) -> question 2 (multimedia) -> question 3 (video
-    answer, with preparation time) -> question 4 -> finish -> saving -> result
-    -> feedback -> thank you
+    -> practice question (with a short countdown) -> practice recording
+    -> practice review -> countdown -> question 1 (multimedia) -> review
+    -> question 2 (video) -> review -> Finish -> saving -> score -> feedback -> thank you
 
-plus the states a phone produces: blocked camera, an interrupted recording, a weak
+plus the states a phone produces: five blocked states, an interrupted recording, a weak
 or lost connection, a save that has not landed, and a reload.
 
 The structure is the approved wireframe. The V8 Test Taker Experience mobile frames
 and the Proctoring Attendee frames are the style and layout reference. It is built
 on the real Tessera components (`window.TesseraDS`); only the simulated browser
-chrome, the browser's own permission dialogs and the sample camera picture are drawn
-by hand.
+chrome, the browser's own permission dialogs, the sample camera picture and the two
+error illustrations are drawn by hand.
 
 ### The frame
 
-Every screen is the Tessera top bar, a scrolling body, and a **fixed footer that holds
-every call to action at full width**. The two camera screens (the mic test and
-recording) go **full page**: the camera runs behind a translucent top bar and the
-footer, with the question or the device card floating over it.
+Every screen is the Tessera top bar, a body with 16px padding all round, and a **fixed
+footer that holds every call to action at full width**. The two camera screens (the mic
+test and recording) keep the top bar and footer **solid, at full opacity**; the camera
+fills the space between them, with the question or device card floating inside it.
+
+### Two question types, both answered on video
+
+There is no multiple choice. Both types end in the same record flow.
+
+- **Video question.** The question is on screen, a preparation countdown runs, then
+  recording starts by itself (or the candidate taps Start recording early).
+- **Multimedia question.** Someone asks the question in a short clip. The candidate
+  watches it (Start recording stays locked until it ends), the preparation countdown
+  runs, then they answer on video. No transcript.
+
+The assessment card, the timer row, the review and the wrap-up follow the Test Taker
+file. The timer is Tessera's `CandidateTimer` in its own row under the top bar, with
+digits visible by default and the "Hide timer" switch on the component's own terms.
 
 ### Decisions
 
 - **Same order as web.** A candidate practices in the sequence they will meet for the
   scored questions, so the practice never teaches a different order.
-- **The question comes first, then the camera.** Start recording opens the full-page
-  camera and recording begins; Stop recording sits where Start recording was.
-- **Preparation time lives on the question screen** of a video question in the real
-  assessment, and the system starts recording when it runs out. The onboarding has no
-  prep time. Three treatments can be compared from the prototype panel: the button
-  fills as time runs out (the default, in a darker blue with the seconds in its
-  label), a ring, or a bar above the button.
-- **Stop recording saves the answer.** There is no Submit and no upload step. In
-  onboarding the review says that is how it works, then offers Practice again or Start
-  assessment. In the assessment it is Retake and Next. The primary action is held
-  until the save has landed.
-- **A multimedia question** has a clip with controls, a caption and a transcript, then
-  the answer options.
-- **Network messages are broadcast banners** under the top bar: weak, offline, back
-  online, and the welcome-back note after a reload. After a long loss of connection the
-  page is replaced by an error screen laid out like the Proctoring Attendee one.
-- **A reload keeps what was saved.** Onboarding stays done, answered questions stay
-  answered and the timer carries on. The question being answered when the page reloaded
-  is lost and starts again, including its preparation time. A written answer saves when
-  the candidate taps Next, and a video answer when the recording stops. Progress is kept
-  in `sessionStorage` where the viewer allows it. After a reload the browser asks for
-  the camera again, as a new page load would.
+- **The question comes first, then the camera.** Stop recording sits where Start
+  recording was.
+- **Preparation countdown has three treatments to compare** from the prototype panel:
+  the button fills as time runs out, a ring, or a bar above the button. The practice
+  question can have the countdown on or off.
+- **Stop recording saves the answer.** There is no Submit and no upload step. The
+  primary action (Next, Finish, Start assessment) is held until the save has landed, and
+  the heading and status line say whether it is saving, saved, or failed.
+- **Finish goes straight to saving.** No confirm screen.
+- **Network messages are broadcast banners** under the top bar: "No internet detected"
+  (red), weak connection, back online, and the welcome-back note after a reload. After a
+  long loss of connection (15 seconds here) the page is replaced by an error screen laid
+  out like the Proctoring Attendee one, with Retry.
+- **An interruption loses the answer in progress.** A call, a locked screen or another
+  app taking the camera ends the recording; the candidate checks their camera and
+  answers that question again. Answers saved earlier stay saved. A reload behaves the
+  same way: onboarding stays done and answered questions stay answered, the timer
+  carries on, and the current answer starts again. Progress is kept in `sessionStorage`
+  where the viewer allows it. After a reload the browser asks for the camera again.
 - **Blocked states** follow the Proctoring Attendee screen: a picture of a phone with
-  the dialog, a plain explanation, Retry, "Try with another device", and the how-to
-  link pinned at the foot. There are three: the site is blocked, Chrome itself lacks
-  permission, and the camera is in use.
+  the dialog, a plain explanation, **how to fix it in this browser** (Chrome and Safari
+  have different steps), Retry, and the help link pinned at the foot. There are five:
+  the site is blocked, Chrome or Safari itself lacks permission, the camera is in use,
+  no camera is found, and no sound from the microphone. There is no "Try with another
+  device".
 - **Alvy opens as a full-page overlay** under the top bar, closed with the X, so the
-  timer and the bar stay visible.
+  timer and the bar stay visible. It offers topics, then answers with a short article.
 - **No in-app browser screen.** It was removed by decision. Detecting a webview from the
   user agent is a guess, and the flow does not depend on it.
 - **The clip plays back afterwards.** The device check only proves the live preview
   works; playback proves the recording did. Recorded with MediaRecorder, falling back
   to the last frame where that API is unavailable.
 
-The wrap-up screens come from the Test Taker Experience file: saving, the result with a
-certificate when the passing score is reached, feedback, and thank you. The result is
-adapted to this sample: it grades the written questions and marks the video answer as in
-review.
+The wrap-up is the Test Taker file's own: "Saving your assessment" then "saved
+successfully", the score with its bar graph and certificate, feedback, and thank you.
+The illustrations, bars, certificate and rating faces are exported from that file. The
+score numbers (32/40 and the four bars) are the file's sample figures, not computed from
+the answers.
 
 Opening Read more or hiding the preview mid-recording leaves the media alone. The video
 and canvas are children of components that stay mounted across repaints, so a repaint
-cannot replace the canvas the recorder is reading, which used to destroy the take silently.
+cannot replace the canvas the recorder is reading.
 
 ### Permission dialogs
 
@@ -135,10 +148,8 @@ full rather than left as edge cases.
   answer limit (2 minutes), the assessment length (20 minutes), the passing score and the
   point at which a lost connection becomes the error screen (15 seconds here) are
   placeholders to confirm.
-- **Retention contract.** The interrupted screen says the partial answer is kept. Confirm
-  that is what the backend does before the copy ships.
-- **Written answers cannot be skipped.** Next stays locked until one is chosen. The
-  Figma frames also show a skip-enabled variant.
+- **Retention contract.** The interrupted screen says the answer in progress is lost and
+  earlier answers are safe. Confirm that is what the backend does before the copy ships.
 - **The microphone gate still has no bypass.** Deliberate: we genuinely hear nothing, so
   the gate's judgment is certain. The counter-argument on a phone is that a silent device
   failure traps the candidate. If that is a real risk, the shape to add after a second
@@ -148,10 +159,13 @@ full rather than left as edge cases.
   guidance. Worth raising with the design system team.
 - **The red dot on the camera test** follows the wireframe, but reads as "recording". If
   candidates mistake it for that, label it.
-- **Rating buttons and the certificate** are not Tessera components. They are built from
-  tokens and flagged as new patterns.
-- **The illustrations** (saving, feedback, thank you) come from Tessera's library, which
-  has licence flags to clear before they leave the product.
+- **Rating buttons, the score bars and the certificate** are exported from the Test
+  Taker file, not Tessera components. They are flagged as new patterns.
+- **The wrap-up illustrations** (saving, feedback, thank you) are exported from the same
+  file and sit in `tessera/assets/figma/`, which is not committed to this public repo.
+- **Timer label.** Figma swaps the switch label to "Show timer" when the digits are
+  hidden; Tessera keeps it fixed as "Hide timer" because the swapped label reads as
+  "Show timer, on". The prototype follows Tessera.
 - **The real camera path is untested here.** The recorder, the level meter and the
   interruption listeners were exercised against the drawn sample preview, because the test
   machine has no camera. Run it once on a real phone.
@@ -164,7 +178,7 @@ a `tessera/` folder (tokens, bundle and font). It is not committed to this
 public repo; add it with the design-system skill's scaffold script, which
 leaves `index.html` alone:
 
-    python3 ~/.claude/skills/tessera-design-system/scripts/scaffold.py . --assets logos illustrations
+    python3 ~/.claude/skills/tessera-design-system/scripts/scaffold.py . --assets logos
 
 Opened from disk it uses the real camera and microphone. Where those are
 blocked (for example inside an embedded viewer) it falls back to a drawn
@@ -176,6 +190,10 @@ variant, or force a blocked state.
 
 The mobile file scales a 360×800 (Android) or 390×844 (iPhone) frame the same
 way, and draws the browser's own chrome because the recovery screens point at
-it. Its panel can switch device, force any permission outcome, open the flow
-as if from inside another app, drop the connection, make the save slow or
-fail, and interrupt a recording in progress.
+it. Its panel can switch device, force any permission outcome and any blocked
+screen, drop the connection, make the save slow or fail, change the
+preparation countdown style and time, and interrupt a recording in progress.
+
+The wrap-up illustrations are exported from the Test Taker file into
+`tessera/assets/figma/` and are not committed either; without them the
+wrap-up screens show empty frames.
