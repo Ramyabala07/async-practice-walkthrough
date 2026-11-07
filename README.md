@@ -21,6 +21,10 @@ Variant A, a separate device check screen, was dropped), so the 5-step flow runs
   "Preparation time 00:10" sits on the recorder, and recording starts on its own
   when it ends. Start recording begins early. 10s matches the mobile default.
   Practice again returns to this step.
+- **Saved** follows Stop recording: the recorder shows "Saving your response…", then
+  "Your response has been saved successfully.", and the same coach card turns into
+  "You're all set!" with Practice again and Start Assessment. This replaces the
+  separate centred all-set modal; the countdown still follows Start Assessment.
 
 Both cover camera and microphone permissions, the blocked and
 camera-in-use states with per-browser recovery steps, live preview and

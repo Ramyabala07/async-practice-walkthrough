@@ -201,6 +201,8 @@ button,select{font:inherit;color:inherit}
 .vbar-note{font:var(--tv-p2);color:var(--tv-video-fg);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
 .prep-badge{position:absolute;top:16px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:8px;font:var(--tv-p2);color:var(--tv-on-video);background:var(--tv-bg-overlay-primary);padding:4px 12px;border-radius:999px;white-space:nowrap;font-variant-numeric:tabular-nums}
 .prep-badge b{font-weight:500}
+.saved-mark{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:var(--tv-success-surface);color:var(--tv-success-text)}
+.vstage .spin.lg{border-color:rgba(255,255,255,.25);border-top-color:var(--tv-on-video)}
 .rec-badge{position:absolute;top:16px;left:16px;display:flex;align-items:center;gap:6px;font:var(--tv-l2);color:var(--tv-on-video);background:var(--tv-rec-bg);padding:4px 10px;border-radius:999px;font-variant-numeric:tabular-nums}
 .rec-dot{width:8px;height:8px;border-radius:50%;background:var(--tv-error-strong)}
 .toggle{display:inline-flex;align-items:center;gap:8px;white-space:nowrap;flex:none;background:none;border:0;padding:0;cursor:pointer;font:var(--tv-l1);color:var(--tv-on-video);min-height:36px}
@@ -260,9 +262,7 @@ button,select{font:inherit;color:inherit}
 #coach.moving{transition:left .2s ease,top .2s ease}
 #coach.centered{width:480px;padding:20px;max-height:calc(100% - 32px);overflow:auto;box-shadow:0 16px 80px rgba(0,0,0,.10),var(--tv-shadow-sm)}
 #coach.countdown{padding:40px 20px 40px;text-align:center}
-.allset h2{font:var(--tv-h3);margin:0 0 12px}
-.allset p strong{font-weight:500;color:var(--tv-text-primary)}
-.allset .coach-foot{margin-top:24px}
+.coach p strong{font-weight:500;color:var(--tv-text-primary)}
 .count-title{font:var(--tv-h4);color:var(--tv-text-primary);margin:0 0 16px}
 .count-ring{position:relative;width:100px;height:100px;margin:0 auto}
 .count-ring svg{position:absolute;inset:0;transform:rotate(-90deg)}
@@ -495,14 +495,15 @@ button,select{font:inherit;color:inherit}
   // (Variant A's separate device check screen was dropped; its 'check' code below is unreachable.)
   const STEPS = {perm:1, blocked:1, devices:2, orient:3, prep:4, talk:5, quiet:5, stop:5};
   const PREP_SECS = 10;
-  const TOUR = ['orient', 'prep', 'perm', 'blocked', 'devices', 'talk', 'quiet', 'stop'];
+  const TOUR = ['orient', 'prep', 'perm', 'blocked', 'devices', 'talk', 'quiet', 'stop', 'saved'];
+  const SAVE_MS = 1800;
   const stepInfo = () => [STEPS[S.state], 5];
   const CAMS = ['FaceTime HD Camera', 'Logitech C920'];
   const MICS = ['MacBook Air Microphone', 'AirPods Pro', 'External USB Microphone'];
   const WAIT_LABELS = ['Email verified', 'Loading your assessment', 'Preparing a practice question'];
 
   const S = {
-    state:'wait', chk:'idle', prepLeft:PREP_SECS, permMode:'ask', voiceMode:'heard', loadMode:'ok',
+    state:'wait', chk:'idle', prepLeft:PREP_SECS, saving:false, permMode:'ask', voiceMode:'heard', loadMode:'ok',
     browser:'auto', retest:'fixed', alvyOpen:false, micFailed:false, permitted:false, inuseCleared:false, devicesOk:false, blockedReason:'denied',
     permAuto:false, hidePreview:false, heard:false,
     recSecs:0, cam:0, mic:0, waitItems:['done','act','pend'],
@@ -520,8 +521,8 @@ button,select{font:inherit;color:inherit}
   // Camera preview shows while recording, and (not recording) during either device check.
   const showPreview = () => isLive() || S.state === 'devices' || S.state === 'prep' || (S.state === 'check' && S.chk === 'live');
   const inTour = () => TOUR.includes(S.state);
-  const isCentered = () => S.state === 'done' || S.state === 'countdown';
-  const isPost = () => ['done', 'countdown', 'assessment'].includes(S.state);
+  const isCentered = () => S.state === 'countdown';
+  const isPost = () => ['countdown', 'assessment'].includes(S.state);
   const verb = () => coarse.matches ? 'Tap' : 'Click';
 
   /* ================= State machine ================= */
@@ -535,8 +536,8 @@ button,select{font:inherit;color:inherit}
     if (next === 'orient' || next === 'prep'){ S.recSecs = 0; S.hidePreview = false; }
     if (next === 'prep') S.prepLeft = PREP_SECS;
     if (next === 'perm'){ S.recSecs = 0; S.permAuto = S.permitted || S.permMode === 'granted'; }
-    if (['wait', 'check', 'orient', 'blocked', 'done', 'countdown', 'assessment'].includes(next)) stopStream();
-    if (next === 'done'){ S.timerSecs = 135; }
+    if (['wait', 'check', 'orient', 'blocked', 'saved', 'countdown', 'assessment'].includes(next)) stopStream();
+    if (next === 'saved'){ S.timerSecs = 135; S.saving = true; }
     if (next === 'countdown') S.count = 5;
     render(true);
     enter(next);
@@ -551,6 +552,10 @@ button,select{font:inherit;color:inherit}
       }, 1400);
       later(() => { S.waitItems = ['done', 'done', 'done']; renderWaitList(); }, 2600);
       later(() => { S.chk = 'idle'; go('perm'); }, 3200);
+    }
+    if (st === 'saved'){
+      // Prototype stand-in for the upload; production resolves this when the save lands.
+      later(() => { S.saving = false; render(false); }, SAVE_MS);
     }
     if (st === 'prep'){
       // Prep time: the camera is on, and recording starts on its own when the timer ends.
@@ -958,6 +963,9 @@ button,select{font:inherit;color:inherit}
     const st = S.state;
     if (st === 'orient') return `${ic('video')}<span>Your camera preview will appear here</span>`;
     if (st === 'prep') return '';
+    if (st === 'saved') return S.saving
+      ? `<span class="spin lg" aria-hidden="true"></span><span>Saving your response…</span>`
+      : `<span class="saved-mark">${ic('check')}</span><span>Your response has been saved successfully.</span>`;
     if (st === 'perm') return `<span class="spin" aria-hidden="true"></span><span>${S.permAuto ? 'Starting your camera…' : 'Waiting for camera and microphone access…'}</span>`;
     if (st === 'blocked') return `${ic('videoOff')}<span>${S.blockedReason === 'inuse' ? 'Another app is using your camera' : 'No camera access'}</span>`;
     if (isLive()) return S.hidePreview ? `${ic('eyeOff')}<span>Preview hidden. Your video is still recording.</span>` : '';
@@ -1005,7 +1013,7 @@ button,select{font:inherit;color:inherit}
     }
     else if (st === 'quiet'){ cam = pill('ok', 'Allowed'); mic = pill('warn', 'No sound yet', 'micStatus'); }
     else if (st === 'devices'){ cam = pill('ok', 'Working'); mic = pill('wait', 'Checking…', 'micStatus'); }
-    else if (live || st === 'done' || st === 'prep'){ cam = pill('ok', 'Allowed'); mic = pill('ok', 'Allowed', 'micStatus'); }
+    else if (live || st === 'saved' || st === 'prep'){ cam = pill('ok', 'Allowed'); mic = pill('ok', 'Allowed', 'micStatus'); }
 
     return `<div class="vrec" id="videoRecorder">
         <div class="vmedia" id="vmedia">${mediaHTML()}</div>
@@ -1199,13 +1207,7 @@ button,select{font:inherit;color:inherit}
         </div>
         <p class="sr-only" id="coachText">The assessment starts in a few seconds.</p>`;
     }
-    return `<div class="allset">
-      <h2 id="coachTitle">You’re all set!</h2>
-      <p id="coachText">Great job practicing! When you’re ready, click <strong>Start Assessment</strong> to proceed.</p>
-      <div class="coach-foot stackable"><div class="end">
-        <button class="btn btn-secondary" data-act="again" type="button">Practice again</button>
-        <button class="btn btn-primary" data-act="begin" type="button" data-focus>Start Assessment</button>
-      </div></div></div>`;
+    return '';
   }
 
   function coachHTML(){
@@ -1259,6 +1261,20 @@ button,select{font:inherit;color:inherit}
         end = `<button class="btn btn-primary" id="devOk" data-act="dev-ok" type="button" disabled>Continue</button>`;
         hint = '<span class="foot-hint" id="devHint">Say something to continue</span>';
         break;
+      // After Stop recording: the answer saves on the recorder; once it lands, the same card
+      // becomes the end of the tour. (Replaces the separate centred "all set" modal.)
+      case 'saved':
+        if (S.saving){
+          title = 'Saving your answer';
+          body = 'This takes a few seconds.';
+          end = waiting('Saving');
+        } else {
+          title = 'You’re all set!';
+          body = `Great job practicing! When you’re ready, ${verb().toLowerCase()} <strong>Start Assessment</strong> to proceed.`;
+          end = `<button class="btn btn-secondary" data-act="again" type="button">Practice again</button>
+            <button class="btn btn-primary" data-act="begin" type="button" data-focus>Start Assessment</button>`;
+        }
+        break;
       case 'talk':
         title = 'Answer out loud';
         body = `Say a sentence or two, then ${verb().toLowerCase()} Stop recording. It doesn’t need to be perfect.`;
@@ -1280,7 +1296,7 @@ button,select{font:inherit;color:inherit}
         end = waiting('Waiting for you to stop');
         break;
     }
-    const h = `<p class="step-no"><span aria-hidden="true">${n}/${total}</span><span class="sr-only">Step ${n} of ${total}</span></p><h2 id="coachTitle"${tone ? ` class="tone-${tone}"` : ''}>${title}</h2>`;
+    const h = `${n ? `<p class="step-no"><span aria-hidden="true">${n}/${total}</span><span class="sr-only">Step ${n} of ${total}</span></p>` : ''}<h2 id="coachTitle"${tone ? ` class="tone-${tone}"` : ''}>${title}</h2>`;
     return `${h}<p id="coachText">${body}</p>${extra}
       ${end ? `<div class="coach-foot">${hint}<div class="end">${end}</div></div>` : ''}`;
   }
@@ -1317,7 +1333,7 @@ button,select{font:inherit;color:inherit}
       return;
     }
     if (isPost()){
-      main.innerHTML = skeletonHTML(st === 'done');
+      main.innerHTML = skeletonHTML(false);
       if (st === 'assessment'){ coach.hidden = true; place(); return; }
     } else {
       main.innerHTML = pageHTML();
@@ -1382,6 +1398,7 @@ button,select{font:inherit;color:inherit}
       case 'devices': holes = [{el:$('devices'), ring:true}, {el:video, flush:true}]; cands = sides($('devices'), 'top'); break;
       // Answer + stop in one step. The card sits beside the recorder so the preview stays clear.
       case 'talk': holes = [{el:video, flush:true}]; cands = sides(video, 'left'); hard = [video]; break;
+      case 'saved': holes = [{el:video, flush:true}]; cands = sides(video, 'left'); hard = [video]; break;
       // Recording steps: the card sits above its target (over the lower video) so it stays above the fold.
       case 'quiet': holes = [{el:$('micDevice'), ring:true}, {el:video, flush:true}]; cands = sides($('micDevice'), 'top'); break;
       case 'stop': holes = [{el:$('stopBtn'), ring:true}, {el:video, flush:true}]; cands = sides($('stopBtn'), 'top'); break;
@@ -1624,7 +1641,7 @@ button,select{font:inherit;color:inherit}
       case 'alvy': S.alvyOpen ? closeAlvy() : openAlvy(); break;
       case 'alvy-close': closeAlvy(); break;
       case 'help': helpFlow(a.dataset.topic); break;
-      case 'stop': go('done'); break;
+      case 'stop': go('saved'); break;
       case 'again': go('prep'); break;
       case 'hide': toggleHide(a); break;
       case 'reload': go('wait'); break;
@@ -1683,12 +1700,12 @@ button,select{font:inherit;color:inherit}
     talk:'#2 + #3: the mic was already checked, so this step just records: live preview, level bar, and Stop available straight away. No step is skipped.',
     quiet:'#3: if no voice is heard, step 4 helps fix the mic instead of skipping ahead.',
     stop:'#3: step 5 of 5. Every step is reached by the candidate’s own action.',
-    done:'#3 + #4: the tour ends clearly, and the assessment loads behind this modal.',
+    saved:'#3 + #4: the answer visibly saves on the recorder, then the same card ends the tour: You’re all set.',
     countdown:'#4: a short countdown so the start of the timer is never a surprise.',
     assessment:'End of the flow.'
   };
   const LABEL = {chrome:'Chrome', edge:'Edge', safari:'Safari', firefox:'Firefox', ios:'iPhone', android:'Android'};
-  const CHIPS = [['wait','Loading'], ['perm','1 Allow'], ['blocked','1 Blocked'], ['devices','2 Devices'], ['orient','3 Question'], ['prep','4 Prep time'], ['talk','5 Answer'], ['done','All set'], ['countdown','Countdown']];
+  const CHIPS = [['wait','Loading'], ['perm','1 Allow'], ['blocked','1 Blocked'], ['devices','2 Devices'], ['orient','3 Question'], ['prep','4 Prep time'], ['talk','5 Answer'], ['saved','Saved · All set'], ['countdown','Countdown']];
   let chipsDone = false;
   function updateProto(){
     if (!chipsDone){
@@ -1713,7 +1730,7 @@ button,select{font:inherit;color:inherit}
     if (st === 'devices'){ S.permitted = true; S.devicesOk = false; return go('devices'); }
     if (['orient', 'prep'].includes(st)){ S.permitted = true; S.devicesOk = true; return go(st); }
     if (['wait', 'perm'].includes(st)){ S.permitted = false; S.devicesOk = false; }
-    if (['talk', 'quiet', 'stop', 'done', 'countdown'].includes(st)){ S.permitted = true; S.devicesOk = true; }
+    if (['talk', 'quiet', 'stop', 'saved', 'countdown'].includes(st)){ S.permitted = true; S.devicesOk = true; }
     if (st === 'blocked'){
       S.devicesOk = false;
       S.blockedReason = S.permMode === 'inuse' ? 'inuse' : 'denied';
