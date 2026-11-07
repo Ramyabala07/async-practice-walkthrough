@@ -83,6 +83,11 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
 .muted{color:var(--text-tertiary)}
 .centre{display:flex;flex-direction:column;align-items:center;gap:var(--space-4);text-align:center}
 .centre>*{margin:0}
+/* Tip: a quiet aside, not an alert (new pattern; Tessera has no tip component) */
+.tip{display:flex;align-items:flex-start;gap:var(--space-2);padding:var(--space-3) var(--space-4);margin-top:var(--space-2)!important;
+  background:var(--bg-muted);border-radius:var(--radius-lg);color:var(--text-tertiary);text-align:left}
+.tip svg{flex:none;margin-top:2px;color:var(--text-tertiary)}
+.tip b{font-weight:500;color:var(--text-primary)}
 .mark{flex:none;width:48px;height:48px;border-radius:var(--radius-full);display:flex;align-items:center;justify-content:center;background:var(--bg-accent);color:var(--interactive-link)}
 .mark.err{background:var(--error-surface);color:var(--error-emphasis)}
 .steps{margin:0;padding-left:var(--space-5);display:grid;gap:var(--space-2);color:var(--text-tertiary)}
@@ -1549,9 +1554,10 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
       <div class="centre">
         <div class="head" style=${{justifyItems:'center'}}>
           <h1 class="h4 ttl">Starting your assessment</h1>
-          <p class="p2 lines"><span>Turn on Do Not Disturb so calls don’t interrupt you.</span><span>The timer starts with the first question.</span></p>
+          <p class="p2">The timer starts with the first question.</p>
         </div>
         <${ProgressIndicator} type="circular" value=${S.count} max=${5} valueText=${S.count} label="Starting your assessment in" />
+        <p class="tip p2"><${Icon} name="circle-info" size=${16} /><span><b>Tip:</b> Turn on Do Not Disturb so calls don’t interrupt you.</span></p>
       </div><//>`;
   }
 
