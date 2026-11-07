@@ -960,7 +960,7 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
       case 'nomic': return {title:'We can’t hear you', art:{title:'No sound', items:[{icon:'mic', label:'Microphone', slash:true, warn:true}]}, topic:'mic', link:'How to fix your microphone',
         text:'No sound is reaching your microphone.', steps:NOMIC_STEPS[p]};
       case 'noapi': return {title:`Open this link in ${b}`, art:{title:'Camera not available', items:[{icon:'video', label:'Not available', slash:true, warn:true}]}, topic:'noapi', link:'Need help?', copyLink:true,
-        text:'This browser can’t use your camera. It’s often the one built into an app like Gmail or LinkedIn.',
+        text:'This browser can’t use your camera. This often happens when a link opens inside another app.',
         steps:[`Tap <b>Copy link</b>, then paste it into ${b}’s address bar.`, `Or use the app’s menu and choose <b>Open in ${b}</b>.`]};
       case 'noprompt': return {title:'We didn’t get a response', art:{title:'No request shown', slash:true}, topic:'noprompt', link:'Need help?',
         text:`${b} didn’t show the camera request.`,
@@ -1018,7 +1018,7 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
     if (topic === 'noapi') return {
       ask:'Hi, it says to open the link in another browser. Can you help?',
       search:'opening the assessment in your browser', title:`Opening the assessment in ${name}`,
-      steps:[`Apps like Gmail or LinkedIn open links in their own browser, which can’t use the camera.`, `Tap <b>Copy link</b>, open ${name}, and paste it into the address bar.`, 'Your progress is saved, so you’ll pick up where you left off.']
+      steps:[`Some apps open links in their own browser, which can’t use the camera.`, `Tap <b>Copy link</b>, open ${name}, and paste it into the address bar.`, 'Your progress is saved, so you’ll pick up where you left off.']
     };
     if (topic === 'noprompt') return {
       ask:'Hi, I tapped Continue but nothing asked for my camera. Can you help?',
