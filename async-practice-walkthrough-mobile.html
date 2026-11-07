@@ -640,7 +640,9 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
       const q = Q();
       if (q.kind === 'video' && !q.practice){ P.answers[q.id] = {saved:true}; saveP(); }
       S.save = 'saved';
-      // As on web: "Your response has been saved successfully." over the player, then playback.
+      // Scored answers: "Your response has been saved successfully." over the player, then playback.
+      // Not for the practice answer, where it reads as if the practice counted.
+      if (q.practice){ render(); return; }
       S.savedFlash = true; render();
       setTimeout(() => { if (tok === saveToken){ S.savedFlash = false; render(); } }, 2500);
     };

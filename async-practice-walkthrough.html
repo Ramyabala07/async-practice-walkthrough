@@ -201,7 +201,12 @@ button,select{font:inherit;color:inherit}
 .vbar-note{font:var(--tv-p2);color:var(--tv-video-fg);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
 .prep-badge{position:absolute;top:16px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:8px;font:var(--tv-p2);color:var(--tv-on-video);background:var(--tv-bg-overlay-primary);padding:4px 12px;border-radius:999px;white-space:nowrap;font-variant-numeric:tabular-nums}
 .prep-badge b{font-weight:500}
-.saved-mark{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:var(--tv-success-surface);color:var(--tv-success-text)}
+.vplayer{display:flex;align-items:center;gap:12px;flex:1;min-width:0;color:var(--tv-on-video)}
+.vplayer .icon-btn{color:var(--tv-on-video)}
+.vplayer .icon-btn:hover{background:rgba(255,255,255,.14)}
+.ptrack{flex:1;min-width:0;height:4px;border-radius:2px;background:rgba(255,255,255,.3);overflow:hidden}
+.ptrack>span{display:block;height:100%;background:var(--tv-on-video);transition:width .25s linear}
+.ptime{font:var(--tv-p2);white-space:nowrap;font-variant-numeric:tabular-nums}
 .vstage .spin.lg{border-color:rgba(255,255,255,.25);border-top-color:var(--tv-on-video)}
 .rec-badge{position:absolute;top:16px;left:16px;display:flex;align-items:center;gap:6px;font:var(--tv-l2);color:var(--tv-on-video);background:var(--tv-rec-bg);padding:4px 10px;border-radius:999px;font-variant-numeric:tabular-nums}
 .rec-dot{width:8px;height:8px;border-radius:50%;background:var(--tv-error-strong)}
@@ -261,9 +266,13 @@ button,select{font:inherit;color:inherit}
   box-shadow:var(--tv-shadow-modal),var(--tv-shadow-sm);container:coach / inline-size}
 #coach.moving{transition:left .2s ease,top .2s ease}
 #coach.centered{width:480px;padding:20px;max-height:calc(100% - 32px);overflow:auto;box-shadow:0 16px 80px rgba(0,0,0,.10),var(--tv-shadow-sm)}
-#coach.countdown{padding:40px 20px 40px;text-align:center}
+#coach.countdown{padding:32px 20px 20px;text-align:center}
 .coach p strong{font-weight:500;color:var(--tv-text-primary)}
-.count-title{font:var(--tv-h4);color:var(--tv-text-primary);margin:0 0 16px}
+.count-title{font:var(--tv-h4);color:var(--tv-text-primary);margin:0 0 4px}
+#coach .count-sub{font:var(--tv-p2);color:var(--tv-text-tertiary);margin:0 0 20px}
+#coach .count-tip{display:flex;align-items:flex-start;gap:8px;margin:28px 0 0;padding:12px 16px;border-radius:8px;background:var(--tv-bg-muted);font:var(--tv-p2);color:var(--tv-text-tertiary);text-align:left}
+.count-tip .i{margin-top:2px}
+.count-tip b{font-weight:500;color:var(--tv-text-primary)}
 .count-ring{position:relative;width:100px;height:100px;margin:0 auto}
 .count-ring svg{position:absolute;inset:0;transform:rotate(-90deg)}
 .count-ring circle{fill:none;stroke-width:5}
@@ -463,7 +472,9 @@ button,select{font:inherit;color:inherit}
     sun:'<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M19.1 4.9l-1.4 1.4M6.3 17.7l-1.4 1.4"/>',
     lock:'<rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/>',
     rec:'<circle cx="12" cy="12" r="5" fill="currentColor" stroke="none"/>',
-    square:'<rect x="7" y="7" width="10" height="10" rx="1.5" fill="currentColor" stroke="none"/>'
+    square:'<rect x="7" y="7" width="10" height="10" rx="1.5" fill="currentColor" stroke="none"/>',
+    play:'<path d="M8 5.2c0-.8.9-1.3 1.6-.9l10 6.3c.6.4.6 1.4 0 1.8l-10 6.3c-.7.4-1.6-.1-1.6-.9z" fill="currentColor" stroke="none"/>',
+    pause:'<rect x="7" y="5" width="3.5" height="14" rx="1" fill="currentColor" stroke="none"/><rect x="13.5" y="5" width="3.5" height="14" rx="1" fill="currentColor" stroke="none"/>'
   };
   const ic = (n, cls = '') => `<svg class="i ${cls}" viewBox="0 0 24 24" aria-hidden="true">${ICON[n]}</svg>`;
   const $ = id => document.getElementById(id);
@@ -503,7 +514,7 @@ button,select{font:inherit;color:inherit}
   const WAIT_LABELS = ['Email verified', 'Loading your assessment', 'Preparing a practice question'];
 
   const S = {
-    state:'wait', chk:'idle', prepLeft:PREP_SECS, saving:false, permMode:'ask', voiceMode:'heard', loadMode:'ok',
+    state:'wait', chk:'idle', prepLeft:PREP_SECS, saving:false, playing:false, playT:0, playDur:6, permMode:'ask', voiceMode:'heard', loadMode:'ok',
     browser:'auto', retest:'fixed', alvyOpen:false, micFailed:false, permitted:false, inuseCleared:false, devicesOk:false, blockedReason:'denied',
     permAuto:false, hidePreview:false, heard:false,
     recSecs:0, cam:0, mic:0, waitItems:['done','act','pend'],
@@ -537,7 +548,7 @@ button,select{font:inherit;color:inherit}
     if (next === 'prep') S.prepLeft = PREP_SECS;
     if (next === 'perm'){ S.recSecs = 0; S.permAuto = S.permitted || S.permMode === 'granted'; }
     if (['wait', 'check', 'orient', 'blocked', 'saved', 'countdown', 'assessment'].includes(next)) stopStream();
-    if (next === 'saved'){ S.timerSecs = 135; S.saving = true; }
+    if (next === 'saved'){ S.timerSecs = 135; S.saving = true; S.playing = false; S.playT = 0; S.playDur = Math.max(S.recSecs, 3) || 6; }
     if (next === 'countdown') S.count = 5;
     render(true);
     enter(next);
@@ -555,7 +566,15 @@ button,select{font:inherit;color:inherit}
     }
     if (st === 'saved'){
       // Prototype stand-in for the upload; production resolves this when the save lands.
-      later(() => { S.saving = false; render(false); }, SAVE_MS);
+      // Then the answer plays back, as on mobile. (Simulated with the sample preview.)
+      later(() => { S.saving = false; S.playing = true; render(false); }, SAVE_MS);
+      every(() => {
+        if (S.state !== 'saved' || S.saving || !S.playing) return;
+        S.playT = Math.min(S.playDur, S.playT + .25);
+        S.level = simSpeech();
+        if (S.playT >= S.playDur){ S.playing = false; S.playT = 0; S.level = 0; }
+        renderPlayer();
+      }, 250);
     }
     if (st === 'prep'){
       // Prep time: the camera is on, and recording starts on its own when the timer ends.
@@ -766,6 +785,7 @@ button,select{font:inherit;color:inherit}
   }
 
   function mediaHTML(){
+    if (S.state === 'saved' && !S.saving) return '<canvas id="simCam" role="img" aria-label="Your practice answer"></canvas><span class="sim-tag">Sample recording</span>';
     if (!showPreview() || (isLive() && S.hidePreview)) return '';
     return S.stream
       ? '<video id="liveVideo" autoplay muted playsinline aria-label="Your camera preview"></video>'
@@ -963,9 +983,8 @@ button,select{font:inherit;color:inherit}
     const st = S.state;
     if (st === 'orient') return `${ic('video')}<span>Your camera preview will appear here</span>`;
     if (st === 'prep') return '';
-    if (st === 'saved') return S.saving
-      ? `<span class="spin lg" aria-hidden="true"></span><span>Saving your response…</span>`
-      : `<span class="saved-mark">${ic('check')}</span><span>Your response has been saved successfully.</span>`;
+    // While saving: a spinner only (as on mobile). No "saved" message for a practice answer.
+    if (st === 'saved') return S.saving ? `<span class="spin lg" role="status" aria-label="Saving your answer"></span>` : '';
     if (st === 'perm') return `<span class="spin" aria-hidden="true"></span><span>${S.permAuto ? 'Starting your camera…' : 'Waiting for camera and microphone access…'}</span>`;
     if (st === 'blocked') return `${ic('videoOff')}<span>${S.blockedReason === 'inuse' ? 'Another app is using your camera' : 'No camera access'}</span>`;
     if (isLive()) return S.hidePreview ? `${ic('eyeOff')}<span>Preview hidden. Your video is still recording.</span>` : '';
@@ -994,12 +1013,28 @@ button,select{font:inherit;color:inherit}
       <select id="${id}" aria-label="${kind === 'cam' ? 'Camera' : 'Microphone'}"${known ? '' : ' disabled'}>${opts}</select>${ic('chevron', 'sm chev')}</div>`;
   }
 
+  // Playback controls for the practice answer: play/pause, progress and time.
+  function playerHTML(){
+    return `<div class="vplayer">
+      <button class="icon-btn" id="playBtn" data-act="play" type="button" aria-label="${S.playing ? 'Pause' : 'Play'}">${ic(S.playing ? 'pause' : 'play')}</button>
+      <span class="ptrack" role="progressbar" aria-label="Playback" aria-valuemin="0" aria-valuemax="${S.playDur}" aria-valuenow="${Math.floor(S.playT)}"><span id="playFill" style="width:${S.playT / S.playDur * 100}%"></span></span>
+      <span class="ptime" id="playTime">${fmt(Math.floor(S.playT))} / ${fmt(S.playDur)}</span>
+    </div>`;
+  }
+  function renderPlayer(){
+    const f = $('playFill'), t = $('playTime'), b = $('playBtn'), tr = document.querySelector('.ptrack');
+    if (f) f.style.width = (S.playT / S.playDur * 100) + '%';
+    if (t) t.textContent = `${fmt(Math.floor(S.playT))} / ${fmt(S.playDur)}`;
+    if (tr) tr.setAttribute('aria-valuenow', Math.floor(S.playT));
+    if (b && b.dataset.p !== String(S.playing)){ b.dataset.p = String(S.playing); b.innerHTML = ic(S.playing ? 'pause' : 'play'); b.setAttribute('aria-label', S.playing ? 'Pause' : 'Play'); }
+  }
+
   function rightHTML(){
     const st = S.state, live = isLive();
     const known = S.permitted || S.devicesOk;
     const toggle = live
       ? `<button class="toggle" id="hideToggle" data-act="hide" aria-pressed="${S.hidePreview}" type="button"><span class="track" aria-hidden="true"></span>Hide Preview</button>`
-      : '<span></span>';
+      : (st === 'saved' && !S.saving) ? playerHTML() : '<span></span>';
     let action = '';
     if (st === 'orient' || st === 'prep') action = `<button class="btn btn-primary" id="startBtn" data-act="start-rec" type="button">${ic('rec', 'sm')}Start recording</button>`;
     if (st === 'quiet') action = '<span class="vbar-note">Checking your voice…</span>';
@@ -1200,12 +1235,14 @@ button,select{font:inherit;color:inherit}
 
   function centeredHTML(){
     if (S.state === 'countdown'){
-      return `<h2 class="count-title" id="coachTitle">Starting Assessment in</h2>
+      // Same message as mobile's countdown; the tip is the desktop version of mobile's Do Not Disturb tip.
+      return `<h2 class="count-title" id="coachTitle">Starting your assessment</h2>
+        <p class="count-sub" id="coachText">The timer starts with the first question.</p>
         <div class="count-ring" aria-live="polite">
           <svg viewBox="0 0 100 100" aria-hidden="true"><circle class="bg" cx="50" cy="50" r="46"/><circle class="fg" cx="50" cy="50" r="46"/></svg>
           <span class="count-num" id="countNum">${S.count}</span>
         </div>
-        <p class="sr-only" id="coachText">The assessment starts in a few seconds.</p>`;
+        <p class="count-tip">${ic('info', 'sm')}<span><b>Tip:</b> Turn on Do Not Disturb and close apps like Zoom or Teams so nothing interrupts you.</span></p>`;
     }
     return '';
   }
@@ -1217,7 +1254,7 @@ button,select{font:inherit;color:inherit}
     switch (st){
       case 'orient':
         title = 'Your practice question';
-        body = 'Use this practice question to try recording once. Nothing is saved or scored.';
+        body = 'Try recording an answer here before the real questions. This one isn’t scored. Practice as many times as you like.';
         end = '<button class="btn btn-primary" data-act="next" type="button" data-focus>Next</button>';
         break;
       case 'prep':
@@ -1233,8 +1270,8 @@ button,select{font:inherit;color:inherit}
         } else {
           title = 'Allow your camera and microphone';
           body = coarse.matches
-            ? 'Your browser will ask for access. Tap Allow when the prompt appears.'
-            : 'Your browser will ask for access. Look for the prompt near the address bar and click Allow.';
+            ? 'You’ll answer by video, so we need both. Your browser will ask next. Tap Allow.'
+            : 'You’ll answer by video, so we need both. Your browser will ask next. Look for the prompt near the address bar and click Allow.';
           end = waiting('Waiting for access');
         }
         break;
@@ -1263,17 +1300,13 @@ button,select{font:inherit;color:inherit}
         break;
       // After Stop recording: the answer saves on the recorder; once it lands, the same card
       // becomes the end of the tour. (Replaces the separate centred "all set" modal.)
+      // Same copy as mobile's practice review. It teaches that answers save automatically,
+      // without announcing that the practice answer itself was saved.
       case 'saved':
-        if (S.saving){
-          title = 'Saving your answer';
-          body = 'This takes a few seconds.';
-          end = waiting('Saving');
-        } else {
-          title = 'You’re all set!';
-          body = `Great job practicing! When you’re ready, ${verb().toLowerCase()} <strong>Start Assessment</strong> to proceed.`;
-          end = `<button class="btn btn-secondary" data-act="again" type="button">Practice again</button>
-            <button class="btn btn-primary" data-act="begin" type="button" data-focus>Start Assessment</button>`;
-        }
+        title = 'That’s how it’s done';
+        body = 'Your answer saves automatically. Watch it back, then practice again or start the assessment.';
+        end = `<button class="btn btn-secondary" data-act="again" type="button">Practice again</button>
+          <button class="btn btn-primary" data-act="begin" type="button" data-focus${S.saving ? ' disabled' : ''}>Start Assessment</button>`;
         break;
       case 'talk':
         title = 'Answer out loud';
@@ -1642,6 +1675,7 @@ button,select{font:inherit;color:inherit}
       case 'alvy-close': closeAlvy(); break;
       case 'help': helpFlow(a.dataset.topic); break;
       case 'stop': go('saved'); break;
+      case 'play': S.playing = !S.playing; if (!S.playing) S.level = 0; renderPlayer(); break;
       case 'again': go('prep'); break;
       case 'hide': toggleHide(a); break;
       case 'reload': go('wait'); break;
@@ -1700,12 +1734,12 @@ button,select{font:inherit;color:inherit}
     talk:'#2 + #3: the mic was already checked, so this step just records: live preview, level bar, and Stop available straight away. No step is skipped.',
     quiet:'#3: if no voice is heard, step 4 helps fix the mic instead of skipping ahead.',
     stop:'#3: step 5 of 5. Every step is reached by the candidate’s own action.',
-    saved:'#3 + #4: the answer visibly saves on the recorder, then the same card ends the tour: You’re all set.',
+    saved:'#3 + #4: as on mobile, “That’s how it’s done”: answers save automatically, then playback, Practice again or Start Assessment.',
     countdown:'#4: a short countdown so the start of the timer is never a surprise.',
     assessment:'End of the flow.'
   };
   const LABEL = {chrome:'Chrome', edge:'Edge', safari:'Safari', firefox:'Firefox', ios:'iPhone', android:'Android'};
-  const CHIPS = [['wait','Loading'], ['perm','1 Allow'], ['blocked','1 Blocked'], ['devices','2 Devices'], ['orient','3 Question'], ['prep','4 Prep time'], ['talk','5 Answer'], ['saved','Saved · All set'], ['countdown','Countdown']];
+  const CHIPS = [['wait','Loading'], ['perm','1 Allow'], ['blocked','1 Blocked'], ['devices','2 Devices'], ['orient','3 Question'], ['prep','4 Prep time'], ['talk','5 Answer'], ['saved','That’s how it’s done'], ['countdown','Countdown']];
   let chipsDone = false;
   function updateProto(){
     if (!chipsDone){

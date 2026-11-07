@@ -21,10 +21,16 @@ Variant A, a separate device check screen, was dropped), so the 5-step flow runs
   "Preparation time 00:10" sits on the recorder, and recording starts on its own
   when it ends. Start recording begins early. 10s matches the mobile default.
   Practice again returns to this step.
-- **Saved** follows Stop recording: the recorder shows "Saving your response…", then
-  "Your response has been saved successfully.", and the same coach card turns into
-  "You're all set!" with Practice again and Start Assessment. This replaces the
-  separate centred all-set modal; the countdown still follows Start Assessment.
+- **That's how it's done** follows Stop recording, with the mobile copy: "Your answer
+  saves automatically. Watch it back, then practice again or start the assessment."
+  The recorder shows a spinner while it saves (Start Assessment waits), then plays the
+  answer back. It never says the practice answer "was saved", which could read as if
+  it counted. This replaces the centred all-set modal.
+- **Copy matches mobile** wherever web needs the same message: the practice question
+  ("This one isn't scored. Practice as many times as you like."), allow access
+  ("You'll answer by video, so we need both."), and the countdown ("Starting your
+  assessment", "The timer starts with the first question.", plus a desktop version of
+  the Do Not Disturb tip that also names Zoom and Teams).
 
 Both cover camera and microphone permissions, the blocked and
 camera-in-use states with per-browser recovery steps, live preview and
@@ -123,7 +129,8 @@ digits visible by default and the "Hide timer" switch on the component's own ter
   A silent microphone shows its message in error red with a red "No sound" chip.
 - **Stop recording saves the answer**, with the web flow's copy: a spinner in the player
   while it saves, then "Your response has been saved successfully." over the picture,
-  then playback. A failed save says so in the player with Try again. There is no Submit
+  then playback. The practice answer skips that message, so it doesn't read as if the
+  practice counted; its screen already says answers save automatically. A failed save says so in the player with Try again. There is no Submit
   and no upload step, and Next, Finish or Start assessment waits for the save. Retake
   asks first ("Your current answer will be deleted if you choose to retake it"), in
   Tessera's Modal contained to the phone.
