@@ -56,7 +56,7 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
 #viewport{flex:1;min-height:0;position:relative;display:flex;flex-direction:column;background:var(--bg-surface)}
 .topstack{flex:none;position:relative;z-index:6}
 .topstack .ts-candidate-top-nav__timer-row{min-height:51px;align-items:center}
-#view{flex:1;min-height:0;position:relative;display:flex;flex-direction:column}
+#view{flex:1;min-height:0;position:relative;display:flex;flex-direction:column;color:var(--text-tertiary)}
 
 /* One spacing system on every screen: 16 around the page and the footer, 16 between blocks,
    8 between a title and its text, 12 inside a card. */
@@ -75,26 +75,26 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
 /* Two sentences in a centred block: one per line. */
 .lines{display:grid;gap:0}
 .lines span{display:block}
-.bullets{margin:0;padding-left:var(--space-5);display:grid;gap:var(--space-2);color:var(--text-body)}
+.bullets{margin:0;padding-left:var(--space-5);display:grid;gap:var(--space-2);color:var(--text-tertiary)}
 .bullets b{font-weight:500;color:var(--text-primary)}
 .head h1,.head p,.pg-body p{margin:0}
 .ttl{margin:0;color:var(--text-primary)}
 .ttl.err{color:var(--error-emphasis)}
-.muted{color:var(--text-subtle)}
+.muted{color:var(--text-tertiary)}
 .centre{display:flex;flex-direction:column;align-items:center;gap:var(--space-4);text-align:center}
 .centre>*{margin:0}
 .mark{flex:none;width:48px;height:48px;border-radius:var(--radius-full);display:flex;align-items:center;justify-content:center;background:var(--bg-accent);color:var(--interactive-link)}
 .mark.err{background:var(--error-surface);color:var(--error-emphasis)}
-.steps{margin:0;padding-left:var(--space-5);display:grid;gap:var(--space-2);color:var(--text-body)}
+.steps{margin:0;padding-left:var(--space-5);display:grid;gap:var(--space-2);color:var(--text-tertiary)}
 .steps b{font-weight:500;color:var(--text-primary)}
 .checklist{list-style:none;margin:0;padding:0;width:fit-content;max-width:100%;text-align:left}
 .checklist li{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-2) 0;color:var(--text-primary)}
-.checklist li.pend{color:var(--text-subtle)}
+.checklist li.pend{color:var(--text-tertiary)}
 .checklist li.done svg{color:var(--success-strong)}
 .dot{flex:none;width:16px;height:16px;border-radius:50%;border:1.5px solid var(--border-primary)}
 .art{flex:none;display:flex;align-items:center;justify-content:center;padding:var(--space-4);border-radius:var(--radius-xl);background:var(--bg-muted)}
 .art svg{display:block;width:100%;max-width:296px;height:auto}
-.status-line{display:flex;align-items:flex-start;gap:var(--space-2);font:500 14px/20px var(--font-sans);color:var(--text-body)}
+.status-line{display:flex;align-items:flex-start;gap:var(--space-2);font:500 14px/20px var(--font-sans);color:var(--text-tertiary)}
 .status-line.ok{color:var(--success-strong)}
 .status-line.late{color:var(--warning-emphasis)}
 .status-line.bad{color:var(--error-emphasis)}
@@ -110,8 +110,8 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
 .devsel:hover{border-color:var(--border-strong)}
 .devsel:focus-visible{outline:none;box-shadow:var(--focus-ring)}
 .devsel[aria-expanded="true"]{border-color:var(--interactive-primary)}
-.devsel>svg{flex:none;color:var(--text-subtle)}
-.devsel>svg:last-child{color:var(--text-body)}
+.devsel>svg{flex:none;color:var(--text-tertiary)}
+.devsel>svg:last-child{color:var(--text-tertiary)}
 .devsel-val{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .sheet-layer{position:absolute;inset:0;z-index:40}
 .sheet-layer.edge{bottom:-18px}   /* Chrome draws the page edge to edge, behind the gesture bar */
@@ -1035,7 +1035,7 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
         <circle cx="0" cy="92" r="15" style=${fillv(it.warn ? '--warning-strong' : '--interactive-primary')} />
         <g transform="translate(-9 83) scale(.75)" style=${ICON_INK} dangerouslySetInnerHTML=${{__html:SVG[it.icon]}} />
         ${it.slash ? html`<line x1="-11" y1="81" x2="11" y2="103" style=${{stroke:'#fff', strokeWidth:2.5, strokeLinecap:'round'}} />` : null}
-        <text x="0" y="124" text-anchor="middle" style=${{font:'400 10px var(--font-sans)', fill:'var(--text-body)'}}>${it.label}</text>
+        <text x="0" y="124" text-anchor="middle" style=${{font:'400 10px var(--font-sans)', fill:'var(--text-tertiary)'}}>${it.label}</text>
       </g>`)}
     </svg>`;
   }
@@ -1258,7 +1258,7 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
       <div class="camtop"><span class="livedot" role="img" aria-label="Live preview, not recording"></span>${simChip()}</div>
       <div class="camcard float">
         <h1 class="h5 ttl">Check your camera and microphone</h1>
-        <p class="p3 muted">We’ll make sure we can see and hear you before you start.</p>
+        <p class="p2">We’ll make sure we can see and hear you before you start.</p>
         <div class="drows">
           <${DeviceRow} kind="cam" status="ok" />
           <${DeviceRow} kind="mic" status=${mic} />
@@ -1295,6 +1295,7 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
       <li>This one isn’t scored. Record it as many times as you like.</li>
     </ul>`;
     return html`<ul class="bullets p2">
+      ${media ? html`<li>Play the video and watch the whole question.</li>` : null}
       <li>${media ? `When the video ends, you get ${prep} to prepare. Then recording starts on its own.` : `You get ${prep} to prepare. Then recording starts on its own.`}</li>
       <li>You have ${answerTime()} to answer, and you can retake it.</li>
     </ul>`;

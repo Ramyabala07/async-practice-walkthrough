@@ -62,9 +62,14 @@ There is no multiple choice. Both types end in the same record flow.
 
 Both types, and the practice question, use one grey card that fills the screen down to
 the footer: the header ("Question n of 2", or "Practice question" with a Not scored chip),
-a divider, the question as text or as the video, then two plain steps in the order things
-happen (the prep time and that recording starts on its own, then the answer time and
-retakes). The steps never change while the screen is open, so the
+a divider, the question as text or as the video, then plain steps in the order things
+happen: the multimedia question starts with "Play the video and watch the whole
+question"; every question then gives the prep time (recording starts on its own) and the
+answer time and retakes.
+
+Secondary text on the candidate screens (lines under titles, bullets, captions, pending
+steps) is `text-tertiary` (zinc-700) rather than `text-body` or `text-subtle`, which read
+too light on a phone. Titles and key words stay `text-primary`. The steps never change while the screen is open, so the
 card does not reflow when the video ends. Rules come first
 because the prep countdown starts the moment the screen opens, so the candidate needs
 them before they read. The review uses the same card with the recorded answer below the
