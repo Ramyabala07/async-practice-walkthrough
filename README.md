@@ -11,13 +11,16 @@ recorded answer.
 
 ## What it covers
 
-A spotlight tour with anchored coach marks over the real candidate screen,
-in two variants:
+A spotlight tour with anchored coach marks over the real candidate screen.
+The device checks are built into the tour as steps 1–2 (this was Variant B;
+Variant A, a separate device check screen, was dropped), so the 5-step flow runs:
 
-- **Variant A** — a separate device check screen before the practice
-  question, then a 3-step tour (question → start → answer).
-- **Variant B** — the same checks built into the tour as steps 1–2, so the
-  5-step flow runs allow access → check devices → question → start → answer.
+    allow access → check devices → question → prep time → answer
+
+- **Prep time (step 4)** practises the real preparation period: the camera is on,
+  "Preparation time 00:10" sits on the recorder, and recording starts on its own
+  when it ends. Start recording begins early. 10s matches the mobile default.
+  Practice again returns to this step.
 
 Both cover camera and microphone permissions, the blocked and
 camera-in-use states with per-browser recovery steps, live preview and

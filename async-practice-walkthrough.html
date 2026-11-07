@@ -199,6 +199,8 @@ button,select{font:inherit;color:inherit}
 .sim-tag{position:absolute;top:16px;right:16px;font:var(--tv-l2);color:var(--tv-on-video);background:var(--tv-rec-bg);padding:4px 10px;border-radius:999px}
 .vbar{position:absolute;left:0;right:0;bottom:0;height:60px;background:var(--tv-bg-overlay-primary);display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 24px}
 .vbar-note{font:var(--tv-p2);color:var(--tv-video-fg);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.prep-badge{position:absolute;top:16px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:8px;font:var(--tv-p2);color:var(--tv-on-video);background:var(--tv-bg-overlay-primary);padding:4px 12px;border-radius:999px;white-space:nowrap;font-variant-numeric:tabular-nums}
+.prep-badge b{font-weight:500}
 .rec-badge{position:absolute;top:16px;left:16px;display:flex;align-items:center;gap:6px;font:var(--tv-l2);color:var(--tv-on-video);background:var(--tv-rec-bg);padding:4px 10px;border-radius:999px;font-variant-numeric:tabular-nums}
 .rec-dot{width:8px;height:8px;border-radius:50%;background:var(--tv-error-strong)}
 .toggle{display:inline-flex;align-items:center;gap:8px;white-space:nowrap;flex:none;background:none;border:0;padding:0;cursor:pointer;font:var(--tv-l1);color:var(--tv-on-video);min-height:36px}
@@ -420,9 +422,6 @@ button,select{font:inherit;color:inherit}
     <button type="button" id="protoToggle" aria-expanded="true" aria-controls="protoBody">Hide controls</button>
   </div>
   <div class="proto-body" id="protoBody">
-    <div class="proto-group"><span class="proto-label">Variant</span>
-      <div class="seg"><button type="button" data-set="variant" data-val="A">A · Device check screen</button><button type="button" data-set="variant" data-val="B">B · Extra tour step</button></div>
-    </div>
     <div class="proto-group"><span class="proto-label">Jump to</span>
       <div class="chips" id="jumpChips"></div>
     </div>
@@ -491,21 +490,19 @@ button,select{font:inherit;color:inherit}
   // and one 16px viewport margin for both the fit check and the shift clamp.
   const M = 16, PAD = 6, GAP = 14, OFF = PAD + GAP;
 
-  // The mic is checked once, in the device check, so the recording step just records.
-  // Variant A: device check screen before the practice, so the tour has 3 steps.
-  // Variant B: the same checks as tour steps 1–2, before the practice question.
-  const STEPS = {
-    A:{orient:1, start:2, talk:3},
-    B:{perm:1, blocked:1, devices:2, orient:3, start:4, talk:5}
-  };
-  const TOUR = ['orient', 'start', 'perm', 'blocked', 'devices', 'talk', 'quiet', 'stop'];
-  const stepInfo = () => [STEPS[S.variant][S.state], S.variant === 'A' ? 3 : 5];
+  // The mic is checked once, in the devices step, so the recording step just records.
+  // One flow (formerly Variant B): allow access → check devices → question → prep time → answer.
+  // (Variant A's separate device check screen was dropped; its 'check' code below is unreachable.)
+  const STEPS = {perm:1, blocked:1, devices:2, orient:3, prep:4, talk:5, quiet:5, stop:5};
+  const PREP_SECS = 10;
+  const TOUR = ['orient', 'prep', 'perm', 'blocked', 'devices', 'talk', 'quiet', 'stop'];
+  const stepInfo = () => [STEPS[S.state], 5];
   const CAMS = ['FaceTime HD Camera', 'Logitech C920'];
   const MICS = ['MacBook Air Microphone', 'AirPods Pro', 'External USB Microphone'];
   const WAIT_LABELS = ['Email verified', 'Loading your assessment', 'Preparing a practice question'];
 
   const S = {
-    state:'wait', variant:'A', chk:'idle', permMode:'ask', voiceMode:'heard', loadMode:'ok',
+    state:'wait', chk:'idle', prepLeft:PREP_SECS, permMode:'ask', voiceMode:'heard', loadMode:'ok',
     browser:'auto', retest:'fixed', alvyOpen:false, micFailed:false, permitted:false, inuseCleared:false, devicesOk:false, blockedReason:'denied',
     permAuto:false, hidePreview:false, heard:false,
     recSecs:0, cam:0, mic:0, waitItems:['done','act','pend'],
@@ -521,7 +518,7 @@ button,select{font:inherit;color:inherit}
   const fmt = s => String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0');
   const isLive = () => ['talk', 'quiet', 'stop'].includes(S.state);
   // Camera preview shows while recording, and (not recording) during either device check.
-  const showPreview = () => isLive() || S.state === 'devices' || (S.state === 'check' && S.chk === 'live');
+  const showPreview = () => isLive() || S.state === 'devices' || S.state === 'prep' || (S.state === 'check' && S.chk === 'live');
   const inTour = () => TOUR.includes(S.state);
   const isCentered = () => S.state === 'done' || S.state === 'countdown';
   const isPost = () => ['done', 'countdown', 'assessment'].includes(S.state);
@@ -535,9 +532,10 @@ button,select{font:inherit;color:inherit}
     S.lock = null;
     S.last = null;
     if (next === 'wait') S.waitItems = ['done', 'act', 'pend'];
-    if (next === 'orient' || next === 'start'){ S.recSecs = 0; S.hidePreview = false; }
+    if (next === 'orient' || next === 'prep'){ S.recSecs = 0; S.hidePreview = false; }
+    if (next === 'prep') S.prepLeft = PREP_SECS;
     if (next === 'perm'){ S.recSecs = 0; S.permAuto = S.permitted || S.permMode === 'granted'; }
-    if (['wait', 'check', 'orient', 'start', 'blocked', 'done', 'countdown', 'assessment'].includes(next)) stopStream();
+    if (['wait', 'check', 'orient', 'blocked', 'done', 'countdown', 'assessment'].includes(next)) stopStream();
     if (next === 'done'){ S.timerSecs = 135; }
     if (next === 'countdown') S.count = 5;
     render(true);
@@ -552,7 +550,17 @@ button,select{font:inherit;color:inherit}
         S.waitItems = ['done', 'done', 'act']; renderWaitList();
       }, 1400);
       later(() => { S.waitItems = ['done', 'done', 'done']; renderWaitList(); }, 2600);
-      later(() => { S.chk = 'idle'; go(S.variant === 'A' ? 'check' : 'perm'); }, 3200);
+      later(() => { S.chk = 'idle'; go('perm'); }, 3200);
+    }
+    if (st === 'prep'){
+      // Prep time: the camera is on, and recording starts on its own when the timer ends.
+      if (canUseCamera() && !S.stream) acquire().catch(() => {});
+      every(() => {
+        S.prepLeft--;
+        if (S.prepLeft <= 0){ go('talk'); return; }
+        const t = $('prepTime'); if (t) t.textContent = fmt(S.prepLeft);
+        const c = $('prepLeft'); if (c) c.textContent = S.prepLeft;
+      }, 1000);
     }
     if (st === 'perm'){
       if (S.permAuto){
@@ -600,8 +608,7 @@ button,select{font:inherit;color:inherit}
 
   function resolveDevices(){
     if (S.permMode === 'inuse' && !S.inuseCleared){ S.blockedReason = 'inuse'; go('blocked'); }
-    else if (S.variant === 'B'){ go('devices'); }
-    else { S.devicesOk = true; go('talk'); }
+    else go('devices');
   }
 
   /* ---------- Device check (A: own screen, B: tour step 4) ---------- */
@@ -949,7 +956,8 @@ button,select{font:inherit;color:inherit}
 
   function stageHTML(){
     const st = S.state;
-    if (st === 'orient' || st === 'start') return `${ic('video')}<span>Your camera preview will appear here</span>`;
+    if (st === 'orient') return `${ic('video')}<span>Your camera preview will appear here</span>`;
+    if (st === 'prep') return '';
     if (st === 'perm') return `<span class="spin" aria-hidden="true"></span><span>${S.permAuto ? 'Starting your camera…' : 'Waiting for camera and microphone access…'}</span>`;
     if (st === 'blocked') return `${ic('videoOff')}<span>${S.blockedReason === 'inuse' ? 'Another app is using your camera' : 'No camera access'}</span>`;
     if (isLive()) return S.hidePreview ? `${ic('eyeOff')}<span>Preview hidden. Your video is still recording.</span>` : '';
@@ -985,7 +993,7 @@ button,select{font:inherit;color:inherit}
       ? `<button class="toggle" id="hideToggle" data-act="hide" aria-pressed="${S.hidePreview}" type="button"><span class="track" aria-hidden="true"></span>Hide Preview</button>`
       : '<span></span>';
     let action = '';
-    if (st === 'orient' || st === 'start') action = `<button class="btn btn-primary" id="startBtn" data-act="start-rec" type="button">${ic('rec', 'sm')}Start recording</button>`;
+    if (st === 'orient' || st === 'prep') action = `<button class="btn btn-primary" id="startBtn" data-act="start-rec" type="button">${ic('rec', 'sm')}Start recording</button>`;
     if (st === 'quiet') action = '<span class="vbar-note">Checking your voice…</span>';
     if (st === 'talk' || st === 'stop') action = `<button class="btn btn-primary" id="stopBtn" data-act="stop" type="button">${ic('square', 'sm')}Stop recording</button>`;
 
@@ -997,12 +1005,13 @@ button,select{font:inherit;color:inherit}
     }
     else if (st === 'quiet'){ cam = pill('ok', 'Allowed'); mic = pill('warn', 'No sound yet', 'micStatus'); }
     else if (st === 'devices'){ cam = pill('ok', 'Working'); mic = pill('wait', 'Checking…', 'micStatus'); }
-    else if (live || st === 'done'){ cam = pill('ok', 'Allowed'); mic = pill('ok', 'Allowed', 'micStatus'); }
+    else if (live || st === 'done' || st === 'prep'){ cam = pill('ok', 'Allowed'); mic = pill('ok', 'Allowed', 'micStatus'); }
 
     return `<div class="vrec" id="videoRecorder">
         <div class="vmedia" id="vmedia">${mediaHTML()}</div>
         <div class="vstage">${stageHTML()}</div>
         ${live ? `<span class="rec-badge"><span class="rec-dot"></span>REC <span id="recTime">${fmt(S.recSecs)}</span></span>` : ''}
+        ${st === 'prep' ? `<span class="prep-badge" role="timer" aria-label="Preparation time left">Preparation time <b id="prepTime">${fmt(S.prepLeft)}</b></span>` : ''}
         <div class="vbar">${toggle}${action}</div>
       </div>
       <div class="devices" id="devices">
@@ -1209,10 +1218,10 @@ button,select{font:inherit;color:inherit}
         body = 'Use this practice question to try recording once. Nothing is saved or scored.';
         end = '<button class="btn btn-primary" data-act="next" type="button" data-focus>Next</button>';
         break;
-      case 'start':
-        title = 'Start recording';
-        body = `${verb()} Start recording to try answering the question.`;
-        end = waiting('Waiting for you to start');
+      case 'prep':
+        title = 'Prepare your answer';
+        body = `You get ${PREP_SECS} seconds to think. Recording starts on its own when the timer ends, or ${verb().toLowerCase()} Start recording when you’re ready.`;
+        end = waiting(`Recording starts in <span id="prepLeft">${S.prepLeft}</span>s`);
         break;
       case 'perm':
         if (S.permAuto){
@@ -1244,7 +1253,7 @@ button,select{font:inherit;color:inherit}
       case 'devices':
         title = 'Check your camera and microphone';
         body = 'Make sure you can see yourself and the bar moves when you speak. Switch the camera or mic below if needed.';
-        if (S.variant === 'B') body += ' Your practice question comes next.';
+        body += ' Your practice question comes next.';
         extra = `<div class="meter-row"><span class="meter" id="meter" aria-hidden="true">${'<i></i>'.repeat(16)}</span><span id="voiceStatus" class="waiting" role="status"><span class="spin xs" aria-hidden="true"></span>Say something…</span></div>
           <button class="help-link" data-act="help" data-topic="mic" type="button">${ic('info', 'sm')}Mic not working? Get help from Alvy</button>`;
         end = `<button class="btn btn-primary" id="devOk" data-act="dev-ok" type="button" disabled>Continue</button>`;
@@ -1323,7 +1332,7 @@ button,select{font:inherit;color:inherit}
     renderHints();
 
     // The step's real action lives on the page, so it takes focus and points at the card text.
-    const target = {start:'startBtn', stop:'stopBtn', talk:'stopBtn'}[st];
+    const target = {prep:'startBtn', stop:'stopBtn', talk:'stopBtn'}[st];
     if (target) $(target)?.setAttribute('aria-describedby', 'coachText');
 
     if (stepChange && !wasHidden && !reduce.matches){
@@ -1334,7 +1343,7 @@ button,select{font:inherit;color:inherit}
   }
 
   function focusStep(){
-    const el = ({start:$('startBtn'), stop:$('stopBtn'), talk:$('stopBtn'), devices:$('micSelect')})[S.state] || coach.querySelector('[data-focus]') || coach;
+    const el = ({prep:$('startBtn'), stop:$('stopBtn'), talk:$('stopBtn'), devices:$('micSelect')})[S.state] || coach.querySelector('[data-focus]') || coach;
     el?.focus({preventScroll:true});
   }
 
@@ -1366,7 +1375,8 @@ button,select{font:inherit;color:inherit}
     let holes = [], cands = [], hard = [], centered = false, inPlace = false;
     switch (st){
       case 'orient': holes = [{el:$('leftPane'), ring:true}]; cands = sides($('leftPane'), 'right'); break;
-      case 'start': holes = [{el:$('startBtn'), ring:true}]; cands = sides($('startBtn'), 'top'); break;
+      // Prep: the timer and Start recording are both on the recorder; the card sits beside it.
+      case 'prep': holes = [{el:video, flush:true}, {el:$('startBtn'), ring:true}]; cands = sides(video, 'left'); hard = [video]; break;
       case 'perm':
       case 'blocked': holes = [{el:$('devices'), ring:true}]; cands = sides($('devices'), 'top'); break;
       case 'devices': holes = [{el:$('devices'), ring:true}, {el:video, flush:true}]; cands = sides($('devices'), 'top'); break;
@@ -1577,7 +1587,7 @@ button,select{font:inherit;color:inherit}
     const a = e.target.closest('[data-act]');
     if (!a) return;
     switch (a.dataset.act){
-      case 'next': go('start'); break;
+      case 'next': go('prep'); break;
       case 'start-rec': go('talk'); break;
       case 'allow':
         S.permitted = true;
@@ -1615,7 +1625,7 @@ button,select{font:inherit;color:inherit}
       case 'alvy-close': closeAlvy(); break;
       case 'help': helpFlow(a.dataset.topic); break;
       case 'stop': go('done'); break;
-      case 'again': go('start'); break;
+      case 'again': go('prep'); break;
       case 'hide': toggleHide(a); break;
       case 'reload': go('wait'); break;
       case 'begin': go('countdown'); break;
@@ -1667,7 +1677,7 @@ button,select{font:inherit;color:inherit}
     check:'#2 + review feedback: allow access, preview the camera, pick devices and test the mic on one familiar screen (like Meet or Zoom) before practising.',
     devices:'Review feedback: confirm or change the camera and mic before the practice question.',
     orient:'#2: the tour opens by saying what the practice run is for.',
-    start:'#2: one clear action per step, with the card pointing at it.',
+    prep:'#2: prep time is practised too: 10s with the timer on the recorder, then recording starts on its own (or start early).',
     perm:'#2: camera and mic access is explained before the browser asks.',
     blocked:'#2: blocked or busy camera gets a fix, not a dead end.',
     talk:'#2 + #3: the mic was already checked, so this step just records: live preview, level bar, and Stop available straight away. No step is skipped.',
@@ -1678,15 +1688,12 @@ button,select{font:inherit;color:inherit}
     assessment:'End of the flow.'
   };
   const LABEL = {chrome:'Chrome', edge:'Edge', safari:'Safari', firefox:'Firefox', ios:'iPhone', android:'Android'};
-  const CHIPS = {
-    A:[['wait','Loading'], ['check','Device check'], ['check:blocked','Check: blocked'], ['orient','1 Orient'], ['start','2 Start'], ['talk','3 Answer'], ['done','All set'], ['countdown','Countdown']],
-    B:[['wait','Loading'], ['perm','1 Allow'], ['blocked','1 Blocked'], ['devices','2 Devices'], ['orient','3 Question'], ['start','4 Start'], ['talk','5 Answer'], ['done','All set'], ['countdown','Countdown']]
-  };
-  let chipsFor = null;
+  const CHIPS = [['wait','Loading'], ['perm','1 Allow'], ['blocked','1 Blocked'], ['devices','2 Devices'], ['orient','3 Question'], ['prep','4 Prep time'], ['talk','5 Answer'], ['done','All set'], ['countdown','Countdown']];
+  let chipsDone = false;
   function updateProto(){
-    if (chipsFor !== S.variant){
-      chipsFor = S.variant;
-      $('jumpChips').innerHTML = CHIPS[S.variant].map(([k, l]) => `<button type="button" data-go="${k}">${l}</button>`).join('');
+    if (!chipsDone){
+      chipsDone = true;
+      $('jumpChips').innerHTML = CHIPS.map(([k, l]) => `<button type="button" data-go="${k}">${l}</button>`).join('');
     }
     const ba = $('browserAuto'); if (ba) ba.textContent = `Detected (${LABEL[DETECTED]})`;
     const tk = $('protoTicket');
@@ -1704,8 +1711,8 @@ button,select{font:inherit;color:inherit}
       return go('check');
     }
     if (st === 'devices'){ S.permitted = true; S.devicesOk = false; return go('devices'); }
-    if (['orient', 'start'].includes(st)){ S.permitted = true; S.devicesOk = true; return go(st); }
-    if (['wait', 'orient', 'start', 'perm'].includes(st)){ S.permitted = false; S.devicesOk = false; }
+    if (['orient', 'prep'].includes(st)){ S.permitted = true; S.devicesOk = true; return go(st); }
+    if (['wait', 'perm'].includes(st)){ S.permitted = false; S.devicesOk = false; }
     if (['talk', 'quiet', 'stop', 'done', 'countdown'].includes(st)){ S.permitted = true; S.devicesOk = true; }
     if (st === 'blocked'){
       S.devicesOk = false;
@@ -1721,7 +1728,6 @@ button,select{font:inherit;color:inherit}
     const s = e.target.closest('[data-set]');
     if (s){
       S[s.dataset.set] = s.dataset.val;
-      if (s.dataset.set === 'variant'){ S.permitted = false; S.devicesOk = false; S.chk = 'idle'; updateProto(); return go(S.variant === 'A' ? 'check' : 'perm'); }
       if (s.dataset.set === 'permMode'){ S.permitted = false; S.inuseCleared = false; }
       if (s.dataset.set === 'voiceMode' && s.dataset.val === 'heard' && (S.state === 'talk' || S.state === 'quiet')) later(voiceHeard, 600);
       if (s.dataset.set === 'browser' && S.state === 'blocked'){ coachBody.innerHTML = coachHTML(); schedule(); }
