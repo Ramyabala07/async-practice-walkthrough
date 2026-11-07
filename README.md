@@ -36,6 +36,18 @@ Both cover camera and microphone permissions, the blocked and
 camera-in-use states with per-browser recovery steps, live preview and
 level metering, and a Chat with Alvy panel for help.
 
+## One artifact, two flows
+
+Both prototypes open from one link. Each control panel starts with a **Flow** switch
+(Web / Mobile) that opens the other page. The web walkthrough is the main page; the mobile
+flow is published beside it as `async-practice-walkthrough-mobile.html`, with the Tessera
+files it loads under `tessera/`. The same file names work on GitHub Pages, where
+`index.html` redirects to the web walkthrough.
+
+A supporting page isn't wrapped in the artifact's HTML skeleton, so the published mobile
+page is the source file with a doctype, charset, viewport and the skeleton's small reset
+added around it.
+
 ## Mobile
 
 `async-practice-walkthrough-mobile.html` is a separate file and a complete flow for

@@ -1801,6 +1801,9 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
     if (key === 'netMode') return netChanged();
     render();
   }
+  // The web flow sits next to this page: index.html is the web walkthrough in the combined
+  // artifact, and redirects to it on GitHub Pages.
+  const WEB_FLOW = 'index.html';
   // One segmented control per setting: Tessera Tabs, primary (pills).
   const Seg = ({label, k, value, opts, hidden}) => hidden ? null : html`<div class="proto-group">
     <span class="proto-label">${label}</span>
@@ -1818,6 +1821,12 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
         <p class="proto-ticket p3" aria-live="polite"><b>UX-1224</b> ${TICKET[S.state] || ''}</p>
       </div>
       <div class="proto-body">
+        <div class="proto-group">
+          <span class="proto-label">Flow</span>
+          <${Tabs} variant="primary" value="mobile" onValueChange=${v => { if (v === 'web') location.href = WEB_FLOW; }}>
+            <${TabList} aria-label="Flow"><${Tab} value="web">Web<//><${Tab} value="mobile">Mobile<//><//>
+          <//>
+        </div>
         ${SCREENS.map(([group, items]) => html`<div class="proto-group" key=${group}>
           <span class="proto-label">${group}</span>
           <${Tabs} variant="vertical" value=${items.some(([k]) => k === cur) ? cur : ''} onValueChange=${jump}>

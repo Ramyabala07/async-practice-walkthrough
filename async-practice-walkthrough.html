@@ -431,6 +431,9 @@ button,select{font:inherit;color:inherit}
     <button type="button" id="protoToggle" aria-expanded="true" aria-controls="protoBody">Hide controls</button>
   </div>
   <div class="proto-body" id="protoBody">
+    <div class="proto-group"><span class="proto-label">Flow</span>
+      <div class="seg"><button type="button" aria-pressed="true">Web</button><button type="button" id="mobileFlow">Mobile</button></div>
+    </div>
     <div class="proto-group"><span class="proto-label">Jump to</span>
       <div class="chips" id="jumpChips"></div>
     </div>
@@ -1772,6 +1775,9 @@ button,select{font:inherit;color:inherit}
     }
     go(st);
   }
+
+  // The mobile flow is a separate page beside this one (same file name here and on GitHub Pages).
+  $('mobileFlow').addEventListener('click', () => { location.href = 'async-practice-walkthrough-mobile.html'; });
 
   proto.addEventListener('click', e => {
     const g = e.target.closest('[data-go]');
