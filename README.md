@@ -148,8 +148,8 @@ digits visible by default and the "Hide timer" switch on the component's own ter
   timer and the bar stay visible. It offers topics, then answers with a short article.
 - **The silent drop gets two states.** In the funnel, most candidates lost at the camera step
   leave no event: no allow, no deny, no error. Two causes are covered:
-  - *The browser has no camera access*, often because the link opened inside another
-    app (copy names no apps). Production checks the browser itself on load
+  - *The browser has no camera access*, often because the link from the invite email
+    opened inside the email app (copy names no specific app). Production checks the browser itself on load
     (`navigator.mediaDevices?.getUserMedia`), before the primer, rather than guessing from
     the user agent, which was the objection to the earlier in-app browser screen. The
     screen says to open the link in Safari or Chrome, with **Copy link** as its action.
