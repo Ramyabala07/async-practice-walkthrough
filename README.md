@@ -156,7 +156,8 @@ digits visible by default and the "Hide timer" switch on the component's own ter
   - *The request never appears.* Continue shows "Waiting for your browser…"; after 10
     seconds with no answer the candidate sees "We didn't get a response" with the fix and
     Retry.
-- **Before the first question**, the countdown shows a tip under the ring: turn on Do Not
+- **Before the first question**, the countdown shows a tip in the footer (the screen has no
+  buttons, so the footer is free): turn on Do Not
   Disturb, because a call or notification on a phone stops the recording and costs the
   answer. The tip is a quiet `bg-muted` box with an info icon, not an alert (new pattern;
   Tessera has no tip component).
