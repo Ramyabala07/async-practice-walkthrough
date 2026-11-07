@@ -171,6 +171,14 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
 .vctl-row .ts-candidate-clock{margin-left:var(--space-1)}
 .vcenter{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;z-index:2;pointer-events:none}
 .vcenter>*{pointer-events:auto}
+/* Hide preview's info button and its tap-to-open note (Tessera's Tooltip doesn't open on touch,
+   so this is the tooltip's look, toggled by tap; it stays inside the phone frame). */
+.pill-anchor{position:relative}
+.pill .info-btn{position:relative;color:var(--text-tertiary)}
+.pill .info-btn::after{content:"";position:absolute;inset:-8px}   /* larger touch target */
+.info-bubble{position:absolute;top:calc(100% + var(--space-2));right:0;width:232px;padding:var(--space-2) var(--space-3);
+  background:var(--bg-tooltip);color:var(--text-on-primary);border-radius:var(--radius-lg);box-shadow:var(--shadow-lg);
+  animation:fade-in var(--duration-base) var(--ease-out) both}
 .camtop{position:absolute;left:var(--space-4);right:var(--space-4);top:var(--space-4);display:flex;justify-content:space-between;align-items:center;gap:var(--space-2);z-index:4}
 .camcard{position:absolute;left:var(--space-4);right:var(--space-4);bottom:var(--space-4);z-index:4}
 .float{background:var(--bg-surface);border-radius:var(--radius-xl);padding:var(--space-4);box-shadow:var(--shadow-lg);display:grid;gap:var(--space-2)}
@@ -418,7 +426,7 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
     S.dialog = null;
     S.pendingInterrupt = false;
     S.qExpanded = false;
-    S.sheet = null; S.retakeAsk = false; S.savedFlash = false; S.waitingPrompt = false;
+    S.sheet = null; S.retakeAsk = false; S.savedFlash = false; S.waitingPrompt = false; S.previewInfo = false;
     if (!KEEP_CLIP.includes(next)) dropClip();
     if (next === 'wait') S.waitItems = ['done', 'act', 'pend'];
     if (next === 'test'){ S.heard = false; S.micFailed = false; }
@@ -1356,13 +1364,15 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
   // never changes while the screen is open, so the card does not reflow when the video ends.
   function AnswerRules({media, practice}){
     const prep = `${S.prepSecs} seconds`;
+    // The prep time is a maximum, not a wait: say they can start sooner.
+    const sooner = html`${' '}Ready sooner? Tap <b>Start recording</b>.`;
     if (practice) return html`<ul class="bullets p2">
-      <li>${S.practicePrep ? `You get ${prep} to prepare. Then recording starts on its own.` : 'Tap Start recording when you’re ready.'}</li>
+      <li>${S.practicePrep ? html`You get ${prep} to prepare, then recording starts on its own.${sooner}` : 'Tap Start recording when you’re ready.'}</li>
       <li>This one isn’t scored. Practice as many times as you like.</li>
     </ul>`;
     return html`<ul class="bullets p2">
       ${media ? html`<li>Play the video and watch the whole question.</li>` : null}
-      <li>${media ? `When the video ends, you get ${prep} to prepare. Then recording starts on its own.` : `You get ${prep} to prepare. Then recording starts on its own.`}</li>
+      <li>${media ? 'When the video ends, you get' : 'You get'} ${prep} to prepare, then recording starts on its own.${sooner}</li>
       <li>You have ${answerTime()} to answer, and you can retake it.</li>
     </ul>`;
   }
@@ -1474,7 +1484,11 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
       ${S.hidePreview ? html`<div class="vmsg"><${Icon} name="eye-closed-regular" size=${24} /><span class="lines"><span>You’re still being recorded.</span><span>Only the preview is hidden.</span></span></div>` : null}
       <div class="camtop">
         <span class="pill" role="group" aria-label=${left !== null ? 'Time left to answer' : 'Recording time'}><${CandidateClock} live seconds=${left ?? S.recSecs} size="sm" /></span>
-        <span class="pill"><${Toggle} size="sm" label="Hide preview" checked=${S.hidePreview} onCheckedChange=${v => { S.hidePreview = v; render(); }} /></span>
+        <span class="pill pill-anchor"><${Toggle} size="sm" label="Hide preview" checked=${S.hidePreview} onCheckedChange=${v => { S.hidePreview = v; render(); }} />
+          <${IconButton} size=${20} variant="tertiary-gray" icon="circle-info" className="info-btn" aria-label="What Hide preview does"
+            aria-expanded=${S.previewInfo} aria-controls="preview-info" onClick=${() => { S.previewInfo = !S.previewInfo; render(); }} />
+          ${S.previewInfo ? html`<span id="preview-info" class="info-bubble p3" role="note">Hides your camera from your screen, so you don’t have to watch yourself. Your answer still records as normal.</span>` : null}
+        </span>
       </div>
       <div class="camcard float">
         <span class="p3 muted">${q.practice ? 'Practice question · not scored' : `Question ${S.qi} of ${ASSESS.length}`}</span>
@@ -1883,7 +1897,7 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
     useEffect(() => {
       const onKey = e => {
         if (e.key !== 'Escape') return;
-        if (S.sheet){ S.sheet = null; render(); } else if (S.alvyOpen) closeAlvy();
+        if (S.sheet){ S.sheet = null; render(); } else if (S.previewInfo){ S.previewInfo = false; render(); } else if (S.alvyOpen) closeAlvy();
       };
       document.addEventListener('keydown', onKey);
       return () => document.removeEventListener('keydown', onKey);
