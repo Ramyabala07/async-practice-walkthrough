@@ -1286,18 +1286,16 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
     return html`<p id="qtext" class=${cls + ' qtext'}>${shown}${long ? html`${' '}<${TextLink} as="button" size="sm" aria-expanded=${S.qExpanded} aria-controls="qtext"
       onClick=${() => { S.qExpanded = !S.qExpanded; render(); }}>${S.qExpanded ? 'Show less' : 'Read more'}<//>` : null}</p>`;
   }
-  // How to answer, in three plain steps below the question, in the order things happen. The text
+  // How to answer, in two plain steps below the question, in the order things happen. The text
   // never changes while the screen is open, so the card does not reflow when the video ends.
   function AnswerRules({media, practice}){
     const prep = `${S.prepSecs} seconds`;
     if (practice) return html`<ul class="bullets p2">
-      <li>Read the question above.</li>
       <li>${S.practicePrep ? `You get ${prep} to prepare. Then recording starts on its own.` : 'Tap Start recording when you’re ready.'}</li>
       <li>This one isn’t scored. Record it as many times as you like.</li>
     </ul>`;
     return html`<ul class="bullets p2">
-      <li>${media ? 'Watch the video question first.' : 'Read the question above.'}</li>
-      <li>${media ? `When it ends, you get ${prep} to prepare. Then recording starts on its own.` : `You get ${prep} to prepare. Then recording starts on its own.`}</li>
+      <li>${media ? `When the video ends, you get ${prep} to prepare. Then recording starts on its own.` : `You get ${prep} to prepare. Then recording starts on its own.`}</li>
       <li>You have ${answerTime()} to answer, and you can retake it.</li>
     </ul>`;
   }
