@@ -88,6 +88,7 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
   background:var(--bg-muted);border-radius:var(--radius-lg);color:var(--text-tertiary);text-align:left}
 .tip svg{flex:none;margin-top:2px;color:var(--text-tertiary)}
 .tip b{font-weight:500;color:var(--text-primary)}
+.pg-foot .tip{margin:0!important}
 .mark{flex:none;width:48px;height:48px;border-radius:var(--radius-full);display:flex;align-items:center;justify-content:center;background:var(--bg-accent);color:var(--interactive-link)}
 .mark.err{background:var(--error-surface);color:var(--error-emphasis)}
 .steps{margin:0;padding-left:var(--space-5);display:grid;gap:var(--space-2);color:var(--text-tertiary)}
@@ -1550,14 +1551,15 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
   }
 
   function CountdownScreen(){
-    return html`<${Page} mid>
+    // The tip sits in the footer, where the actions usually are: the countdown has none.
+    const tip = html`<p class="tip p2"><${Icon} name="circle-info" size=${16} /><span><b>Tip:</b> Turn on Do Not Disturb so calls don’t interrupt you.</span></p>`;
+    return html`<${Page} mid foot=${tip}>
       <div class="centre">
         <div class="head" style=${{justifyItems:'center'}}>
           <h1 class="h4 ttl">Starting your assessment</h1>
           <p class="p2">The timer starts with the first question.</p>
         </div>
         <${ProgressIndicator} type="circular" value=${S.count} max=${5} valueText=${S.count} label="Starting your assessment in" />
-        <p class="tip p2"><${Icon} name="circle-info" size=${16} /><span><b>Tip:</b> Turn on Do Not Disturb so calls don’t interrupt you.</span></p>
       </div><//>`;
   }
 
