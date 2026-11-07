@@ -1275,15 +1275,17 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
     if (S.prepStyle === 'bar') return html`<${Fragment}><div class="prepbar"><${ProgressIndicator} value=${used} max=${S.prepSecs} label=${`Recording starts in ${S.prepLeft}s`} valuePosition="none" /></div>${plain}<//>`;
     return html`<div class="prepfill" style=${{'--fill':pct + '%'}}><${Cta} onClick=${startRecordFlow}>Start recording · ${S.prepLeft}s<//></div>`;
   }
-  const PREP_TEXT = 'This is your preparation time. Recording starts when the timer ends. You can also start any time you’re ready.';
 
   // The practice question: read it, get a short preparation countdown, then the camera opens.
   function PracticeQuestion(){
     return html`<${Page} foot=${startControls({counting:S.practicePrep})}>
       <div><${Chip} color="blue" variant="secondary" size="sm">Practice · not scored<//></div>
       <${Head} title=${Q().text} lg>
-        <p class="p2">${S.practicePrep ? PREP_TEXT : 'Take a moment to think, then tap Start recording.'} Nothing here is scored, and you can record it again.</p>
-      <//><//>`;
+      <//>
+      <ul class="bullets p2">
+        <li>${S.practicePrep ? `${S.prepSecs}s to prepare. Recording starts when it ends.` : 'Tap Start recording when you’re ready.'}</li>
+        <li>You can record it again.</li>
+      </ul><//>`;
   }
 
   // A video question: the rules, then the question. Recording starts when the prep time ends.
