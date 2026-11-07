@@ -55,6 +55,7 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
 /* ---------- The page frame: top bar, body, fixed footer ---------- */
 #viewport{flex:1;min-height:0;position:relative;display:flex;flex-direction:column;background:var(--bg-surface)}
 .topstack{flex:none;position:relative;z-index:6}
+.topstack .ts-candidate-top-nav__timer-row{min-height:51px;align-items:center}
 #view{flex:1;min-height:0;position:relative;display:flex;flex-direction:column}
 
 /* One spacing system on every screen: 16 around the page and the footer, 16 between blocks,
@@ -67,10 +68,15 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
 .pg-body.cam{padding:0;gap:0;overflow:hidden;position:relative;background:var(--bg-tooltip)}
 .pg-foot{flex:none;display:grid;gap:var(--space-2);padding:var(--space-4);background:var(--bg-surface);border-top:1px solid var(--border-subtle)}
 .pg-foot .note{margin:0;text-align:center}
-.foot-link{display:flex;justify-content:flex-start}
+.foot-link{display:flex;justify-content:center}
 .head{display:grid;gap:var(--space-2)}
 .head-row{display:flex;align-items:center;gap:var(--space-2)}
 .head-row svg{flex:none;color:var(--success-strong)}
+/* Two sentences in a centred block: one per line. */
+.lines{display:grid;gap:0}
+.lines span{display:block}
+.bullets{margin:0;padding-left:var(--space-5);display:grid;gap:var(--space-2);color:var(--text-primary)}
+.bullets b{font-weight:500}
 .head h1,.head p,.pg-body p{margin:0}
 .ttl{margin:0;color:var(--text-primary)}
 .ttl.err{color:var(--error-emphasis)}
@@ -107,15 +113,24 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
 .devsel>svg{flex:none;color:var(--text-subtle)}
 .devsel>svg:last-child{color:var(--text-body)}
 .devsel-val{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sheet-layer{position:absolute;inset:0;z-index:40}
+.sheet-layer.edge{bottom:-18px}   /* Chrome draws the page edge to edge, behind the gesture bar */
 .sheet{position:absolute;left:0;right:0;bottom:0;z-index:1001;background:var(--bg-surface);border-radius:var(--radius-2xl) var(--radius-2xl) 0 0;box-shadow:var(--shadow-xl);
-  padding:var(--space-2) var(--space-4) var(--space-4);display:grid;gap:var(--space-2);animation:sheet-in var(--duration-base) var(--ease-out)}
+  padding:var(--space-2) var(--space-4) var(--space-4);display:grid;gap:var(--space-2);
+  animation:sheet-in var(--duration-moderate) var(--ease-out) both}
+.sheet[data-state="closed"]{transform:translateY(100%);transition:transform var(--duration-base) var(--ease-in)}
+.sheet-layer.edge .sheet{padding-bottom:calc(var(--space-2) + 18px)}
 .sheet-grip{justify-self:center;width:36px;height:4px;border-radius:var(--radius-full);background:var(--border-primary)}
+.sheet-home{position:absolute;left:50%;bottom:7px;width:106px;height:4px;margin-left:-53px;border-radius:2px;background:#18181b;opacity:.75}
 .sheet-head{display:flex;align-items:center;justify-content:space-between}
 .sheet .ts-radio-group__items{display:grid;gap:0}
 .sheet .ts-radio{min-height:48px;display:flex;align-items:center;border-bottom:1px solid var(--border-subtle)}
 .sheet .ts-radio:last-child{border-bottom:0}
-@keyframes sheet-in{from{transform:translateY(100%)}to{transform:none}}
-@media (prefers-reduced-motion: reduce){.sheet{animation:fade-in var(--duration-fast) linear}}
+@keyframes sheet-in{from{transform:translateY(100%)}to{transform:translateY(0)}}
+@media (prefers-reduced-motion: reduce){
+  .sheet{animation:fade-in var(--duration-fast) linear both}
+  .sheet[data-state="closed"]{transform:none;opacity:0;transition:opacity var(--duration-fast) linear}
+}
 @keyframes fade-in{from{opacity:0}to{opacity:1}}
 
 /* ---------- Video ---------- */
@@ -135,6 +150,12 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
   background:var(--bg-overlay-primary);color:var(--text-on-primary);
   --text-tertiary:var(--text-on-primary);--text-primary:var(--text-on-primary);--interactive-link:var(--blue-300)}
 .vstrip .grp{display:flex;align-items:center;gap:var(--space-2);min-width:0}
+.vctl{position:absolute;left:0;right:0;bottom:0;z-index:2;padding:var(--space-6) var(--space-2) var(--space-1);display:grid;gap:var(--space-1);
+  background:linear-gradient(180deg,transparent,var(--bg-overlay-primary) 45%);color:var(--text-on-primary);--text-primary:var(--text-on-primary);--text-tertiary:var(--blue-200)}
+.vctl-track{height:4px;margin:0 var(--space-2);border-radius:var(--radius-full);background:rgba(255,255,255,.3);overflow:hidden}
+.vctl-track span{display:block;height:100%;background:var(--interactive-primary);border-radius:inherit}
+.vctl-row{display:flex;align-items:center;gap:var(--space-1)}
+.vctl-row .ts-candidate-clock{margin-left:var(--space-1)}
 .vcenter{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;z-index:2;pointer-events:none}
 .vcenter>*{pointer-events:auto}
 .camtop{position:absolute;left:var(--space-4);right:var(--space-4);top:var(--space-4);display:flex;justify-content:space-between;align-items:center;gap:var(--space-2);z-index:4}
@@ -144,24 +165,25 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
 .wavebar{display:flex;align-items:center;justify-content:space-between;gap:var(--space-3);padding:var(--space-2) var(--space-3);border-radius:var(--radius-lg);background:var(--bg-muted);color:var(--text-primary)}
 /* The question text is always full strength: expanding it must not change its colour. */
 .qtext{margin:0;color:var(--text-primary)}
-.qline{display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden}
+.qtext .ts-text-link,.qtext button{display:inline;white-space:nowrap}
 
 /* ---------- The assessment card, as in the Test Taker file ---------- */
 .qcard{background:var(--bg-muted);border:1px solid var(--border-subtle);border-radius:var(--radius-xl);display:flex;flex-direction:column;min-height:0}
-.qcard-head{display:flex;align-items:center;justify-content:space-between;padding:var(--space-1) var(--space-3);border-bottom:1px solid var(--border-subtle);color:var(--text-primary)}
-.qcard-body{padding:var(--space-4) var(--space-3);display:grid;gap:var(--space-4)}
+.qcard-head{display:flex;align-items:center;min-height:44px;padding:0 var(--space-3);border-bottom:1px solid var(--border-subtle);color:var(--text-primary)}
+.qcard .bullets{gap:var(--space-1)}
+.qcard .vcard{flex:none;aspect-ratio:4/3;min-height:0}
+.qcard-body{padding:var(--space-3);display:grid;gap:var(--space-3)}
 .qcard-body p{margin:0}
 .infobox{background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);padding:var(--space-3);display:grid;gap:var(--space-1)}
 .infobox p{margin:0}
 .clip{position:relative;flex:none;aspect-ratio:16/10;width:100%;border-radius:var(--radius-lg);overflow:hidden;background:var(--bg-tooltip);isolation:isolate}
 .clip canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
 /* Captions sit inside the video, above the controls. */
-.caption{position:absolute;left:var(--space-3);right:var(--space-3);bottom:52px;z-index:2;display:flex;justify-content:center;pointer-events:none}
+.caption{position:absolute;left:var(--space-3);right:var(--space-3);bottom:68px;z-index:2;display:flex;justify-content:center;pointer-events:none}
 .caption span{padding:var(--space-1) var(--space-2);border-radius:var(--radius-sm);background:var(--bg-overlay-primary);color:var(--text-on-primary);text-align:center}
-.qhead{display:flex;align-items:center;justify-content:space-between;gap:var(--space-2);color:var(--text-primary)}
 /* The review player's saving states cover the picture, as on web. */
 .vstate{position:absolute;inset:0;z-index:3;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:var(--space-3);padding:var(--space-6);text-align:center;color:var(--text-on-primary);background:var(--bg-tooltip)}
-.vstate.note{background:var(--bg-overlay-primary);bottom:52px}
+.vstate.note{background:var(--bg-overlay-primary);bottom:68px}
 .vstate p{margin:0}
 
 /* The preparation countdown on the button: a darker blue fills left to right as the time runs out. */
@@ -173,6 +195,8 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
 
 /* ---------- Wrap-up cards, as in the Test Taker file ---------- */
 .wcard{background:var(--bg-muted);border:1px solid var(--border-subtle);border-radius:var(--radius-xl);padding:var(--space-4) var(--space-3);display:flex;flex-direction:column;gap:var(--space-6)}
+.pg-body>.wcard{flex:1 0 auto}
+.wcard{position:relative}
 .wcard .wt{display:grid;gap:var(--space-2)}
 .wcard .wt p{margin:0}
 .wcard .wt.mid{text-align:center}
@@ -186,7 +210,8 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
 .bars .lab b{font-weight:500;color:var(--text-primary)}
 .bars .lab span{color:var(--text-tertiary)}
 .cert{display:block;width:100%;height:auto;border-radius:var(--radius-sm)}
-.acts{display:grid;gap:var(--space-2)}
+.acts{display:grid;justify-items:start;gap:var(--space-1)}
+.confetti{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:5}
 .rate{display:flex;justify-content:space-between;gap:var(--space-1)}
 .rate button{flex:1 1 0;min-width:0;display:grid;justify-items:center;gap:var(--space-1);padding:var(--space-2);border:1px solid var(--border-subtle);border-radius:6px;background:var(--bg-surface);color:var(--text-primary);font:400 10px/14px var(--font-sans);cursor:pointer;text-align:center}
 .rate button img{width:32px;height:32px;display:block}
@@ -255,7 +280,7 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
   const { useState, useEffect, useRef, Fragment } = React;
   const DS = window.TesseraDS;
   const html = htm.bind(React.createElement);
-  const { Button, IconButton, Icon, Spinner, Toggle, Dropdown, Chip, Tag, Tabs, TabList, Tab, TextLink, TextArea, Input, RadioGroup, Radio, Overlay, Modal,
+  const { Button, IconButton, Icon, Spinner, Toggle, Dropdown, Chip, Tag, Tabs, TabList, Tab, TextLink, TextArea, Input, RadioGroup, Radio, Overlay, Modal, RtIconButton, usePresence,
     CandidateTopNavigation, CandidateTimer, CandidateClock, CandidateSoundwave, CandidateBroadcastBanner, ProgressIndicator, SkeletonLoader, ChatPanel } = DS;
 
   /* Glyphs for the simulated browser chrome, the browser's own dialogs and the illustrations.
@@ -1086,13 +1111,18 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
   // present a choice. Choosing applies it and closes the sheet. (New pattern: Tessera's Dropdown
   // panel is built for a pointer and a wide screen.)
   function DeviceSheet(){
-    const cam = S.sheet === 'cam', names = cam ? CAMS : MICS, idx = cam ? S.cam : S.mic;
+    const open = !!S.sheet;
+    const kind = useRef('cam');
+    if (S.sheet) kind.current = S.sheet;
+    const {mounted, state} = usePresence(open, 200);
     const ref = useRef(null);
     const close = () => { S.sheet = null; render(); };
-    useEffect(() => { ref.current?.querySelector('input:checked')?.focus(); }, []);
-    return html`<${Fragment}>
-      <${Overlay} open portal=${false} onClick=${close} />
-      <section class="sheet" ref=${ref} role="dialog" aria-modal="true" aria-labelledby="sheet-title">
+    useEffect(() => { if (open) ref.current?.querySelector('input:checked')?.focus({preventScroll:true}); }, [open]);
+    if (!mounted) return null;
+    const cam = kind.current === 'cam', names = cam ? CAMS : MICS, idx = cam ? S.cam : S.mic;
+    return html`<div class=${'sheet-layer' + (S.platform === 'android' ? ' edge' : '')}>
+      <${Overlay} open=${open} portal=${false} onClick=${close} />
+      <section class="sheet" ref=${ref} data-state=${open ? 'open' : 'closed'} role="dialog" aria-modal="true" aria-labelledby="sheet-title">
         <div class="sheet-grip" aria-hidden="true"></div>
         <div class="sheet-head">
           <h2 id="sheet-title" class="h5 ttl">${cam ? 'Choose a camera' : 'Choose a microphone'}</h2>
@@ -1102,7 +1132,9 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
           onValueChange=${v => { if (cam) S.cam = +v; else S.mic = +v; S.sheet = null; render(); }}>
           ${names.map((n, i) => html`<${Radio} key=${i} value=${String(i)} label=${n} />`)}
         <//>
-      </section><//>`;
+        ${S.platform === 'android' ? html`<span class="sheet-home" aria-hidden="true"></span>` : null}
+      </section>
+    </div>`;
   }
 
   /* ---- camera media: the live video or the sample preview, always mounted as one element ---- */
@@ -1146,7 +1178,7 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
         <${Spinner} size=${48} color="blue" label="Loading your assessment" />
         <div class="head" style=${{justifyItems:'center'}}>
           <h1 class="h4 ttl">${S.resuming ? 'Picking up where you left off…' : 'Getting your assessment ready…'}</h1>
-          <p class="p2">This can take up to 30 seconds. Keep this page open.</p>
+          <p class="p2 lines"><span>This can take up to 30 seconds.</span><span>Keep this page open.</span></p>
         </div>
         <ul class="checklist p2" aria-live="polite">
           ${labels.map((t, i) => {
@@ -1165,11 +1197,14 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
     return html`<${Page} foot=${html`<${Cta} onClick=${askPermission}>Continue<//>`}>
       <div class="art"><${PhoneArt} art=${{title:'Allow access'}} /></div>
       <${Head} title="Allow camera and microphone">
-        <p class="p2">You answer this assessment by recording video, so we need your camera and microphone. Your browser will ask for permission.</p>
+        <p class="p2">You’ll answer by video, so we need both.</p>
       <//>
-      <p class="p3 muted">${S.platform === 'android'
-        ? 'Chrome asks twice: once for this site, then once for Chrome itself. Choose Allow both times.'
-        : 'Safari will ask. Choose Allow. It asks again each time you open the assessment, and that’s normal.'}</p><//>`;
+      <ul class="bullets p2">
+        <li>Your browser will ask next. Tap <b>Allow</b>.</li>
+        ${S.platform === 'android'
+          ? html`<li>Chrome asks twice: for this site, then for Chrome.</li>`
+          : html`<li>Safari asks each time you open the assessment.</li>`}
+      </ul><//>`;
   }
 
   // Blocked, in the layout of the Proctoring Attendee screen: picture, what is wrong, how to fix
@@ -1208,11 +1243,28 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
 
   /* ================= Questions ================= */
   // The assessment card, as in the Test Taker file: a muted card with a header row.
+  const answerTime = () => S.limitSecs >= 60 ? Math.round(S.limitSecs / 60) + ' minutes' : S.limitSecs + ' seconds';
+  // The assessment card, as in the Test Taker file: a header row, a divider, then the content.
   const QCard = ({children}) => html`<section class="qcard">
-    <div class="qcard-head"><span class="l1">Question ${S.qi} of ${ASSESS.length}</span>
-      <${IconButton} variant="tertiary-gray" icon="circle-exclamation" aria-label="Report a problem with this question" onClick=${openAlvy} /></div>
+    <div class="qcard-head"><span class="l1">Question ${S.qi} of ${ASSESS.length}</span></div>
     <div class="qcard-body">${children}</div>
   </section>`;
+  // Question text with Read more / Show less at the end of the text itself.
+  const CLAMP = 72;
+  function QText({text, cls = 'p2'}){
+    const long = text.length > CLAMP + 8, open = S.qExpanded || !long;
+    const shown = open ? text : text.slice(0, text.lastIndexOf(' ', CLAMP)) + '…';
+    return html`<p id="qtext" class=${cls + ' qtext'}>${shown}${long ? html`${' '}<${TextLink} as="button" size="sm" aria-expanded=${S.qExpanded} aria-controls="qtext"
+      onClick=${() => { S.qExpanded = !S.qExpanded; render(); }}>${S.qExpanded ? 'Show less' : 'Read more'}<//>` : null}</p>`;
+  }
+  // The rules for answering, in two short bullets above the question. Both question types share them.
+  function AnswerRules({media}){
+    const prep = `${S.prepSecs}s`;
+    return html`<ul class="bullets p3">
+      <li>${media && !S.clipDone ? `Watch the video. Your ${prep} prep time starts when it ends.` : `${prep} to prepare. Recording starts when it ends.`}</li>
+      <li>${answerTime()} to answer. You can retake it.</li>
+    </ul>`;
+  }
 
   // The Start recording button, with the preparation countdown in one of two ways: the button
   // fills as the time runs out, or a bar above the button.
@@ -1234,23 +1286,36 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
       <//><//>`;
   }
 
-  // A video question: preparation time on the question itself, then recording starts by itself.
+  // A video question: the rules, then the question. Recording starts when the prep time ends.
   function VideoQuestion(){
     return html`<${Page} foot=${startControls({counting:true})}>
       <${QCard}>
-        <p class="l1 qtext">${Q().text}</p>
-        <div class="infobox">
-          <p class="p2">${PREP_TEXT}</p>
-          <p class="p3 muted">You’ll have ${S.limitSecs >= 60 ? Math.round(S.limitSecs / 60) + ' minutes' : S.limitSecs + ' seconds'} to answer. You can retake it.</p>
-        </div>
+        <${AnswerRules} />
+        <p class="p2 qtext">${Q().text}</p>
       <//><//>`;
+  }
+
+  // Player controls from the web Test Taker file: a progress track, then replay 5s, play or pause,
+  // forward 5s, volume, and the time. Tessera RtIconButtons, the Real-Time video-player controls.
+  function VideoControls({t, total, playing, muted, onToggle, onSeek, onMute, disabled}){
+    return html`<div class="vctl">
+      <div class="vctl-track" role="progressbar" aria-label="Playback" aria-valuemin="0" aria-valuemax=${total} aria-valuenow=${Math.floor(t)}>
+        <span style=${{width:(total ? Math.min(100, t / total * 100) : 0) + '%'}}></span></div>
+      <div class="vctl-row">
+        <${RtIconButton} icon="seek-back-5" aria-label="Back 5 seconds" disabled=${disabled} onClick=${() => onSeek(-5)} />
+        <${RtIconButton} icon=${playing ? 'pause' : html`<${Fragment}>${svg('play', 16)}<//>`} aria-label=${playing ? 'Pause' : 'Play'} disabled=${disabled} onClick=${onToggle} />
+        <${RtIconButton} icon="seek-forward-5" aria-label="Forward 5 seconds" disabled=${disabled} onClick=${() => onSeek(5)} />
+        <${RtIconButton} icon="volume-high-regular" pressedIcon="volume-slash-regular" pressed=${muted} aria-label="Mute" disabled=${disabled} onClick=${onMute} />
+        <${CandidateClock} seconds=${Math.floor(t)} total=${total} mutedTotal size="sm" />
+      </div>
+    </div>`;
   }
 
   // A multimedia question: someone asks it in a video. Instructions sit above it, captions inside
   // it. When it ends the preparation time starts, then the candidate answers on video.
   function MediaClip({m, onEnded}){
     const cref = useRef(null);
-    const [t, setT] = useState(0), [playing, setPlaying] = useState(false);
+    const [t, setT] = useState(0), [playing, setPlaying] = useState(false), [muted, setMuted] = useState(false);
     useEffect(() => {
       const c = cref.current, ctx = c.getContext('2d');
       const dpr = Math.min(window.devicePixelRatio || 1, 2), w = c.clientWidth, h = c.clientHeight;
@@ -1269,25 +1334,16 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
       <canvas ref=${cref} role="img" aria-label=${`Video: ${m.caption}`}></canvas>
       ${(!playing && t === 0) ? html`<div class="vcenter"><${IconButton} variant="overlay" shape="round" aria-label="Play the question" icon=${html`<${Fragment}>${svg('play', 16)}<//>`} onClick=${toggle} /></div>` : null}
       ${line ? html`<div class="caption" aria-live="polite"><span class="p2">${line}</span></div>` : null}
-      <div class="vstrip">
-        <div class="grp">
-          <${IconButton} variant="overlay" aria-label=${playing ? 'Pause' : t >= m.len ? 'Watch again' : 'Play'} aria-pressed=${playing}
-            icon=${playing ? 'pause' : html`<${Fragment}>${svg('play', 16)}<//>`} onClick=${toggle} />
-          <${CandidateClock} seconds=${Math.floor(t)} total=${m.len} mutedTotal size="sm" />
-        </div>
-      </div>
+      ${(playing || t > 0) ? html`<${VideoControls} t=${t} total=${m.len} playing=${playing} muted=${muted} onToggle=${toggle}
+        onSeek=${d => setT(p => Math.max(0, Math.min(m.len - 0.1, p + d)))} onMute=${() => setMuted(x => !x)} />` : null}
     </div>`;
   }
-  const answerTime = () => S.limitSecs >= 60 ? Math.round(S.limitSecs / 60) + ' minutes' : S.limitSecs + ' seconds';
   function MediaQuestion(){
-    const m = Q().media;
     return html`<${Page} foot=${startControls({counting:S.clipDone, disabled:!S.clipDone})}>
-      <div class="qhead"><span class="l1">Question ${S.qi} of ${ASSESS.length}</span>
-        <${IconButton} variant="tertiary-gray" icon="circle-exclamation" aria-label="Report a problem with this question" onClick=${openAlvy} /></div>
-      <p class="p2">${S.clipDone
-        ? `Your preparation time has started. Recording starts when it ends, or tap Start recording. You’ll have ${answerTime()} to answer.`
-        : `Watch Priya’s question, then answer on video. Your preparation time starts when the video ends.`}</p>
-      <${MediaClip} m=${m} onEnded=${clipEnded} /><//>`;
+      <${QCard}>
+        <${AnswerRules} media />
+        <${MediaClip} m=${Q().media} onEnded=${clipEnded} />
+      <//><//>`;
   }
   function QuestionScreen(){
     const q = Q();
@@ -1304,16 +1360,14 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
     const q = Q(), left = q.practice ? null : Math.max(0, S.limitSecs - S.recSecs);   // answer time; the assessment timer stays in the top bar
     return html`<${Page} cam foot=${html`<${Cta} onClick=${endRecording}>Stop recording<//>`}>
       <${VideoLayer} />
-      ${S.hidePreview ? html`<div class="vmsg"><${Icon} name="eye-closed-regular" size=${24} /><span>You’re still being recorded. Only the preview is hidden.</span></div>` : null}
+      ${S.hidePreview ? html`<div class="vmsg"><${Icon} name="eye-closed-regular" size=${24} /><span class="lines"><span>You’re still being recorded.</span><span>Only the preview is hidden.</span></span></div>` : null}
       <div class="camtop">
         <span class="pill" role="group" aria-label=${left !== null ? 'Time left to answer' : 'Recording time'}><${CandidateClock} live seconds=${left ?? S.recSecs} size="sm" /></span>
         <span class="pill"><${Toggle} size="sm" label="Hide preview" checked=${S.hidePreview} onCheckedChange=${v => { S.hidePreview = v; render(); }} /></span>
       </div>
       <div class="camcard float">
         <span class="p3 muted">${q.practice ? 'Practice question · not scored' : `Question ${S.qi} of ${ASSESS.length}`}</span>
-        <p id="qtext" class=${'p2 qtext' + (S.qExpanded ? '' : ' qline')}>${q.text}</p>
-        <${TextLink} as="button" size="sm" aria-expanded=${S.qExpanded} aria-controls="qtext"
-          onClick=${() => { S.qExpanded = !S.qExpanded; render(); }}>${S.qExpanded ? 'Show less' : 'Read more'}<//>
+        <${QText} text=${q.text} />
       </div><//>`;
   }
 
@@ -1334,7 +1388,7 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
   // then "Your response has been saved successfully." over the picture, then playback.
   function ReviewPlayer(){
     const ref = useRef(null);
-    const [t, setT] = useState(0), [dur, setDur] = useState(0), [playing, setPlaying] = useState(false);
+    const [t, setT] = useState(0), [dur, setDur] = useState(0), [playing, setPlaying] = useState(false), [muted, setMuted] = useState(false);
     const clip = S.replayOK && S.clipURL, saving = S.save === 'saving' || S.save === 'retry';
     useEffect(() => {
       const v = ref.current;
@@ -1347,11 +1401,13 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
     // MediaRecorder output often reports an infinite duration; fall back to what we timed.
     const total = Number.isFinite(dur) && dur > 0 ? Math.round(dur) : S.takeSecs;
     const toggle = () => { const v = ref.current; if (!v) return; v.paused ? v.play().catch(() => {}) : v.pause(); };
+    const seek = d => { const v = ref.current; if (v) v.currentTime = Math.max(0, (v.currentTime || 0) + d); };
+    const mute = () => { const v = ref.current; setMuted(m => { if (v) v.muted = !m; return !m; }); };
     let cover = null;
     if (saving) cover = html`<div class="vstate" role="status"><${Spinner} size=${32} color="white" label="Saving your response" />
       ${S.save === 'retry' ? html`<p class="p2">Still saving. Keep this page open.</p>` : null}</div>`;
     else if (S.save === 'failed') cover = html`<div class="vstate" role="alert"><${Icon} name="circle-exclamation" size=${24} />
-      <p class="p2">We couldn’t save your response. Check your connection and try again.</p>
+      <p class="p2 lines"><span>We couldn’t save your response.</span><span>Check your connection and try again.</span></p>
       <${Button} onClick=${startSave}>Try again<//></div>`;
     else if (S.savedFlash) cover = html`<div class="vstate note" role="status"><p class="p2">Your response has been saved successfully.</p></div>`;
     return html`<div class="vcard">
@@ -1360,11 +1416,8 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
         : S.poster ? html`<img src=${S.poster} alt="The last frame of your recording" />` : null}</div>
       ${cover}
       ${(!clip && !saving && S.save !== 'failed') ? html`<div class="vtop"><${Chip} color="gray" size="sm">Playback isn’t available in this preview<//></div>` : null}
-      ${saving || S.save === 'failed' ? null : html`<div class="vstrip"><div class="grp">
-        <${IconButton} variant="overlay" disabled=${!clip} aria-label=${playing ? 'Pause' : 'Play'} aria-pressed=${playing}
-          icon=${playing ? 'pause' : html`<${Fragment}>${svg('play', 16)}<//>`} onClick=${toggle} />
-        <${CandidateClock} seconds=${Math.floor(t)} total=${total} mutedTotal size="sm" />
-      </div></div>`}
+      ${saving || S.save === 'failed' ? null : html`<${VideoControls} t=${t} total=${total} playing=${playing} muted=${muted}
+        disabled=${!clip} onToggle=${toggle} onSeek=${seek} onMute=${mute} />`}
     </div>`;
   }
   // After Stop recording. In onboarding it says that is how every answer works; in the assessment
@@ -1375,7 +1428,7 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
         <${Cta} disabled=${locked} onClick=${() => go('countdown')}>Start assessment<//>
         <${Cta} variant="secondary-gray" onClick=${() => go('question')}>Practice again<//>
       <//>`}>
-      <${Head} title="That’s how it’s done" icon=${html`<${Icon} name="circle-check" size=${24} />`}>
+      <${Head} title="That’s how it’s done" icon=${html`<${Icon} name="circle-check" size=${18} />`}>
         <p class="p2">Your answer saves automatically, so there’s nothing to submit. Watch it back, then practice again or start the assessment.</p>
       <//>
       <${ReviewPlayer} /><//>`;
@@ -1384,7 +1437,7 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
         <${Cta} variant="secondary-gray" onClick=${() => { S.retakeAsk = true; render(); }}>Retake<//>
       <//>`}>
       <${QCard}>
-        <p class="p2 qtext">${q.text}</p>
+        <${QText} text=${q.text} />
         <${ReviewPlayer} />
       <//><//>`;
   }
@@ -1394,7 +1447,7 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
       <div class="centre">
         <div class="head" style=${{justifyItems:'center'}}>
           <h1 class="h4 ttl">Starting your assessment</h1>
-          <p class="p2">Get comfortable. The timer starts when the first question appears.</p>
+          <p class="p2 lines"><span>Get comfortable.</span><span>The timer starts with the first question.</span></p>
         </div>
         <${ProgressIndicator} type="circular" value=${S.count} max=${5} valueText=${S.count} label="Starting your assessment in" />
       </div><//>`;
@@ -1437,9 +1490,36 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
   const BARS = [['bar-6.svg', 27, '12.75px', '64.5px', '6/10', 'Critical Thinking'], ['bar-8.svg', 101.25, '90.75px', '57.75px', '8/10', 'Problem Solving'],
     ['bar-8.svg', 175.5, '166.5px', '54.75px', '8/10', 'Behavioural'], ['bar-10.svg', 249.75, '250.5px', '34.5px', '10/10', 'Aptitude']];
   const ACTIONS = [['Share on LinkedIn', 'act-linkedin.svg'], ['Send to email', 'act-email.svg'], ['View in Credly', 'act-credly.svg'], ['Download', 'act-download.svg']];
+  // A short burst of confetti when the score is revealed. Colours come from the theme's tokens;
+  // reduced motion skips it.
+  function Confetti(){
+    const ref = useRef(null);
+    useEffect(() => {
+      if (reduce.matches) return;
+      const c = ref.current, ctx = c.getContext('2d'), w = c.clientWidth, h = c.clientHeight;
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      c.width = w * dpr; c.height = h * dpr; ctx.scale(dpr, dpr);
+      const cs = getComputedStyle(c);
+      const cols = ['--interactive-primary', '--success-strong', '--warning-strong', '--purple-500', '--blue-300'].map(v => cs.getPropertyValue(v).trim() || '#2563eb');
+      const bits = Array.from({length:90}, (_, i) => ({x:w / 2 + (Math.random() - .5) * 60, y:h * .22, vx:(Math.random() - .5) * 7, vy:-Math.random() * 7 - 3,
+        r:Math.random() * Math.PI, vr:(Math.random() - .5) * .3, s:5 + Math.random() * 5, c:cols[i % cols.length]}));
+      const t0 = performance.now(); let raf;
+      const tick = now => {
+        const age = now - t0; ctx.clearRect(0, 0, w, h);
+        ctx.globalAlpha = Math.max(0, 1 - Math.max(0, age - 1800) / 900);
+        bits.forEach(b => { b.vy += .18; b.vx *= .99; b.x += b.vx; b.y += b.vy; b.r += b.vr;
+          ctx.save(); ctx.translate(b.x, b.y); ctx.rotate(b.r); ctx.fillStyle = b.c; ctx.fillRect(-b.s / 2, -b.s / 4, b.s, b.s / 2); ctx.restore(); });
+        if (age < 2700) raf = requestAnimationFrame(tick); else ctx.clearRect(0, 0, w, h);
+      };
+      raf = requestAnimationFrame(tick);
+      return () => cancelAnimationFrame(raf);
+    }, []);
+    return html`<canvas class="confetti" ref=${ref} aria-hidden="true"></canvas>`;
+  }
   function ScoreScreen(){
     return html`<${Page} foot=${html`<${Cta} onClick=${() => go('feedback')}>Next<//>`}>
       <div class="wcard">
+        <${Confetti} />
         <div class="wt mid">
           <p class="p1 ttl">Your score</p>
           <p class="score-n">32/40</p>
@@ -1450,7 +1530,7 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
           ${BARS.map(([, , left, w, v, l]) => html`<div class="lab" key=${l} style=${{left, width:w}}><b>${v}</b><span>${l}</span></div>`)}
         </div>
         <img class="cert" src=${FIG + 'certificate.png'} alt="Certificate of completion" />
-        <div class="acts">${ACTIONS.map(([l, icon]) => html`<${Button} key=${l} variant="tertiary-color" fullWidth trailingIcon=${html`<img src=${FIG + icon} alt="" width="16" height="16" />`}>${l}<//>`)}</div>
+        <div class="acts">${ACTIONS.map(([l, icon]) => html`<${Button} key=${l} variant="tertiary-color" trailingIcon=${html`<img src=${FIG + icon} alt="" width="16" height="16" />`}>${l}<//>`)}</div>
       </div><//>`;
   }
 
@@ -1697,6 +1777,7 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
             <${ChromeTop} />
             <div id="viewport">
               <div class="topstack"><${TopNav} /><${Broadcast} /></div>
+              <${DeviceSheet} />
               <main id="view">
                 <${Screen} />
                 ${S.alvyOpen ? html`<section class="alvy" aria-label="Chat with Alvy">
@@ -1705,7 +1786,6 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
                     composer=${{onSend:sendChat, placeholder:'Ask a question…'}} />
                 </section>` : null}
                 ${S.dialog ? html`<${Dialog} />` : null}
-                ${S.sheet ? html`<${DeviceSheet} />` : null}
                 <${Modal} open=${S.retakeAsk} portal=${false} title="Retake response"
                   onOpenChange=${o => { if (!o){ S.retakeAsk = false; render(); } }}
                   primaryAction=${{label:'Yes, retake', onClick:() => go('question')}}

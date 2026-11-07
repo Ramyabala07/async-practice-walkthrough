@@ -56,10 +56,17 @@ There is no multiple choice. Both types end in the same record flow.
 
 - **Video question.** The question is on screen, a preparation countdown runs, then
   recording starts by itself (or the candidate taps Start recording early).
-- **Multimedia question.** Someone asks the question in a short video. The instructions
-  sit above it and captions run inside it; there is no card, transcript or soundwave.
-  Start recording stays locked until the video ends, then the preparation countdown
-  runs and they answer on video.
+- **Multimedia question.** Someone asks the question in a short video with captions
+  inside it; no transcript or soundwave. Start recording stays locked until the video
+  ends, then the preparation countdown runs and they answer on video.
+
+Both types use one card: "Question n of 2", a divider, two short rule bullets (prep time,
+answer time and retakes), then the question, as text or as the video. Rules come first
+because the prep countdown starts the moment the screen opens, so the candidate needs
+them before they read. The review uses the same card with the recorded answer below the
+question. Videos use the web player's controls: a track, then back 5s, play or pause,
+forward 5s, volume and the time (Tessera `RtIconButton`). Long questions end in an inline
+Read more / Show less. There is no report icon; that belongs to the report flow.
 
 The assessment card, the timer row, the review and the wrap-up follow the Test Taker
 file. The timer is Tessera's `CandidateTimer` in its own row under the top bar, with
@@ -77,11 +84,19 @@ digits visible by default and the "Hide timer" switch on the component's own ter
 - **Device selection** uses the Test Taker file's field: the device icon inside the
   field, the device name and a chevron, with a status chip beside it. Tapping it opens a
   bottom sheet of options (Tessera `Overlay` + `RadioGroup`) rather than a desktop
-  listbox; choosing applies it and closes. The sheet is a new pattern: Tessera's
+  listbox; choosing applies it and closes. The sheet dims the whole page, runs to the
+  bottom edge with the Android gesture bar inside it, eases in over 300ms with Tessera's
+  ease-out and animates out before it unmounts. The sheet is a new pattern: Tessera's
   Dropdown panel is built for a pointer and a wide screen. In production a native
   `<select>` styled the same way would hand the choice to the phone's own picker.
 - **While answering**, the overall assessment timer stays in the top bar and the answer
-  time sits on the camera (no "left" label).
+  time sits on the camera (no "left" label). Hiding the timer's digits keeps the row's
+  height; the switch centres in it.
+- **Centred text** puts each sentence on its own line (loading, countdown, the player's
+  messages). Allow access is a title, one line and two bullets.
+- **Wrap-up**: the grey card runs down to the footer on every screen, confetti bursts when
+  the score appears (skipped under reduced motion), and the share options sit
+  left-aligned under the certificate.
 - **Stop recording saves the answer**, with the web flow's copy: a spinner in the player
   while it saves, then "Your response has been saved successfully." over the picture,
   then playback. A failed save says so in the player with Try again. There is no Submit
@@ -101,7 +116,7 @@ digits visible by default and the "Hide timer" switch on the component's own ter
   where the viewer allows it. After a reload the browser asks for the camera again.
 - **Blocked states** follow the Proctoring Attendee screen: a picture of a phone with
   the dialog, one line on what is wrong, **how to fix it in this browser** (Chrome and
-  Safari have different steps), Retry, and the help link left-aligned at the foot. The
+  Safari have different steps), Retry, and the help link centred at the foot. The
   illustration sits in a box as wide as the text, with 16px inside it, matching the 16px
   gap to the title. The network error and interrupted screens use the same layout.
   The interrupted screen's action is simply "Try again". There are five:
