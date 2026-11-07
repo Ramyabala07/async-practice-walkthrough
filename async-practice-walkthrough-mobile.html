@@ -1263,11 +1263,12 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
     return html`<p id="qtext" class=${cls + ' qtext'}>${shown}${long ? html`${' '}<${TextLink} as="button" size="sm" aria-expanded=${S.qExpanded} aria-controls="qtext"
       onClick=${() => { S.qExpanded = !S.qExpanded; render(); }}>${S.qExpanded ? 'Show less' : 'Read more'}<//>` : null}</p>`;
   }
-  // The rules for answering, in two short bullets above the question. Both question types share them.
+  // The rules for answering, in two short bullets above the question. The text never changes while
+  // the screen is open, so the card does not reflow when the video ends.
   function AnswerRules({media}){
     const prep = `${S.prepSecs}s`;
     return html`<ul class="bullets p3">
-      <li>${media && !S.clipDone ? `Watch the video. Your ${prep} prep time starts when it ends.` : `${prep} to prepare. Recording starts when it ends.`}</li>
+      <li>${media ? `${prep} to prepare after the video. Recording starts when it ends.` : `${prep} to prepare. Recording starts when it ends.`}</li>
       <li>${answerTime()} to answer. You can retake it.</li>
     </ul>`;
   }
