@@ -123,9 +123,16 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
 .sheet-grip{justify-self:center;width:36px;height:4px;border-radius:var(--radius-full);background:var(--border-primary)}
 .sheet-home{position:absolute;left:50%;bottom:7px;width:106px;height:4px;margin-left:-53px;border-radius:2px;background:#18181b;opacity:.75}
 .sheet-head{display:flex;align-items:center;justify-content:space-between}
-.sheet .ts-radio-group__items{display:grid;gap:0}
-.sheet .ts-radio{min-height:48px;display:flex;align-items:center;border-bottom:1px solid var(--border-subtle)}
-.sheet .ts-radio:last-child{border-bottom:0}
+.sheet-list{list-style:none;margin:0;padding:0;display:grid}
+.sheet-opt{min-height:48px;display:flex;align-items:center;gap:var(--space-3);padding:0 var(--space-3);margin:0 calc(-1 * var(--space-3));
+  border-radius:var(--radius-sm);color:var(--text-primary);cursor:pointer;-webkit-tap-highlight-color:transparent;position:relative}
+.sheet-opt+.sheet-opt::before{content:"";position:absolute;top:0;left:var(--space-3);right:var(--space-3);border-top:1px solid var(--border-subtle)}
+.sheet-opt-label{flex:1;min-width:0}
+.sheet-opt.is-selected{font-weight:500}
+.sheet-opt .ts-icon,.sheet-opt svg{color:var(--interactive-link);flex:none}
+.sheet-opt:active{background:var(--bg-elevated)}
+.sheet-opt:focus{outline:none}
+.sheet-opt:focus-visible{box-shadow:var(--focus-ring)}
 @keyframes sheet-in{from{transform:translateY(100%)}to{transform:translateY(0)}}
 @media (prefers-reduced-motion: reduce){
   .sheet{animation:fade-in var(--duration-fast) linear both}
@@ -1181,9 +1188,17 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
     const {mounted, state} = usePresence(open, 200);
     const ref = useRef(null);
     const close = () => { S.sheet = null; render(); };
-    useEffect(() => { if (open) ref.current?.querySelector('input:checked')?.focus({preventScroll:true}); }, [open]);
+    useEffect(() => { if (open) ref.current?.querySelector('[aria-selected="true"]')?.focus({preventScroll:true}); }, [open, mounted]);
     if (!mounted) return null;
     const cam = kind.current === 'cam', names = cam ? CAMS : MICS, idx = cam ? S.cam : S.mic;
+    const pick = i => { if (cam) S.cam = i; else S.mic = i; S.sheet = null; render(); };
+    // Arrow keys move between options (listbox pattern, same as Tessera's Dropdown panel).
+    const onKey = e => {
+      const opts = [...e.currentTarget.querySelectorAll('[role="option"]')], at = opts.indexOf(document.activeElement);
+      const to = e.key === 'ArrowDown' ? (at + 1) % opts.length : e.key === 'ArrowUp' ? (at - 1 + opts.length) % opts.length
+        : e.key === 'Home' ? 0 : e.key === 'End' ? opts.length - 1 : -1;
+      if (to < 0) return; e.preventDefault(); opts[to].focus({preventScroll:true});
+    };
     return html`<div class=${'sheet-layer' + (S.platform === 'android' ? ' edge' : '')}>
       <${Overlay} open=${open} portal=${false} onClick=${close} />
       <section class="sheet" ref=${ref} data-state=${open ? 'open' : 'closed'} role="dialog" aria-modal="true" aria-labelledby="sheet-title">
@@ -1192,10 +1207,14 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
           <h2 id="sheet-title" class="h5 ttl">${cam ? 'Choose a camera' : 'Choose a microphone'}</h2>
           <${IconButton} variant="tertiary-gray" icon="xmark-regular" aria-label="Close" onClick=${close} />
         </div>
-        <${RadioGroup} aria-labelledby="sheet-title" value=${String(idx)}
-          onValueChange=${v => { if (cam) S.cam = +v; else S.mic = +v; S.sheet = null; render(); }}>
-          ${names.map((n, i) => html`<${Radio} key=${i} value=${String(i)} label=${n} />`)}
-        <//>
+        <ul class="sheet-list" role="listbox" aria-labelledby="sheet-title" onKeyDown=${onKey}>
+          ${names.map((n, i) => html`<li key=${i} role="option" tabindex=${i === idx ? 0 : -1} aria-selected=${i === idx}
+            class=${'sheet-opt p2' + (i === idx ? ' is-selected' : '')}
+            onClick=${() => pick(i)} onKeyDown=${e => { if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); pick(i); } }}>
+            <span class="sheet-opt-label">${n}</span>
+            ${i === idx ? html`<${Icon} name="check" size=${16} />` : null}
+          </li>`)}
+        </ul>
         ${S.platform === 'android' ? html`<span class="sheet-home" aria-hidden="true"></span>` : null}
       </section>
     </div>`;
