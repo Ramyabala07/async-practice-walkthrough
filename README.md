@@ -48,6 +48,25 @@ A supporting page isn't wrapped in the artifact's HTML skeleton, so the publishe
 page is the source file with a doctype, charset, viewport and the skeleton's small reset
 added around it.
 
+## Same copy on both devices
+
+Web and mobile say the same thing wherever the situation is the same; only the device's own
+details differ (tap vs click, address-bar steps, phone vs computer settings).
+
+- Loading, load failure, allow access, the device check ("Say ‘Testing 123’ out loud" →
+  "We can hear you"), the practice question, prep time ("Ready sooner? Tap/Click Start
+  recording."), Hide preview, "That's how it's done", and the countdown.
+- Blocked states on both: camera and microphone blocked, camera in use, the browser itself
+  blocked by the phone or computer, no camera found, and no camera request (after 10s).
+  Web picks these from Browser access in its panel. Each has the same title and one-line
+  explanation on both, with steps for that browser and device, and the same help-link names.
+- Buttons are sentence case on both ("Start assessment", "Hide timer", "Hide preview"), and
+  every recovery button says **Try again** (mobile said Retry on some screens).
+- Phone-only: opening the link inside an email app's browser, the Android two-step
+  permission, Do Not Disturb for calls. Web's countdown tip is the desktop version (close
+  Zoom or Teams). The live assessment, saving, interruptions and connection loss exist
+  only in the mobile flow, because the web walkthrough ends when the assessment starts.
+
 ## Mobile
 
 `async-practice-walkthrough-mobile.html` is a separate file and a complete flow for
@@ -150,7 +169,7 @@ digits visible by default and the "Hide timer" switch on the component's own ter
 - **Network messages are broadcast banners** under the top bar: "No internet detected"
   (red), weak connection, back online, and the welcome-back note after a reload. After a
   long loss of connection (15 seconds here) the page is replaced by an error screen laid
-  out like the Proctoring Attendee one, with Retry.
+  out like the Proctoring Attendee one, with Try again.
 - **An interruption loses the answer in progress.** A call, a locked screen or another
   app taking the camera ends the recording; the candidate checks their camera and
   answers that question again. Answers saved earlier stay saved. A reload behaves the
@@ -159,10 +178,10 @@ digits visible by default and the "Hide timer" switch on the component's own ter
   where the viewer allows it. After a reload the browser asks for the camera again.
 - **Blocked states** follow the Proctoring Attendee screen: a picture of a phone with
   the dialog, the title, then one bulleted list: what is wrong, then **how to fix it in
-  this browser** (Chrome and Safari have different steps). Retry and the help link sit
-  centred at the foot. Retry asks again from the blocked screen itself, so a candidate who
+  this browser** (Chrome and Safari have different steps). Try again and the help link sit
+  centred at the foot. Try again asks again from the blocked screen itself, so a candidate who
   fixed the setting goes straight on to the device check rather than back through the
-  primer; the microphone help screen's Retry returns to the device check. The
+  primer; the microphone help screen's Try again returns to the device check. The
   illustration sits in a box as wide as the text, with 16px inside it, matching the 16px
   gap to the title. The network error and interrupted screens use the same layout.
   The interrupted screen's action is simply "Try again". There are seven:
@@ -181,7 +200,7 @@ digits visible by default and the "Hide timer" switch on the component's own ter
     screen says to open the link in Safari or Chrome, with **Copy link** as its action.
   - *The request never appears.* Continue shows "Waiting for your browser…"; after 10
     seconds with no answer the candidate sees "We didn't get a response" with the fix and
-    Retry.
+    Try again.
 - **Before the first question**, the countdown shows a tip in the footer (the screen has no
   buttons, so the footer is free): turn on Do Not
   Disturb, because a call or notification on a phone stops the recording and costs the

@@ -945,14 +945,14 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
 
   /* ================= Recovery copy: how to fix it, for this browser ================= */
   const SITE_STEPS = {
-    android:['Tap the lock icon in the address bar.', 'Tap <b>Permissions</b>.', 'Turn on <b>Camera</b> and <b>Microphone</b>, then tap <b>Retry</b>.'],
-    ios:['Tap <b>aA</b> in the address bar.', 'Tap <b>Website Settings</b>.', 'Set <b>Camera</b> and <b>Microphone</b> to <b>Allow</b>, then tap <b>Retry</b>.']
+    android:['Tap the lock icon in the address bar.', 'Tap <b>Permissions</b>.', 'Turn on <b>Camera</b> and <b>Microphone</b>, then tap <b>Try again</b>.'],
+    ios:['Tap <b>aA</b> in the address bar.', 'Tap <b>Website Settings</b>.', 'Set <b>Camera</b> and <b>Microphone</b> to <b>Allow</b>, then tap <b>Try again</b>.']
   };
   const APP_STEPS = {
-    android:['Open <b>Settings › Apps › Chrome › Permissions</b>.', 'Allow <b>Camera</b> and <b>Microphone</b>.', 'Come back and tap <b>Retry</b>.'],
-    ios:['Open <b>Settings › Safari</b>.', 'Set <b>Camera</b> and <b>Microphone</b> to <b>Allow</b>.', 'Come back and tap <b>Retry</b>.']
+    android:['Open <b>Settings › Apps › Chrome › Permissions</b>.', 'Allow <b>Camera</b> and <b>Microphone</b>.', 'Come back and tap <b>Try again</b>.'],
+    ios:['Open <b>Settings › Safari</b>.', 'Set <b>Camera</b> and <b>Microphone</b> to <b>Allow</b>.', 'Come back and tap <b>Try again</b>.']
   };
-  const INUSE_STEPS = ['Close the app using it, like a video call or the camera app.', 'Come back and tap <b>Retry</b>.'];
+  const INUSE_STEPS = ['Close the app using it, like a video call or the camera app.', 'Come back and tap <b>Try again</b>.'];
   const NOCAM_STEPS = {
     android:['Make sure nothing covers the camera.', 'Close Chrome fully and open this link again.', 'Still missing? Restart your phone.'],
     ios:['Make sure nothing covers the camera.', 'Close Safari fully and open this link again.', 'Still missing? Restart your iPhone.']
@@ -961,7 +961,7 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
     android:['Make sure nothing covers the microphone.', 'Unplug headphones, or pick another microphone.', 'Check <b>Microphone</b> is on under the lock icon.'],
     ios:['Make sure nothing covers the microphone.', 'Disconnect AirPods or headphones.', 'Check <b>Microphone</b> is allowed under <b>aA › Website Settings</b>.']
   };
-  const NET_STEPS = ['Check that Wi-Fi or mobile data is on.', 'Move closer to your router, or switch networks.', 'Tap <b>Retry</b>. Your saved answers are kept.'];
+  const NET_STEPS = ['Check that Wi-Fi or mobile data is on.', 'Move closer to your router, or switch networks.', 'Tap <b>Try again</b>. Your saved answers are kept.'];
   // Five blocked states in the layout of the Proctoring Attendee screen: what is wrong in one
   // line, then the fix in this browser's own words.
   function blockedCopy(){
@@ -981,8 +981,8 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
       case 'noprompt': return {title:'We didn’t get a response', art:{title:'No request shown', slash:true}, topic:'noprompt', link:'Need help?',
         text:`${b} didn’t show the camera request.`,
         steps:p === 'ios'
-          ? ['Tap <b>aA</b> › <b>Website Settings</b> and set <b>Camera</b> and <b>Microphone</b> to <b>Ask</b>.', 'Opened this from your email app? Open it in Safari instead.', 'Then tap <b>Retry</b>.']
-          : ['Tap the lock icon › <b>Permissions</b> and reset <b>Camera</b> and <b>Microphone</b>.', 'Opened this from your email app? Open it in Chrome instead.', 'Then tap <b>Retry</b>.']};
+          ? ['Tap <b>aA</b> › <b>Website Settings</b> and set <b>Camera</b> and <b>Microphone</b> to <b>Ask</b>.', 'Opened this from your email app? Open it in Safari instead.', 'Then tap <b>Try again</b>.']
+          : ['Tap the lock icon › <b>Permissions</b> and reset <b>Camera</b> and <b>Microphone</b>.', 'Opened this from your email app? Open it in Chrome instead.', 'Then tap <b>Try again</b>.']};
       default: return {title:'Camera and microphone blocked', art:{title:'Permissions blocked', slash:true}, topic:'blocked', link:'How to allow access',
         text:`${b} is blocking your camera and microphone for this site.`, steps:SITE_STEPS[p]};
     }
@@ -1039,7 +1039,7 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
     if (topic === 'noprompt') return {
       ask:'Hi, I tapped Continue but nothing asked for my camera. Can you help?',
       search:'camera request not showing', title:'When the camera request doesn’t appear',
-      steps:[...(S.platform === 'ios' ? ['Tap <b>aA</b> › <b>Website Settings</b> and set Camera and Microphone to <b>Ask</b>.'] : ['Tap the lock icon › <b>Permissions</b> and reset Camera and Microphone.']), `If you opened the link from an app, open it in ${name} instead.`, 'Then tap <b>Retry</b>.']
+      steps:[...(S.platform === 'ios' ? ['Tap <b>aA</b> › <b>Website Settings</b> and set Camera and Microphone to <b>Ask</b>.'] : ['Tap the lock icon › <b>Permissions</b> and reset Camera and Microphone.']), `Opened this from your email app? Open it in ${name} instead.`, 'Then tap <b>Try again</b>.']
     };
     if (topic === 'other') return {
       ask:'Hi, I have a different question.',
@@ -1315,7 +1315,7 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
     return html`<${Page} foot=${html`<${Fragment}>
         ${c.copyLink
           ? html`<${Cta} leadingIcon=${html`<${Icon} name=${S.linkCopied ? 'check' : 'copy'} />`} onClick=${copy}>${S.linkCopied ? 'Link copied' : 'Copy link'}<//>`
-          : html`<${Cta} onClick=${retryBlocked}>Retry<//>`}
+          : html`<${Cta} onClick=${retryBlocked}>Try again<//>`}
         <${FootLink} icon="help-circle" onClick=${() => helpFlow(c.topic)}>${c.link}<//>
       <//>`}>
       <div class="art"><${PhoneArt} art=${c.art} /></div>
@@ -1584,12 +1584,12 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
   function NetErrorScreen(){
     const lost = S.neterrKind === 'lost';
     return html`<${Page} foot=${html`<${Fragment}>
-        <${Cta} onClick=${retryNet}>Retry<//>
+        <${Cta} onClick=${retryNet}>Try again<//>
         <${FootLink} icon="help-circle" onClick=${() => helpFlow('net')}>Need help?<//>
       <//>`}>
       <div class="art"><${NetArt} /></div>
-      <${Head} title="No internet connection" />
-      <${Steps} items=${['Check your Wi-Fi or mobile data, then tap <b>Retry</b>.', ...(lost && P.onboarded ? ['Your saved answers are kept.', 'You’ll answer the current question again.'] : [])]} />
+      <${Head} title=${S.neterrKind === 'load' ? 'We couldn’t load your assessment' : 'No internet connection'} />
+      <${Steps} items=${['Check your Wi-Fi or mobile data, then tap <b>Try again</b>.', ...(lost && P.onboarded ? ['Your saved answers are kept.', 'You’ll answer the current question again.'] : [])]} />
       ${S.retryFail ? html`<div class="status-line bad" role="alert"><${Icon} name="circle-exclamation" size=${16} /><span>Still offline. Check your connection and retry.</span></div>` : null}<//>`;
   }
 
@@ -1747,7 +1747,7 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
   // UX-1224 points: 1 page after OTP feels stuck · 2 practice gives no direction · 3 tracker skips a step · 4 10–30s waits
   const TICKET = {
     wait:'#1 + #4: loading steps replace the blank page, centred. After a reload it says it is picking up where you left off.',
-    neterror:'After a long loss of connection the page is replaced by an error screen. Retry reloads: saved answers and onboarding are kept, the answer in progress is not.',
+    neterror:'After a long loss of connection the page is replaced by an error screen. Try again reloads: saved answers and onboarding are kept, the answer in progress is not.',
     permission:'Same order as web. Continue hands off to the browser’s own dialog, so it says Continue, not Allow: the real Allow comes next and two in a row reads as being asked twice.',
     blocked:'Seven blocked states. Two catch today’s silent drop: a browser with no camera access (often an app’s built-in browser: Copy link) and a request that never appears (after 10 seconds).',
     test:'The camera fills the space between the solid top bar and footer. Continue stays locked until the mic is heard.',

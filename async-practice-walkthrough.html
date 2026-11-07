@@ -358,7 +358,7 @@ button,select{font:inherit;color:inherit}
       <span class="logo-word">TALVIEW</span>
     </div>
     <div class="timer" id="timerBox" hidden>
-      <button class="toggle timer-toggle" id="timerToggle" data-act="hide-timer" aria-pressed="false" type="button"><span class="track" aria-hidden="true"></span><span class="label">Hide Timer</span></button>
+      <button class="toggle timer-toggle" id="timerToggle" data-act="hide-timer" aria-pressed="false" type="button"><span class="track" aria-hidden="true"></span><span class="label">Hide timer</span></button>
       <div class="timer-clock" id="timerClock">
         <div class="timer-bar" aria-hidden="true"><span id="timerBar" style="width:36%"></span></div>
         <div class="timer-num" id="timerNum" role="timer" aria-label="Time left">00:02:15</div>
@@ -438,7 +438,7 @@ button,select{font:inherit;color:inherit}
       <div class="chips" id="jumpChips"></div>
     </div>
     <div class="proto-group"><span class="proto-label">Browser access</span>
-      <div class="seg"><button type="button" data-set="permMode" data-val="ask">Prompt</button><button type="button" data-set="permMode" data-val="granted">Already allowed</button><button type="button" data-set="permMode" data-val="inuse">Camera in use</button></div>
+      <div class="seg"><button type="button" data-set="permMode" data-val="ask">Prompt</button><button type="button" data-set="permMode" data-val="granted">Already allowed</button><button type="button" data-set="permMode" data-val="inuse">Camera in use</button><button type="button" data-set="permMode" data-val="os">Blocked by system</button><button type="button" data-set="permMode" data-val="nocam">No camera</button><button type="button" data-set="permMode" data-val="silent">Never asks</button></div>
     </div>
     <div class="proto-group"><span class="proto-label">Voice check</span>
       <div class="seg"><button type="button" data-set="voiceMode" data-val="heard">Voice heard</button><button type="button" data-set="voiceMode" data-val="silent">Silent</button></div>
@@ -511,10 +511,11 @@ button,select{font:inherit;color:inherit}
   const PREP_SECS = 10;
   const TOUR = ['orient', 'prep', 'perm', 'blocked', 'devices', 'talk', 'quiet', 'stop', 'saved'];
   const SAVE_MS = 1800;
+  const NO_PROMPT_MS = 10000;
   const stepInfo = () => [STEPS[S.state], 5];
   const CAMS = ['FaceTime HD Camera', 'Logitech C920'];
   const MICS = ['MacBook Air Microphone', 'AirPods Pro', 'External USB Microphone'];
-  const WAIT_LABELS = ['Email verified', 'Loading your assessment', 'Preparing a practice question'];
+  const WAIT_LABELS = ['Email verified', 'Loading your assessment', 'Preparing your questions'];
 
   const S = {
     state:'wait', chk:'idle', prepLeft:PREP_SECS, saving:false, playing:false, playT:0, playDur:6, permMode:'ask', voiceMode:'heard', loadMode:'ok',
@@ -590,7 +591,9 @@ button,select{font:inherit;color:inherit}
       }, 1000);
     }
     if (st === 'perm'){
-      if (S.permAuto){
+      if (!S.permAuto && S.permMode === 'silent'){
+        later(() => { S.blockedReason = 'noprompt'; go('blocked'); }, NO_PROMPT_MS);
+      } else if (S.permAuto){
         S.permitted = true;
         if (canUseCamera() && !S.stream) acquire().catch(() => {});
         later(resolveDevices, 1300);
@@ -635,6 +638,7 @@ button,select{font:inherit;color:inherit}
 
   function resolveDevices(){
     if (S.permMode === 'inuse' && !S.inuseCleared){ S.blockedReason = 'inuse'; go('blocked'); }
+    else if ((S.permMode === 'os' || S.permMode === 'nocam') && !S.inuseCleared){ S.blockedReason = S.permMode; go('blocked'); }
     else go('devices');
   }
 
@@ -677,7 +681,7 @@ button,select{font:inherit;color:inherit}
     const m = $('meter');
     if (m){ m.classList.remove('quiet'); m.classList.add('done'); m.querySelectorAll('i').forEach(b => b.style.height = ''); }
     const v = $('voiceStatus');
-    if (v) v.textContent = 'Working';
+    if (v) v.textContent = 'We can hear you';
     const micPill = $('micStatus');
     if (micPill){ micPill.className = 'status ok'; micPill.innerHTML = ic('check', 'sm') + 'Working'; }
     S.micFailed = false;
@@ -695,7 +699,7 @@ button,select{font:inherit;color:inherit}
     S.micFailed = true;
     const chk = $('micCheck');
     if (chk && chk.classList.contains('dev-check')){ chk.className = 'dev-check warn'; if (v) v.textContent = 'No sound yet'; }
-    else if (v){ v.className = 'retry-note'; v.textContent = 'We can’t hear you. Check it isn’t muted, or choose another microphone.'; }
+    else if (v){ v.className = 'retry-note'; v.textContent = 'We can’t hear you. Unmute your microphone or pick another one.'; }
     if (S.state === 'check' && $('leftPane')){ $('leftPane').innerHTML = leftLive(); schedule(); }
     renderHints();
     const micPill = $('micStatus');
@@ -976,7 +980,7 @@ button,select{font:inherit;color:inherit}
     return `<section class="waitscreen" aria-labelledby="waitTitle">
       <div class="wait-mark ${err ? 'err' : ''}">${err ? ic('alert') : '<span class="spin lg" aria-hidden="true"></span>'}</div>
       <h1 id="waitTitle">${err ? 'We couldn’t load your assessment' : 'Getting your assessment ready…'}</h1>
-      <p>${err ? 'Check your internet connection, then try again.' : 'This can take up to 30 seconds. Keep this tab open.'}</p>
+      <p>${err ? 'Check your internet connection, then try again.' : 'This can take up to 30 seconds. Keep this page open.'}</p>
       <ul class="checklist" id="waitList" aria-live="polite">${listHTML()}</ul>
       ${err ? '<button class="btn btn-primary" id="reloadBtn" data-act="reload" type="button">Try again</button>' : ''}
     </section>`;
@@ -989,8 +993,8 @@ button,select{font:inherit;color:inherit}
     // While saving: a spinner only (as on mobile). No "saved" message for a practice answer.
     if (st === 'saved') return S.saving ? `<span class="spin lg" role="status" aria-label="Saving your answer"></span>` : '';
     if (st === 'perm') return `<span class="spin" aria-hidden="true"></span><span>${S.permAuto ? 'Starting your camera…' : 'Waiting for camera and microphone access…'}</span>`;
-    if (st === 'blocked') return `${ic('videoOff')}<span>${S.blockedReason === 'inuse' ? 'Another app is using your camera' : 'No camera access'}</span>`;
-    if (isLive()) return S.hidePreview ? `${ic('eyeOff')}<span>Preview hidden. Your video is still recording.</span>` : '';
+    if (st === 'blocked') return `${ic('videoOff')}<span>${({inuse:'Another app is using your camera', nocam:'No camera found', noprompt:'No camera request shown'})[S.blockedReason] || 'No camera access'}</span>`;
+    if (isLive()) return S.hidePreview ? `${ic('eyeOff')}<span>You’re still being recorded. Only the preview is hidden.</span>` : '';
     if (st === 'devices') return '';
     if (st === 'check'){
       if (S.chk === 'asking') return `<span class="spin" aria-hidden="true"></span><span>Waiting for camera and microphone access…</span>`;
@@ -1036,7 +1040,7 @@ button,select{font:inherit;color:inherit}
     const st = S.state, live = isLive();
     const known = S.permitted || S.devicesOk;
     const toggle = live
-      ? `<button class="toggle" id="hideToggle" data-act="hide" aria-pressed="${S.hidePreview}" type="button"><span class="track" aria-hidden="true"></span>Hide Preview</button>`
+      ? `<button class="toggle" id="hideToggle" data-act="hide" aria-pressed="${S.hidePreview}" type="button"><span class="track" aria-hidden="true"></span>Hide preview</button>`
       : (st === 'saved' && !S.saving) ? playerHTML() : '<span></span>';
     let action = '';
     if (st === 'orient' || st === 'prep') action = `<button class="btn btn-primary" id="startBtn" data-act="start-rec" type="button">${ic('rec', 'sm')}Start recording</button>`;
@@ -1047,6 +1051,8 @@ button,select{font:inherit;color:inherit}
     if (st === 'perm'){ cam = mic = S.permAuto ? pill('ok', 'Allowed') : pill('wait', 'Waiting'); }
     else if (st === 'blocked'){
       if (S.blockedReason === 'inuse'){ cam = pill('bad', 'In use'); mic = pill('ok', 'Allowed'); }
+      else if (S.blockedReason === 'nocam'){ cam = pill('bad', 'Not found'); mic = pill('ok', 'Allowed'); }
+      else if (S.blockedReason === 'noprompt') cam = mic = pill('wait', 'No response');
       else cam = mic = pill('bad', 'Blocked');
     }
     else if (st === 'quiet'){ cam = pill('ok', 'Allowed'); mic = pill('warn', 'No sound yet', 'micStatus'); }
@@ -1108,7 +1114,7 @@ button,select{font:inherit;color:inherit}
     if (S.heard) return '';
     // The mic check is live on A's check screen and on B's devices step.
     if (S.state === 'devices' || (S.state === 'check' && S.chk === 'live'))
-      return S.micFailed ? ['warn', 'Fix your microphone to continue'] : ['', 'Say something to continue'];
+      return S.micFailed ? ['warn', 'Fix your microphone to continue'] : ['', 'Say ‘Testing 123’ to continue'];
     return ['', 'Allow access to continue'];
   }
   function renderHints(){
@@ -1143,7 +1149,7 @@ button,select{font:inherit;color:inherit}
       : c === 'asking' ? waitingFor : pending;
     // While listening the mic shows a live waveform; once it passes it becomes a status chip.
     const micCheck = live ? (S.heard ? pill('ok', 'Working', 'micCheck')
-        : `<span class="dev-check" id="micCheck"><span class="meter" id="meter" aria-hidden="true">${'<i></i>'.repeat(14)}</span><span id="voiceStatus">Say something…</span></span>`)
+        : `<span class="dev-check" id="micCheck"><span class="meter" id="meter" aria-hidden="true">${'<i></i>'.repeat(14)}</span><span id="voiceStatus">Say ‘Testing 123’ out loud</span></span>`)
       : micBad ? pill('bad', 'Blocked')
       : c === 'asking' ? waitingFor : pending;
 
@@ -1223,6 +1229,13 @@ button,select{font:inherit;color:inherit}
     : /Safari\//.test(UA) ? 'safari' : 'chrome';
   const OS = /Windows/.test(UA) ? 'windows' : 'mac';
   const browserKey = () => S.browser === 'auto' ? DETECTED : S.browser;
+  const DEVICE = () => ['ios', 'android'].includes(browserKey()) ? 'phone' : 'computer';
+  // The browser app itself is blocked by the operating system (mobile's 'App' state).
+  const OS_STEPS = b => ['ios', 'android'].includes(browserKey())
+    ? [`Open <b>${osCamSettings().replace(' on your phone', '')}</b>.`, 'Allow <b>Camera</b> and <b>Microphone</b>.', 'Come back and tap <b>Try again</b>.']
+    : OS === 'windows'
+      ? ['Open <b>Settings › Privacy & security › Camera</b>.', `Turn on camera access for apps and for ${b}. Do the same under <b>Microphone</b>.`, 'Click <b>Try again</b>.']
+      : ['Open <b>System Settings › Privacy & Security › Camera</b>.', `Turn on ${b}. Do the same under <b>Microphone</b>.`, `Reopen ${b} if it asks, then click <b>Try again</b>.`];
   function osCamSettings(){
     const key = browserKey();
     return key === 'ios' ? 'Settings › Safari › Camera on your phone'
@@ -1262,7 +1275,7 @@ button,select{font:inherit;color:inherit}
         break;
       case 'prep':
         title = 'Prepare your answer';
-        body = `You get ${PREP_SECS} seconds to think. Recording starts on its own when the timer ends, or ${verb().toLowerCase()} Start recording when you’re ready.`;
+        body = `You get ${PREP_SECS} seconds to prepare, then recording starts on its own. Ready sooner? ${verb()} <strong>Start recording</strong>.`;
         end = waiting(`Recording starts in <span id="prepLeft">${S.prepLeft}</span>s`);
         break;
       case 'perm':
@@ -1271,35 +1284,49 @@ button,select{font:inherit;color:inherit}
           body = 'Your browser already has access, so there’s nothing to allow.';
           end = waiting('Starting your camera');
         } else {
-          title = 'Allow your camera and microphone';
+          title = 'Allow camera and microphone';
           body = coarse.matches
             ? 'You’ll answer by video, so we need both. Your browser will ask next. Tap Allow.'
             : 'You’ll answer by video, so we need both. Your browser will ask next. Look for the prompt near the address bar and click Allow.';
-          end = waiting('Waiting for access');
+          end = waiting('Waiting for your browser');
         }
         break;
-      case 'blocked':
+      case 'blocked': {
         tone = 'error';
+        const b = BROWSERS[browserKey()].name, link = (topic, label) => `<button class="help-link" data-act="help" data-topic="${topic}" type="button">${ic('info', 'sm')}${label}</button>`;
+        const steps = list => `<ol class="steps">${list.map(x => `<li>${x}</li>`).join('')}</ol>`;
+        // Same states and copy as mobile; the steps are this browser's and this computer's.
         if (S.blockedReason === 'inuse'){
           title = 'Your camera is in use';
-          body = 'Another app is using your camera. Close apps like Zoom, Teams or FaceTime, then try again.';
-          extra = `<button class="help-link" data-act="help" data-topic="inuse" type="button">${ic('info', 'sm')}Still not working? Get help from Alvy</button>`;
+          body = `Another app on your ${DEVICE()} is using it.`;
+          extra = steps(['Close the app using it, like Zoom, Teams or FaceTime.', `${verb()} <b>Try again</b>.`]) + link('inuse', 'How to free up your camera');
+        } else if (S.blockedReason === 'os'){
+          title = `${b} can’t use your camera`;
+          body = `This site is allowed, but ${b} itself isn’t.`;
+          extra = steps(OS_STEPS(b)) + link('blocked', 'How to allow access');
+        } else if (S.blockedReason === 'nocam'){
+          title = 'No camera found';
+          body = `${b} can’t detect a camera on this ${DEVICE()}.`;
+          extra = steps(['Make sure your camera is connected and nothing covers it.', `Quit ${b} fully and open this link again.`, `Still missing? Restart your ${DEVICE()}.`]) + link('blocked', 'How to fix a missing camera');
+        } else if (S.blockedReason === 'noprompt'){
+          title = 'We didn’t get a response';
+          body = `${b} didn’t show the camera request.`;
+          extra = steps(SHORT_STEPS[browserKey()]) + link('blocked', 'Need help?');
         } else {
-          title = 'Camera and microphone are blocked';
-          body = `${BROWSERS[browserKey()].name} is blocking access. To allow it:`;
-          extra = `<ol class="steps">${SHORT_STEPS[browserKey()].map(x => `<li>${x}</li>`).join('')}</ol>
-            <button class="help-link" data-act="help" data-topic="blocked" type="button">${ic('info', 'sm')}Still blocked? Get help from Alvy</button>`;
+          title = 'Camera and microphone blocked';
+          body = `${b} is blocking your camera and microphone for this site.`;
+          extra = steps(SHORT_STEPS[browserKey()]) + link('blocked', 'How to allow access');
         }
         end = '<button class="btn btn-secondary" data-act="retry" type="button" data-focus>Try again</button>';
         break;
+      }
       case 'devices':
         title = 'Check your camera and microphone';
-        body = 'Make sure you can see yourself and the bar moves when you speak. Switch the camera or mic below if needed.';
-        body += ' Your practice question comes next.';
-        extra = `<div class="meter-row"><span class="meter" id="meter" aria-hidden="true">${'<i></i>'.repeat(16)}</span><span id="voiceStatus" class="waiting" role="status"><span class="spin xs" aria-hidden="true"></span>Say something…</span></div>
-          <button class="help-link" data-act="help" data-topic="mic" type="button">${ic('info', 'sm')}Mic not working? Get help from Alvy</button>`;
+        body = 'We’ll make sure we can see and hear you before you start. Your practice question comes next.';
+        extra = `<div class="meter-row"><span class="meter" id="meter" aria-hidden="true">${'<i></i>'.repeat(16)}</span><span id="voiceStatus" class="waiting" role="status"><span class="spin xs" aria-hidden="true"></span>Say ‘Testing 123’ out loud</span></div>
+          <button class="help-link" data-act="help" data-topic="mic" type="button">${ic('info', 'sm')}How to fix your microphone</button>`;
         end = `<button class="btn btn-primary" id="devOk" data-act="dev-ok" type="button" disabled>Continue</button>`;
-        hint = '<span class="foot-hint" id="devHint">Say something to continue</span>';
+        hint = '<span class="foot-hint" id="devHint">Say ‘Testing 123’ to continue</span>';
         break;
       // After Stop recording: the answer saves on the recorder; once it lands, the same card
       // becomes the end of the tour. (Replaces the separate centred "all set" modal.)
@@ -1309,21 +1336,21 @@ button,select{font:inherit;color:inherit}
         title = 'That’s how it’s done';
         body = 'Your answer saves automatically. Watch it back, then practice again or start the assessment.';
         end = `<button class="btn btn-secondary" data-act="again" type="button">Practice again</button>
-          <button class="btn btn-primary" data-act="begin" type="button" data-focus${S.saving ? ' disabled' : ''}>Start Assessment</button>`;
+          <button class="btn btn-primary" data-act="begin" type="button" data-focus${S.saving ? ' disabled' : ''}>Start assessment</button>`;
         break;
       case 'talk':
         title = 'Answer out loud';
         body = `Say a sentence or two, then ${verb().toLowerCase()} Stop recording. It doesn’t need to be perfect.`;
         extra = `<div class="meter-row"><span class="meter" id="meter" aria-hidden="true">${'<i></i>'.repeat(16)}</span><span class="waiting" role="status"><span class="rec-dot" aria-hidden="true"></span>Recording</span></div>
-          <p class="note">${ic('eyeOff', 'sm')}Prefer not to watch yourself? Turn on Hide Preview. Your video still records.</p>`;
+          <p class="note">${ic('eyeOff', 'sm')}Prefer not to watch yourself? Turn on Hide preview. Your answer still records as normal.</p>`;
         end = waiting('Waiting for you to stop');
         break;
       case 'quiet':
         tone = 'warning';
         title = 'We can’t hear you';
-        body = 'Check that the right microphone is selected and isn’t muted, then test again.';
+        body = 'No sound is reaching your microphone. Check it isn’t muted, or pick another one below, then test again.';
         extra = `<div class="meter-row"><span class="meter quiet" id="meter" aria-hidden="true">${'<i></i>'.repeat(16)}</span><span id="voiceStatus" class="waiting" role="status"><span class="spin xs" aria-hidden="true"></span>Still listening…</span></div>
-          <button class="help-link" data-act="help" data-topic="mic" type="button">${ic('info', 'sm')}How to fix microphone problems</button>`;
+          <button class="help-link" data-act="help" data-topic="mic" type="button">${ic('info', 'sm')}How to fix your microphone</button>`;
         end = '<button class="btn btn-secondary" id="retestBtn" data-act="retest" type="button" data-focus>Test again</button>';
         break;
       case 'stop':
@@ -1346,7 +1373,7 @@ button,select{font:inherit;color:inherit}
   /* ================= Render ================= */
   function render(stepChange){
     const st = S.state;
-    promptEl.hidden = !(st === 'perm' && !S.permAuto && !canUseCamera());
+    promptEl.hidden = !(st === 'perm' && !S.permAuto && !canUseCamera() && S.permMode !== 'silent');
     updateProto();
 
     if (st === 'wait' || st === 'waitError'){
@@ -1651,7 +1678,8 @@ button,select{font:inherit;color:inherit}
         if (S.state === 'check'){ promptEl.hidden = true; setChk('blocked'); } else go('blocked');
         break;
       case 'retry':
-        if (S.blockedReason === 'inuse') S.inuseCleared = true;
+        // As on mobile: a fixed cause clears on Try again; 'Never asks' keeps timing out until changed.
+        if (['inuse', 'os', 'nocam'].includes(S.blockedReason)) S.inuseCleared = true;
         if (S.state === 'check') setChk('asking'); else go('perm');
         break;
       case 'chk-allow': setChk('asking'); break;
@@ -1701,7 +1729,7 @@ button,select{font:inherit;color:inherit}
         const v = $('voiceStatus'), chk = $('micCheck');
         S.micFailed = false;
         if (chk) chk.className = 'dev-check';
-        if (v){ v.className = ''; v.textContent = 'Say something…'; }
+        if (v){ v.className = ''; v.textContent = 'Say ‘Testing 123’ out loud'; }
         if (S.state === 'check' && $('leftPane')) $('leftPane').innerHTML = leftLive();
         renderHints();
         later(micOk, 1200);
@@ -1737,7 +1765,7 @@ button,select{font:inherit;color:inherit}
     talk:'#2 + #3: the mic was already checked, so this step just records: live preview, level bar, and Stop available straight away. No step is skipped.',
     quiet:'#3: if no voice is heard, step 4 helps fix the mic instead of skipping ahead.',
     stop:'#3: step 5 of 5. Every step is reached by the candidate’s own action.',
-    saved:'#3 + #4: as on mobile, “That’s how it’s done”: answers save automatically, then playback, Practice again or Start Assessment.',
+    saved:'#3 + #4: as on mobile, “That’s how it’s done”: answers save automatically, then playback, Practice again or Start assessment.',
     countdown:'#4: a short countdown so the start of the timer is never a surprise.',
     assessment:'End of the flow.'
   };
@@ -1770,7 +1798,7 @@ button,select{font:inherit;color:inherit}
     if (['talk', 'quiet', 'stop', 'saved', 'countdown'].includes(st)){ S.permitted = true; S.devicesOk = true; }
     if (st === 'blocked'){
       S.devicesOk = false;
-      S.blockedReason = S.permMode === 'inuse' ? 'inuse' : 'denied';
+      S.blockedReason = ({inuse:'inuse', os:'os', nocam:'nocam', silent:'noprompt'})[S.permMode] || 'denied';
       S.permitted = S.blockedReason === 'inuse';
     }
     go(st);
