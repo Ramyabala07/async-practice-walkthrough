@@ -366,7 +366,7 @@ button,select{font:inherit;color:inherit}
     </div>
     <div class="practice-chip" id="practiceChip">
       <svg class="i sm" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
-      <span><b>Practice</b><span class="chip-sub"> · Timer starts with the assessment</span></span>
+      <span><b>Practice</b><span class="chip-sub"> · Not scored</span></span>
     </div>
     <div class="nav-right">
       <div class="lang" id="langWrap">
@@ -1253,7 +1253,7 @@ button,select{font:inherit;color:inherit}
     if (S.state === 'countdown'){
       // Same message as mobile's countdown; the tip is the desktop version of mobile's Do Not Disturb tip.
       return `<h2 class="count-title" id="coachTitle">Starting your assessment</h2>
-        <p class="count-sub" id="coachText">The timer starts with the first question.</p>
+        <p class="count-sub" id="coachText">Each question has its own time to prepare and answer.</p>
         <div class="count-ring" aria-live="polite">
           <svg viewBox="0 0 100 100" aria-hidden="true"><circle class="bg" cx="50" cy="50" r="46"/><circle class="fg" cx="50" cy="50" r="46"/></svg>
           <span class="count-num" id="countNum">${S.count}</span>
@@ -1270,12 +1270,12 @@ button,select{font:inherit;color:inherit}
     switch (st){
       case 'orient':
         title = 'Your practice question';
-        body = 'Try recording an answer here before the real questions. This one isn’t scored. Practice as many times as you like.';
+        body = 'Try recording an answer before the real questions. This is a practice question. It won’t be scored, and you can try again.';
         end = '<button class="btn btn-primary" data-act="next" type="button" data-focus>Next</button>';
         break;
       case 'prep':
         title = 'Prepare your answer';
-        body = `You get ${PREP_SECS} seconds to prepare, then recording starts on its own. Ready sooner? ${verb()} <strong>Start recording</strong>.`;
+        body = `Recording starts automatically when the timer ends. Ready early? ${verb()} <strong>Start recording</strong>.`;
         end = waiting(`Recording starts in <span id="prepLeft">${S.prepLeft}</span>s`);
         break;
       case 'perm':
@@ -1384,7 +1384,7 @@ button,select{font:inherit;color:inherit}
       return;
     }
 
-    $('timerBox').hidden = !isPost();
+    $('timerBox').hidden = true;   // async video interviews have no section timer; each question has its own
     $('practiceChip').hidden = isPost();
     $('timerToggle').setAttribute('aria-pressed', String(S.hideTimer));
     $('timerClock').classList.toggle('concealed', S.hideTimer);

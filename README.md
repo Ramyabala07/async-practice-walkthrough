@@ -67,6 +67,27 @@ details differ (tap vs click, address-bar steps, phone vs computer settings).
   Zoom or Teams). The live assessment, saving, interruptions and connection loss exist
   only in the mobile flow, because the web walkthrough ends when the assessment starts.
 
+## Preparation, timers and recording (review feedback, November 2026)
+
+- **Prep starts when the question opens**, for every kind of question, as on web. A
+  multimedia question's video plays inside it, so no candidate gets extra time. Setup has to
+  keep the prep time at least as long as the video (the sample multimedia question has 30s
+  for a 12s clip).
+- **No section timer.** Async video interviews time each question, so the timer row under the
+  top bar shows the phase instead: "Preparation" counting down before recording, "Answer
+  time" with the record mark while recording, nothing otherwise. Start recording no longer
+  carries a countdown. Web hides its section timer too.
+- **The question card holds only the question.** How it works sits in an icon strip under
+  the card: recording starts automatically when the timer ends (ready early? tap Start
+  recording), play the video (multimedia), answer time, retake, or the practice note.
+- **Recording, question first (panel default):** the full question stays on screen,
+  scrollable, with pictures full width (tap to open full screen; recording continues) and the
+  camera as a 108×144 corner preview with its own hide button. "Camera first" in the panel is
+  the earlier full-screen camera, kept to compare and to revert to. Known trade-off: the
+  corner preview covers the end of long text until the candidate scrolls.
+- **Question 2 content** in the panel (short, long text, one image, three images) tests long
+  questions and pictures.
+
 ## Mobile
 
 `async-practice-walkthrough-mobile.html` is a separate file and a complete flow for

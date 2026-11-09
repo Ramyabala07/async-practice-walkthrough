@@ -70,6 +70,35 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
 .pg-body>*{flex-shrink:0}
 .pg-body.mid{justify-content:center}
 /* Camera screens: the top bar and the footer stay solid; the camera fills the space between. */
+/* Phase timer row: what the clock is counting, the digits, and a 2px bar (new pattern, in CandidateTimer's slot) */
+.phase{display:grid;gap:var(--space-1);width:100%;min-height:51px;align-content:center}
+.phase-row{display:flex;align-items:center;justify-content:center;gap:var(--space-3)}
+.phase-label{color:var(--text-tertiary)}
+.phase-bar{height:2px;border-radius:var(--radius-full);background:var(--border-subtle);overflow:hidden;width:min(240px,100%);justify-self:center}
+.phase-bar span{display:block;height:100%;background:var(--interactive-link);transition:width 1s linear}
+/* How a question works: icon rows under the card */
+.rules{list-style:none;margin:0;padding:0 var(--space-1);display:grid;gap:var(--space-2);color:var(--text-tertiary)}
+.rules li{display:flex;align-items:flex-start;gap:var(--space-2)}
+.rules li>svg,.rules li>.ts-icon,.rules .rule-ic{flex:none;margin-top:2px;color:var(--text-tertiary);display:inline-flex}
+.rules b{font-weight:500;color:var(--text-primary)}
+/* Question pictures: full width, tap to open */
+.qimg{position:relative;display:block;width:100%;padding:0;border:1px solid var(--border-subtle);border-radius:var(--radius-lg);background:var(--bg-surface);overflow:hidden;cursor:zoom-in}
+.qimg img{display:block;width:100%;height:auto}
+.qimg-zoom{position:absolute;right:var(--space-2);bottom:var(--space-2);width:28px;height:28px;border-radius:var(--radius-full);display:flex;align-items:center;justify-content:center;background:var(--bg-overlay-primary);color:var(--text-on-primary)}
+/* Recording, question first: room at the end so the corner preview never hides the last line */
+.pg-body.rec{padding-bottom:calc(144px + var(--space-8))}
+.pg-foot{position:relative}
+.pip{position:absolute;right:var(--space-4);bottom:calc(100% + var(--space-4));width:108px;height:144px;border-radius:var(--radius-xl);overflow:hidden;background:var(--bg-tooltip);box-shadow:var(--shadow-lg);z-index:3;isolation:isolate}
+.pip-off{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:var(--space-1);padding:var(--space-2);text-align:center;color:var(--text-on-primary)}
+.pip-btn{position:absolute;top:var(--space-1);right:var(--space-1);width:28px;height:28px;border:0;border-radius:var(--radius-full);display:flex;align-items:center;justify-content:center;background:var(--bg-overlay-primary);color:var(--text-on-primary);cursor:pointer;z-index:2}
+.pip-btn::after{content:"";position:absolute;inset:-8px}
+.pip-btn:focus-visible{outline:2px solid var(--text-on-primary);outline-offset:2px}
+/* Full-screen picture */
+.viewer{position:absolute;inset:0;z-index:50;background:var(--bg-tooltip);display:flex;flex-direction:column;animation:fade-in var(--duration-base) var(--ease-out) both}
+.viewer-top{display:flex;align-items:center;justify-content:space-between;padding:var(--space-3) var(--space-4)}
+.viewer-top .pill{gap:var(--space-2);padding-right:var(--space-3)}
+.viewer-img{flex:1;min-height:0;overflow:auto;display:flex;align-items:center;justify-content:center;padding:var(--space-4);touch-action:pan-x pan-y pinch-zoom}
+.viewer-img img{max-width:100%;max-height:100%;border-radius:var(--radius-lg);background:var(--bg-surface)}
 .pg-body.cam{padding:0;gap:0;overflow:hidden;position:relative;background:var(--bg-tooltip)}
 .pg-foot{flex:none;display:grid;gap:var(--space-2);padding:var(--space-4);background:var(--bg-surface);border-top:1px solid var(--border-subtle)}
 .pg-foot .note{margin:0;text-align:center}
@@ -375,6 +404,33 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
   ];
   const ASSESS = QS.slice(1);
 
+  // Question 2 in four sizes, to check that long text and pictures still work while recording.
+  // The pictures are simple sample charts drawn here, standing in for a recruiter's images.
+  const svgURI = body => 'data:image/svg+xml,' + encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 400"><rect width="640" height="400" fill="#ffffff"/>${body}</svg>`);
+  const T = (x, y, t, size = 22, fill = '#3f3f46', anchor = 'start', w = 400) => `<text x="${x}" y="${y}" font-family="Roboto, Arial, sans-serif" font-size="${size}" font-weight="${w}" fill="${fill}" text-anchor="${anchor}">${t}</text>`;
+  const IMG_CHART = {alt:'Bar chart of monthly signups, January to June, with a dip in March', src:svgURI(
+    T(32, 48, 'Monthly signups', 26, '#18181b', 'start', 500) +
+    [[1, 210], [2, 240], [3, 120], [4, 230], [5, 260], [6, 290]].map(([m, v], i) =>
+      `<rect x="${60 + i * 92}" y="${350 - v}" width="56" height="${v}" rx="6" fill="${m === 3 ? '#c2410c' : '#1d4ed8'}"/>` +
+      T(88 + i * 92, 380, ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'][i], 18, '#3f3f46', 'middle') +
+      T(88 + i * 92, 340 - v, String(v * 4), 16, '#18181b', 'middle')).join(''))};
+  const IMG_FUNNEL = {alt:'Onboarding funnel: 1,000 visitors, 420 sign up, 130 finish setup', src:svgURI(
+    T(32, 48, 'Onboarding funnel', 26, '#18181b', 'start', 500) +
+    [['Visitors', 1000, 560], ['Signed up', 420, 236], ['Finished setup', 130, 73]].map(([l, n, w], i) =>
+      `<rect x="40" y="${90 + i * 100}" width="${w}" height="64" rx="8" fill="#1d4ed8" opacity="${1 - i * 0.25}"/>` +
+      T(56, 130 + i * 100, `${l} · ${n.toLocaleString('en')}`, 22, i < 2 ? '#ffffff' : '#18181b', 'start', 500)).join(''))};
+  const IMG_TICKETS = {alt:'Support tickets by channel: email 540, chat 310, phone 90', src:svgURI(
+    T(32, 48, 'Support tickets by channel', 26, '#18181b', 'start', 500) +
+    [['Email', 540], ['Chat', 310], ['Phone', 90]].map(([l, n], i) =>
+      `<rect x="160" y="${100 + i * 90}" width="${n * 0.8}" height="52" rx="6" fill="#1d4ed8"/>` +
+      T(40, 134 + i * 90, l, 22) + T(172 + n * 0.8, 134 + i * 90, String(n), 22, '#18181b')).join(''))};
+  const QCONTENT = {
+    short:{text:QS[2].text},
+    long:{text:'You lead a small team that has just taken over a customer support tool from another team. The tool works, but nobody on your team built it, the documentation is out of date, and two of the people who knew it best have moved to other projects.\n\nIn your first month, customers report that replies are slower, and your manager asks you for a plan. You can’t pause support while you learn the tool, and you have no budget for new hires.\n\nTell us how you would approach the first two weeks. Cover what you would learn first and why, who you would talk to, how you would keep customers informed, and how you would know the plan was working. Give an example from your own experience if you have one.'},
+    image:{text:'Signups dropped in March. Looking at this chart, what questions would you ask to find out why, and what would you check first?', images:[IMG_CHART]},
+    images:{text:'These three charts show our onboarding funnel, signups by month and support tickets by channel. Pick one problem they point to and explain how you would fix it.', images:[IMG_FUNNEL, IMG_CHART, IMG_TICKETS]}
+  };
+
   /* ================= Saved progress =================
      What survives a reload: onboarding done, the answers already saved, where the candidate is
      and the time left. Kept in sessionStorage where the viewer allows it, in memory otherwise. */
@@ -398,7 +454,7 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
     heard:false, micFailed:false, recording:false, hidePreview:false,
     interruptReason:'away', takeSecs:0, pendingInterrupt:false, lastFrame:null,
     qi:0, qExpanded:false, clipDone:false,
-    prepSecs:10, prepLeft:10, prepStyle:'button', practicePrep:true, limitSecs:120, timerVisible:true,
+    prepSecs:10, prepLeft:10, practicePrep:true, recLayout:'question', qContent:'short', viewer:null, limitSecs:120, timerVisible:true,
     assessing:false, timeLeft:TOTAL_SECS, resuming:false, restoreNote:false,
     saveStep:0, fb:{rating:null, liked:[], text:''},
     alvyOpen:false, alvyMsgs:[], alvyTyping:false, sheet:null, videoMode:'ok', videoState:'ok', linkCopied:false, retakeAsk:false, savedFlash:false,
@@ -431,11 +487,11 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
     S.dialog = null;
     S.pendingInterrupt = false;
     S.qExpanded = false;
-    S.sheet = null; S.retakeAsk = false; S.savedFlash = false; S.waitingPrompt = false; S.previewInfo = false;
+    S.sheet = null; S.retakeAsk = false; S.savedFlash = false; S.waitingPrompt = false; S.previewInfo = false; S.viewer = null;
     if (!KEEP_CLIP.includes(next)) dropClip();
     if (next === 'wait') S.waitItems = ['done', 'act', 'pend'];
     if (next === 'test'){ S.heard = false; S.micFailed = false; }
-    if (next === 'question'){ S.prepLeft = S.prepSecs; S.clipDone = false; S.videoState = S.videoMode === 'fail' ? 'failed' : 'ok'; }
+    if (next === 'question'){ S.prepLeft = prepFor(Q()); S.clipDone = false; S.videoState = S.videoMode === 'fail' ? 'failed' : 'ok'; }
     S.linkCopied = false;
     if (next === 'record'){ S.recSecs = 0; S.hidePreview = false; S.lastFrame = null; }
     if (next === 'countdown') S.count = 5;
@@ -462,10 +518,11 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
       later(() => { if (!S.heard) micNone(); }, 7000);
     }
     if (st === 'question'){
-      // Preparation time, then the system starts recording. A written video question starts it
-      // now; a multimedia question starts it when the clip has finished.
+      // Preparation time starts when the question opens, for every kind of question, as on web:
+      // a multimedia question's video plays inside it, so every candidate gets the same time.
+      // (Setup should keep the prep time at least as long as the video.)
       const q = Q();
-      if (q.kind === 'video' && (!q.practice || S.practicePrep)) startPrep();
+      if (!q.practice || S.practicePrep) startPrep();
     }
     if (st === 'review') startSave();
     if (st === 'countdown'){
@@ -481,8 +538,11 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
     }
   }
 
+  // Prep time for this question. A multimedia question's video plays inside it, so setup keeps it
+  // at least as long as the video; the sample question here is set to 30 seconds for a 12s clip.
+  const prepFor = q => q.kind === 'media' ? Math.max(S.prepSecs, 30) : S.prepSecs;
   function startPrep(){
-    S.prepLeft = S.prepSecs;
+    S.prepLeft = prepFor(Q());
     render();
     every(() => {
       S.prepLeft = Math.max(0, S.prepLeft - 1);   // never below zero, even if a dialog is holding the start
@@ -490,7 +550,7 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
       render();
     }, 1000);
   }
-  function clipEnded(){ if (S.clipDone) return; S.clipDone = true; startPrep(); }
+  function clipEnded(){ S.clipDone = true; }
 
   // After loading: a first visit goes to onboarding; a reload goes straight back to the question.
   // Production checks the browser itself: !navigator.mediaDevices?.getUserMedia. That tests what
@@ -515,7 +575,10 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
 
   /* ---------- The assessment timer ---------- */
   let assessIv = null;
-  function startAssessTimer(){
+  // Async video interviews have no section timer: each question has its own preparation and
+  // answer time, shown in the phase timer row. So nothing counts down here any more.
+  function startAssessTimer(){ clearInterval(assessIv); }
+  function oldAssessTimer(){
     clearInterval(assessIv);
     assessIv = setInterval(() => {
       if (!S.assessing) return;
@@ -870,16 +933,19 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
     // A new canvas starts at 300x150, so "has a size" tells us nothing: track it.
     let sized = false;
     const paint = now => {
-      const dpr = Math.min(window.devicePixelRatio || 1, 2), w = c.clientWidth, h = c.clientHeight;
+      const w = c.clientWidth, h = c.clientHeight;
       if (!w || !h) return false;
+      // At least 480px wide in the backing store, so a take recorded from the small corner
+      // preview still plays back sharp.
+      const dpr = Math.max(Math.min(window.devicePixelRatio || 1, 2), 480 / w);
       // Size it once, then hold that size for the whole take: captureStream() encodes the
       // backing store, and an encoder whose resolution changes part-way produces a broken clip.
       if ((!sized || !S.recording) && (c.width !== Math.round(w * dpr) || c.height !== Math.round(h * dpr))){
         c.width = Math.round(w * dpr); c.height = Math.round(h * dpr);
       }
       sized = true;
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      drawPerson(ctx, c.width / dpr, c.height / dpr, (now - t0) / 1000, S.level);
+      ctx.setTransform(c.width / w, 0, 0, c.height / h, 0, 0);
+      drawPerson(ctx, w, h, (now - t0) / 1000, S.level);
       return true;
     };
     const frame = now => {
@@ -1141,16 +1207,33 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
   // the Test Taker file: hidden by default, with a switch to show the digits.
   const NO_TIMER = ['wait', 'neterror', 'countdown', 'saving', 'score', 'feedback', 'thanks'];
   function TopNav(){
-    const timed = S.assessing && !NO_TIMER.includes(S.state);
+    const phase = PhaseTimer();
     return html`<${CandidateTopNavigation} device="mobile"
       logo=${html`<img src="tessera/assets/logos/talview-logo-vector.svg" alt="Talview" height="28" />`}
-      timer=${timed ? html`<${CandidateTimer} device="mobile" remaining=${S.timeLeft} total=${TOTAL_SECS}
-        timeVisible=${S.timerVisible} onTimeVisibleChange=${v => { S.timerVisible = v; render(); }}
-        hideLabel="Hide timer" />` : undefined}
+      timer=${phase || undefined}
       actions=${html`<${Fragment}>
         <${IconButton} variant="tertiary-gray" icon="language" aria-label="Change language, currently English" />
         <${IconButton} variant="gradient" icon="sparkle-solid" aria-label="Chat with Alvy" onClick=${openAlvy} />
       <//>`} />`;
+  }
+
+  // One timer row, whose job changes with the phase: the preparation countdown before recording,
+  // the answer time while recording, nothing otherwise. It replaces the section timer (async video
+  // interviews have none) and takes the countdown off the Start recording button.
+  // New pattern: CandidateClock digits over a ProgressIndicator bar, in CandidateTimer's slot.
+  function PhaseTimer(){
+    if (!['question', 'record'].includes(S.state)) return null;
+    const q = Q();
+    let label, secs, used = null, max = null, live = false;
+    if (S.state === 'question'){
+      if (q.practice && !S.practicePrep) return null;
+      label = 'Preparation'; secs = S.prepLeft; max = prepFor(q); used = max - S.prepLeft;
+    } else if (q.practice){ label = 'Recording'; secs = S.recSecs; live = true; }
+    else { label = 'Answer time'; secs = Math.max(0, S.limitSecs - S.recSecs); used = S.recSecs; max = S.limitSecs; live = true; }
+    return html`<div class="phase" role="group" aria-label=${label}>
+      <div class="phase-row"><span class="p2 phase-label">${label}</span><${CandidateClock} live=${live} seconds=${secs} format="mm:ss" size="sm" /></div>
+      ${max ? html`<div class="phase-bar" aria-hidden="true"><span style=${{width:(used / max * 100) + '%'}}></span></div>` : null}
+    </div>`;
   }
 
   // Network and session messages ride in a broadcast banner under the top bar, one at a time.
@@ -1169,8 +1252,8 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
 
   // The screen frame: content from the top, every call to action full width in a fixed footer.
   // Camera screens have no padding, so the picture fills the space between the bar and the footer.
-  const Page = ({foot, mid, cam, children}) => html`<div class="pg">
-    <div class=${'pg-body' + (mid ? ' mid' : '') + (cam ? ' cam' : '')}>${children}</div>
+  const Page = ({foot, mid, cam, rec, children}) => html`<div class="pg">
+    <div class=${'pg-body' + (mid ? ' mid' : '') + (cam ? ' cam' : '') + (rec ? ' rec' : '')}>${children}</div>
     ${foot ? html`<div class="pg-foot">${foot}</div>` : null}
   </div>`;
   const Head = ({title, err, icon, lg, children}) => html`<div class="head">
@@ -1365,49 +1448,55 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
     return html`<p id="qtext" class=${cls + ' qtext'}>${shown}${long ? html`${' '}<${TextLink} as="button" size="sm" aria-expanded=${S.qExpanded} aria-controls="qtext"
       onClick=${() => { S.qExpanded = !S.qExpanded; render(); }}>${S.qExpanded ? 'Show less' : 'Read more'}<//>` : null}</p>`;
   }
-  // How to answer, in two plain steps below the question, in the order things happen. The text
-  // never changes while the screen is open, so the card does not reflow when the video ends.
+  // How to answer: short facts with icons, in their own strip under the question card, so they
+  // never read as part of the question. The rule that matters most comes first.
   function AnswerRules({media, practice}){
-    const prep = `${S.prepSecs} seconds`;
-    // The prep time is a maximum, not a wait: say they can start sooner.
-    const sooner = html`${' '}Ready sooner? Tap <b>Start recording</b>.`;
-    if (practice) return html`<ul class="bullets p2">
-      <li>${S.practicePrep ? html`You get ${prep} to prepare, then recording starts on its own.${sooner}` : 'Tap Start recording when you’re ready.'}</li>
-      <li>This one isn’t scored. Practice as many times as you like.</li>
-    </ul>`;
-    return html`<ul class="bullets p2">
-      ${media ? html`<li>Play the video and watch the whole question.</li>` : null}
-      <li>${media ? 'When the video ends, you get' : 'You get'} ${prep} to prepare, then recording starts on its own.${sooner}</li>
-      <li>You have ${answerTime()} to answer, and you can retake it.</li>
+    const rows = [];
+    // Outline icons only; Tessera has no play glyph, so the play row uses the player's own.
+    const play = html`<span class="rule-ic" aria-hidden="true">${svg('play', 16)}</span>`;
+    if (practice && !S.practicePrep) rows.push(['video-on', html`Tap <b>Start recording</b> when you’re ready`]);
+    else rows.push(['video-on', html`Recording starts automatically when the timer ends. Ready early? Tap <b>Start recording</b>.`]);
+    if (media) rows.push([play, 'Play the video to hear the question. The timer is already running.']);
+    if (practice) rows.push(['circle-info', 'This is a practice question. It won’t be scored, and you can try again.']);
+    else rows.push(['clock-three', `${answerTime()} to answer`], ['arrow-rotate-right-regular', 'You can retake it']);
+    return html`<ul class="rules p2" aria-label="How this question works">
+      ${rows.map(([icon, text], i) => html`<li key=${i}>${typeof icon === 'string' ? html`<${Icon} name=${icon} size=${16} />` : icon}<span>${text}</span></li>`)}
     </ul>`;
   }
 
-  // The Start recording button, with the preparation countdown in one of two ways: the button
-  // fills as the time runs out, or a bar above the button.
-  function startControls({counting, disabled}){
-    const used = S.prepSecs - S.prepLeft, pct = Math.round(used / S.prepSecs * 100);
-    const plain = html`<${Cta} disabled=${disabled} onClick=${startRecordFlow}>Start recording<//>`;
-    if (!counting) return plain;
-    if (S.prepStyle === 'bar') return html`<${Fragment}><div class="prepbar"><${ProgressIndicator} value=${used} max=${S.prepSecs} label=${`Recording starts in ${S.prepLeft}s`} valuePosition="none" /></div>${plain}<//>`;
-    return html`<div class="prepfill" style=${{'--fill':pct + '%'}}><${Cta} onClick=${startRecordFlow}>Start recording · ${S.prepLeft}s<//></div>`;
+  // Start recording is always just that: the countdown lives in the timer row above.
+  function startControls({disabled} = {}){
+    return html`<${Cta} disabled=${disabled} onClick=${startRecordFlow}>Start recording<//>`;
+  }
+
+  // The full question, never clamped: text (in paragraphs) and any pictures, stacked full width.
+  // A picture opens full screen. Used the same way before and during recording.
+  function QBody({q, size = 'p1'}){
+    const c = q.id === 'q2' ? QCONTENT[S.qContent] : {text:q.text};
+    const paras = c.text.split('\n\n');
+    return html`<${Fragment}>
+      ${paras.map((t, i) => html`<p key=${i} class=${size + ' qtext'}>${t}</p>`)}
+      ${(c.images || []).map((im, i) => html`<button key=${'im' + i} type="button" class="qimg" aria-label=${`Open image: ${im.alt}`}
+        onClick=${() => { S.viewer = im; render(); }}><img src=${im.src} alt=${im.alt} /><span class="qimg-zoom" aria-hidden="true"><${Icon} name="expand" size=${16} /></span></button>`)}
+    <//>`;
   }
 
   // The practice question, in the same card as the scored questions, so it rehearses the real thing.
   function PracticeQuestion(){
-    return html`<${Page} foot=${startControls({counting:S.practicePrep})}>
+    return html`<${Page} foot=${startControls()}>
       <${QCard} title="Practice question" tag=${html`<${Chip} color="blue" variant="secondary" size="sm">Not scored<//>`}>
-        <p class="p1 qtext">${Q().text}</p>
-        <${AnswerRules} practice />
-      <//><//>`;
+        <${QBody} q=${Q()} />
+      <//>
+      <${AnswerRules} practice /><//>`;
   }
 
   // A video question: the rules, then the question. Recording starts when the prep time ends.
   function VideoQuestion(){
-    return html`<${Page} foot=${startControls({counting:true})}>
+    return html`<${Page} foot=${startControls()}>
       <${QCard}>
-        <p class="p1 qtext">${Q().text}</p>
-        <${AnswerRules} />
-      <//><//>`;
+        <${QBody} q=${Q()} />
+      <//>
+      <${AnswerRules} /><//>`;
   }
 
   // Player controls from the web Test Taker file: a progress track, then replay 5s, play or pause,
@@ -1465,11 +1554,11 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
     </div>`;
   }
   function MediaQuestion(){
-    return html`<${Page} foot=${startControls({counting:S.clipDone, disabled:!S.clipDone})}>
+    return html`<${Page} foot=${startControls()}>
       <${QCard}>
         <${MediaClip} m=${Q().media} onEnded=${clipEnded} />
-        <${AnswerRules} media />
-      <//><//>`;
+      <//>
+      <${AnswerRules} media /><//>`;
   }
   function QuestionScreen(){
     const q = Q();
@@ -1483,7 +1572,15 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
   function RecordScreen(){
     // The recorder needs the canvas to exist, so it starts once this screen has mounted.
     useEffect(() => { startRecorder(); runRecClock(); startLevel(); }, []);
-    const q = Q(), left = q.practice ? null : Math.max(0, S.limitSecs - S.recSecs);   // answer time; the assessment timer stays in the top bar
+    const q = Q(), left = q.practice ? null : Math.max(0, S.limitSecs - S.recSecs);
+    // Question first: the question keeps the screen it had during preparation, in full, and the
+    // camera shrinks to a small preview in the corner. Candidates need the question while they
+    // answer; a large view of themselves is optional (the reason Hide preview exists).
+    if (S.recLayout === 'question') return html`<${Page} rec foot=${html`<${Fragment}><${Pip} /><${Cta} onClick=${endRecording}>Stop recording<//><//>`}>
+      <${QCard} title=${q.practice ? 'Practice question' : undefined} tag=${q.practice ? html`<${Chip} color="blue" variant="secondary" size="sm">Not scored<//>` : null}>
+        <${QBody} q=${q} />
+      <//><//>`;
+    // Camera first (the earlier layout, kept to compare): the camera fills the screen.
     return html`<${Page} cam foot=${html`<${Cta} onClick=${endRecording}>Stop recording<//>`}>
       <${VideoLayer} />
       ${S.hidePreview ? html`<div class="vmsg"><${Icon} name="eye-closed-regular" size=${24} /><span class="lines"><span>You’re still being recorded.</span><span>Only the preview is hidden.</span></span></div>` : null}
@@ -1497,8 +1594,33 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
       </div>
       <div class="camcard float">
         <span class="p3 muted">${q.practice ? 'Practice question · not scored' : `Question ${S.qi} of ${ASSESS.length}`}</span>
-        <${QText} text=${q.text} />
+        <${QText} text=${q.id === 'q2' ? QCONTENT[S.qContent].text.replace(/\n\n/g, ' ') : q.text} />
       </div><//>`;
+  }
+
+  // The small camera preview while recording, question-first layout. It stays mounted (the recorder
+  // reads it); hiding it covers the picture and says recording continues. New pattern.
+  function Pip(){
+    const off = S.hidePreview;
+    return html`<div class="pip" role="group" aria-label="Your camera preview">
+      <${VideoLayer} />
+      ${off ? html`<div class="pip-off"><${Icon} name="eye-closed-regular" size=${16} /><span class="p3">Preview hidden. Still recording.</span></div>` : null}
+      <button type="button" class="pip-btn" aria-pressed=${off} aria-label=${off ? 'Show preview' : 'Hide preview'}
+        onClick=${() => { S.hidePreview = !off; render(); }}><${Icon} name=${off ? 'eye-open-regular' : 'eye-closed-regular'} size=${16} /></button>
+    </div>`;
+  }
+
+  // A question picture, full screen: close to go back. Recording carries on underneath.
+  function ImageViewer(){
+    if (!S.viewer) return null;
+    const close = () => { S.viewer = null; render(); };
+    return html`<div class="viewer" role="dialog" aria-modal="true" aria-label=${S.viewer.alt}>
+      <div class="viewer-top">
+        ${S.state === 'record' ? html`<span class="pill" role="status"><${CandidateClock} live seconds=${Q().practice ? S.recSecs : Math.max(0, S.limitSecs - S.recSecs)} format="mm:ss" size="sm" /><span class="p3">Still recording</span></span>` : html`<span></span>`}
+        <${IconButton} variant="overlay" shape="round" icon="xmark-regular" aria-label="Close image" onClick=${close} />
+      </div>
+      <div class="viewer-img"><img src=${S.viewer.src} alt=${S.viewer.alt} /></div>
+    </div>`;
   }
 
   // An interruption loses the answer in progress. It says so in a line, and that earlier answers are safe.
@@ -1578,7 +1700,7 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
       <div class="centre">
         <div class="head" style=${{justifyItems:'center'}}>
           <h1 class="h4 ttl">Starting your assessment</h1>
-          <p class="p2">The timer starts with the first question.</p>
+          <p class="p2">Each question has its own time to prepare and answer.</p>
         </div>
         <${ProgressIndicator} type="circular" value=${S.count} max=${5} valueText=${S.count} label="Starting your assessment in" />
       </div><//>`;
@@ -1756,8 +1878,8 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
     permission:'Same order as web. Continue hands off to the browser’s own dialog, so it says Continue, not Allow: the real Allow comes next and two in a row reads as being asked twice.',
     blocked:'Seven blocked states. Two catch today’s silent drop: a browser with no camera access (often an app’s built-in browser: Copy link) and a request that never appears (after 10 seconds).',
     test:'The camera fills the space between the solid top bar and footer. Continue stays locked until the mic is heard.',
-    question:'The question comes first, with a preparation countdown, then the camera opens. Two treatments to compare: the button fills, or a bar above it.',
-    record:'Stop recording sits where Start recording was. The top bar and footer stay solid and the camera fills between them. A lost connection shows a banner here.',
+    question:'Preparation starts when the question opens, for every kind of question, and counts down in the timer row. The card holds only the question; how it works sits in an icon strip below.',
+    record:'Question first: the full question stays on screen, scrollable, with a small camera preview in the corner. Camera first (in the panel) is the earlier full-screen camera, to compare.',
     interrupted:'A call or a tapped notification ends the camera track. The answer in progress is lost and starts again; earlier answers stay saved.',
     review:'Stop recording saves the answer. Next (or Finish) and Retake wait on the save.',
     countdown:'A short countdown so the start of the timer is never a surprise.',
@@ -1816,7 +1938,7 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
     else S[key] = val;
     if (key === 'permMode'){ S.permitted = false; S.inuseCleared = false; }
     if (key === 'voiceMode' && val === 'heard' && S.state === 'test') later(micOk, 600);
-    if (key === 'prepSecs' && S.state === 'question') S.prepLeft = S.prepSecs;
+    if (key === 'prepSecs' && S.state === 'question') S.prepLeft = prepFor(Q());
     if (key === 'netMode') return netChanged();
     render();
   }
@@ -1861,7 +1983,8 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
         <${Seg} label="Connection" k="netMode" value=${S.netMode} opts=${[['online', 'Online'], ['poor', 'Weak'], ['offline', 'Offline']]} />
         <${Seg} label="Question video" k="videoMode" value=${S.videoMode} opts=${[['ok', 'Loads'], ['fail', 'Fails']]} />
         <${Seg} label="Saving the answer" k="saveMode" value=${S.saveMode} opts=${[['ok', 'Saves'], ['slow', 'Slow'], ['fail', 'Fails']]} />
-        <${Seg} label="Prep countdown" k="prepStyle" value=${S.prepStyle} opts=${[['button', 'Fills button'], ['bar', 'Bar']]} />
+        <${Seg} label="Recording layout" k="recLayout" value=${S.recLayout} opts=${[['question', 'Question first'], ['camera', 'Camera first']]} />
+        <${Seg} label="Question 2 content" k="qContent" value=${S.qContent} opts=${[['short', 'Short'], ['long', 'Long text'], ['image', '1 image'], ['images', '3 images']]} />
         <${Seg} label="Prep time" k="prepSecs" value=${String(S.prepSecs)} opts=${[['5', '5s'], ['10', '10s'], ['30', '30s']]} />
         <${Seg} label="Countdown on the practice question" k="practicePrep" value=${S.practicePrep ? 'on' : 'off'} opts=${[['on', 'On'], ['off', 'Off']]} />
         <div class="proto-group">
@@ -1902,7 +2025,7 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
     useEffect(() => {
       const onKey = e => {
         if (e.key !== 'Escape') return;
-        if (S.sheet){ S.sheet = null; render(); } else if (S.previewInfo){ S.previewInfo = false; render(); } else if (S.alvyOpen) closeAlvy();
+        if (S.viewer){ S.viewer = null; render(); } else if (S.sheet){ S.sheet = null; render(); } else if (S.previewInfo){ S.previewInfo = false; render(); } else if (S.alvyOpen) closeAlvy();
       };
       document.addEventListener('keydown', onKey);
       return () => document.removeEventListener('keydown', onKey);
@@ -1915,7 +2038,7 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
             <${ChromeTop} />
             <div id="viewport">
               <div class="topstack"><${TopNav} /><${Broadcast} /></div>
-              <${DeviceSheet} />
+              <${DeviceSheet} /><${ImageViewer} />
               <main id="view">
                 <${Screen} />
                 ${S.alvyOpen ? html`<section class="alvy" aria-label="Chat with Alvy">
