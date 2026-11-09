@@ -87,8 +87,18 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
 .qimg-zoom{position:absolute;right:var(--space-2);bottom:var(--space-2);width:28px;height:28px;border-radius:var(--radius-full);display:flex;align-items:center;justify-content:center;background:var(--bg-overlay-primary);color:var(--text-on-primary)}
 /* Recording, question first: room at the end so the corner preview never hides the last line */
 .pg-body.rec{padding-bottom:calc(144px + var(--space-8))}
-.pg-foot{position:relative}
-.pip{position:absolute;right:var(--space-4);bottom:calc(100% + var(--space-4));width:108px;height:144px;border-radius:var(--radius-xl);overflow:hidden;background:var(--bg-tooltip);box-shadow:var(--shadow-lg);z-index:3;isolation:isolate}
+/* Recording: one camera layer that is either full screen or a corner preview. It is never
+   remounted (the recorder reads it); minimizing animates its box into the corner. New pattern. */
+.pg-stage{flex:1;min-height:0;position:relative;display:flex;flex-direction:column}
+.recvid{position:absolute;top:0;left:0;width:100%;height:100%;z-index:3;overflow:hidden;isolation:isolate;background:var(--bg-tooltip);border-radius:0;
+  transition:top var(--duration-moderate) var(--ease-in-out),left var(--duration-moderate) var(--ease-in-out),width var(--duration-moderate) var(--ease-in-out),height var(--duration-moderate) var(--ease-in-out),border-radius var(--duration-moderate) var(--ease-in-out)}
+.recvid.mini{top:calc(100% - 144px - var(--space-4));left:calc(100% - 108px - var(--space-4));width:108px;height:144px;border-radius:var(--radius-xl);box-shadow:var(--shadow-lg)}
+@media (prefers-reduced-motion: reduce){.recvid{transition:none}}
+.pip-tl{left:var(--space-1);right:auto}
+.min-btn{gap:var(--space-1);border:0;cursor:pointer;color:var(--text-primary);font:inherit;padding:0 var(--space-3) 0 var(--space-2)}
+.min-btn:focus-visible{outline:2px solid var(--text-on-primary);outline-offset:2px}
+.min-btn::after{content:"";position:absolute;inset:-8px}
+.min-btn{position:relative}
 .pip-off{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:var(--space-1);padding:var(--space-2);text-align:center;color:var(--text-on-primary)}
 .pip-btn{position:absolute;top:var(--space-1);right:var(--space-1);width:28px;height:28px;border:0;border-radius:var(--radius-full);display:flex;align-items:center;justify-content:center;background:var(--bg-overlay-primary);color:var(--text-on-primary);cursor:pointer;z-index:2}
 .pip-btn::after{content:"";position:absolute;inset:-8px}
@@ -454,7 +464,7 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
     heard:false, micFailed:false, recording:false, hidePreview:false,
     interruptReason:'away', takeSecs:0, pendingInterrupt:false, lastFrame:null,
     qi:0, qExpanded:false, clipDone:false,
-    prepSecs:10, prepLeft:10, practicePrep:true, recLayout:'question', qContent:'short', viewer:null, limitSecs:120, timerVisible:true,
+    prepSecs:10, prepLeft:10, practicePrep:true, recLayout:'camera', qContent:'short', viewer:null, limitSecs:120, timerVisible:true,
     assessing:false, timeLeft:TOTAL_SECS, resuming:false, restoreNote:false,
     saveStep:0, fb:{rating:null, liked:[], text:''},
     alvyOpen:false, alvyMsgs:[], alvyTyping:false, sheet:null, videoMode:'ok', videoState:'ok', linkCopied:false, retakeAsk:false, savedFlash:false,
@@ -1252,8 +1262,9 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
 
   // The screen frame: content from the top, every call to action full width in a fixed footer.
   // Camera screens have no padding, so the picture fills the space between the bar and the footer.
-  const Page = ({foot, mid, cam, rec, children}) => html`<div class="pg">
-    <div class=${'pg-body' + (mid ? ' mid' : '') + (cam ? ' cam' : '') + (rec ? ' rec' : '')}>${children}</div>
+  const Page = ({foot, mid, cam, rec, stage, children}) => html`<div class="pg">
+    ${stage ? html`<div class="pg-stage"><div class=${'pg-body' + (cam ? ' cam' : '') + (rec ? ' rec' : '')}>${children}</div>${stage}</div>`
+      : html`<div class=${'pg-body' + (mid ? ' mid' : '') + (cam ? ' cam' : '') + (rec ? ' rec' : '')}>${children}</div>`}
     ${foot ? html`<div class="pg-foot">${foot}</div>` : null}
   </div>`;
   const Head = ({title, err, icon, lg, children}) => html`<div class="head">
@@ -1442,9 +1453,11 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
   </section>`;
   // Question text with Read more / Show less at the end of the text itself.
   const CLAMP = 72;
-  function QText({text, cls = 'p2'}){
-    const long = text.length > CLAMP + 8, open = S.qExpanded || !long;
+  function QText({text, cls = 'p2', more}){
+    const long = text.length > CLAMP + 8, open = (!more && S.qExpanded) || !long;
     const shown = open ? text : text.slice(0, text.lastIndexOf(' ', CLAMP)) + '…';
+    // With `more`, the link opens the full question somewhere else instead of expanding in place.
+    if (more) return html`<p id="qtext" class=${cls + ' qtext'}>${shown}${(long || more.force) ? html`${' '}<${TextLink} as="button" size="sm" onClick=${more.onClick}>${more.label}<//>` : null}</p>`;
     return html`<p id="qtext" class=${cls + ' qtext'}>${shown}${long ? html`${' '}<${TextLink} as="button" size="sm" aria-expanded=${S.qExpanded} aria-controls="qtext"
       onClick=${() => { S.qExpanded = !S.qExpanded; render(); }}>${S.qExpanded ? 'Show less' : 'Read more'}<//>` : null}</p>`;
   }
@@ -1567,47 +1580,46 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
     return html`<${VideoQuestion} />`;
   }
 
-  // Recording: the camera fills the space between the solid bar and footer. Stop recording sits
-  // where Start recording was, and the question stays on screen at full strength.
+  // Recording opens full screen: the camera fills the space between the solid bar and footer, with a
+  // short version of the question on top. Minimize shrinks the camera into the corner and shows the
+  // full question (long text, pictures) in its card; the corner preview's expand button goes back.
+  // The camera layer stays mounted through both, so recording never restarts. The choice carries
+  // to the next question.
   function RecordScreen(){
     // The recorder needs the canvas to exist, so it starts once this screen has mounted.
     useEffect(() => { startRecorder(); runRecClock(); startLevel(); }, []);
-    const q = Q(), left = q.practice ? null : Math.max(0, S.limitSecs - S.recSecs);
-    // Question first: the question keeps the screen it had during preparation, in full, and the
-    // camera shrinks to a small preview in the corner. Candidates need the question while they
-    // answer; a large view of themselves is optional (the reason Hide preview exists).
-    if (S.recLayout === 'question') return html`<${Page} rec foot=${html`<${Fragment}><${Pip} /><${Cta} onClick=${endRecording}>Stop recording<//><//>`}>
-      <${QCard} title=${q.practice ? 'Practice question' : undefined} tag=${q.practice ? html`<${Chip} color="blue" variant="secondary" size="sm">Not scored<//>` : null}>
-        <${QBody} q=${q} />
-      <//><//>`;
-    // Camera first (the earlier layout, kept to compare): the camera fills the screen.
-    return html`<${Page} cam foot=${html`<${Cta} onClick=${endRecording}>Stop recording<//>`}>
+    const q = Q(), mini = S.recLayout === 'question', off = S.hidePreview;
+    const c = q.id === 'q2' ? QCONTENT[S.qContent] : {text:q.text};
+    const nImg = (c.images || []).length;
+    const setMini = v => { S.recLayout = v ? 'question' : 'camera'; S.previewInfo = false; render();
+      requestAnimationFrame(() => document.querySelector(v ? '.pip-tl' : '.min-btn')?.focus({preventScroll:true})); };
+    const stage = html`<div class=${'recvid' + (mini ? ' mini' : '')} role="group" aria-label="Your camera preview">
       <${VideoLayer} />
-      ${S.hidePreview ? html`<div class="vmsg"><${Icon} name="eye-closed-regular" size=${24} /><span class="lines"><span>You’re still being recorded.</span><span>Only the preview is hidden.</span></span></div>` : null}
-      <div class="camtop">
-        <span class="pill" role="group" aria-label=${left !== null ? 'Time left to answer' : 'Recording time'}><${CandidateClock} live seconds=${left ?? S.recSecs} size="sm" /></span>
-        <span class="pill pill-anchor"><${Toggle} size="sm" label="Hide preview" checked=${S.hidePreview} onCheckedChange=${v => { S.hidePreview = v; render(); }} />
-          <${IconButton} size=${20} variant="tertiary-gray" icon="circle-info" className="info-btn" aria-label="What Hide preview does"
-            aria-expanded=${S.previewInfo} aria-controls="preview-info" onClick=${() => { S.previewInfo = !S.previewInfo; render(); }} />
-          ${S.previewInfo ? html`<span id="preview-info" class="info-bubble p3" role="note">Hides your camera from your screen, so you don’t have to watch yourself. Your answer still records as normal.</span>` : null}
-        </span>
-      </div>
-      <div class="camcard float">
-        <span class="p3 muted">${q.practice ? 'Practice question · not scored' : `Question ${S.qi} of ${ASSESS.length}`}</span>
-        <${QText} text=${q.id === 'q2' ? QCONTENT[S.qContent].text.replace(/\n\n/g, ' ') : q.text} />
-      </div><//>`;
-  }
-
-  // The small camera preview while recording, question-first layout. It stays mounted (the recorder
-  // reads it); hiding it covers the picture and says recording continues. New pattern.
-  function Pip(){
-    const off = S.hidePreview;
-    return html`<div class="pip" role="group" aria-label="Your camera preview">
-      <${VideoLayer} />
-      ${off ? html`<div class="pip-off"><${Icon} name="eye-closed-regular" size=${16} /><span class="p3">Preview hidden. Still recording.</span></div>` : null}
-      <button type="button" class="pip-btn" aria-pressed=${off} aria-label=${off ? 'Show preview' : 'Hide preview'}
-        onClick=${() => { S.hidePreview = !off; render(); }}><${Icon} name=${off ? 'eye-open-regular' : 'eye-closed-regular'} size=${16} /></button>
+      ${off ? (mini
+        ? html`<div class="pip-off"><${Icon} name="eye-closed-regular" size=${16} /><span class="p3">Preview hidden. Still recording.</span></div>`
+        : html`<div class="vmsg"><${Icon} name="eye-closed-regular" size=${24} /><span class="lines"><span>You’re still being recorded.</span><span>Only the preview is hidden.</span></span></div>`) : null}
+      ${mini ? html`<${Fragment}>
+        <button type="button" class="pip-btn pip-tl" aria-label="Full-screen camera" onClick=${() => setMini(false)}><${Icon} name="expand" size=${16} /></button>
+        <button type="button" class="pip-btn" aria-pressed=${off} aria-label=${off ? 'Show preview' : 'Hide preview'}
+          onClick=${() => { S.hidePreview = !off; render(); }}><${Icon} name=${off ? 'eye-open-regular' : 'eye-closed-regular'} size=${16} /></button><//>`
+      : html`<${Fragment}>
+        <div class="camtop">
+          <span class="pill pill-anchor"><${Toggle} size="sm" label="Hide preview" checked=${off} onCheckedChange=${v => { S.hidePreview = v; render(); }} />
+            <${IconButton} size=${20} variant="tertiary-gray" icon="circle-info" className="info-btn" aria-label="What Hide preview does"
+              aria-expanded=${S.previewInfo} aria-controls="preview-info" onClick=${() => { S.previewInfo = !S.previewInfo; render(); }} />
+            ${S.previewInfo ? html`<span id="preview-info" class="info-bubble p3" role="note" style=${{left:0, right:'auto'}}>Hides your camera from your screen, so you don’t have to watch yourself. Your answer still records as normal.</span>` : null}
+          </span>
+          <button type="button" class="pill min-btn l2" onClick=${() => setMini(true)}><${Icon} name="minimize" size=${16} />Minimize</button>
+        </div>
+        <div class="camcard float">
+          <span class="p3 muted">${q.practice ? 'Practice question · not scored' : `Question ${S.qi} of ${ASSESS.length}`}</span>
+          <${QText} text=${c.text.replace(/\n\n/g, ' ')} more=${{label: nImg ? (nImg > 1 ? `See question and ${nImg} images` : 'See question and image') : 'See full question', force: nImg > 0, onClick: () => setMini(true)}} />
+        </div><//>`}
     </div>`;
+    return html`<${Page} stage=${stage} rec=${mini} cam=${!mini} foot=${html`<${Cta} onClick=${endRecording}>Stop recording<//>`}>
+      ${mini ? html`<${QCard} title=${q.practice ? 'Practice question' : undefined} tag=${q.practice ? html`<${Chip} color="blue" variant="secondary" size="sm">Not scored<//>` : null}>
+        <${QBody} q=${q} />
+      <//>` : null}<//>`;
   }
 
   // A question picture, full screen: close to go back. Recording carries on underneath.
@@ -1688,7 +1700,7 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
         <${Cta} variant="secondary-gray" onClick=${() => { S.retakeAsk = true; render(); }}>Retake<//>
       <//>`}>
       <${QCard}>
-        <${QText} text=${q.text} />
+        <${QText} text=${q.id === 'q2' ? QCONTENT[S.qContent].text.replace(/\n\n/g, ' ') : q.text} />
         <${ReviewPlayer} />
       <//><//>`;
   }
@@ -1879,7 +1891,7 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
     blocked:'Seven blocked states. Two catch today’s silent drop: a browser with no camera access (often an app’s built-in browser: Copy link) and a request that never appears (after 10 seconds).',
     test:'The camera fills the space between the solid top bar and footer. Continue stays locked until the mic is heard.',
     question:'Preparation starts when the question opens, for every kind of question, and counts down in the timer row. The card holds only the question; how it works sits in an icon strip below.',
-    record:'Question first: the full question stays on screen, scrollable, with a small camera preview in the corner. Camera first (in the panel) is the earlier full-screen camera, to compare.',
+    record:'Opens full screen with a short version of the question. Minimize moves the camera to a corner preview and shows the full question, pictures included; the expand button brings it back. Recording carries on throughout, and the choice carries to the next question.',
     interrupted:'A call or a tapped notification ends the camera track. The answer in progress is lost and starts again; earlier answers stay saved.',
     review:'Stop recording saves the answer. Next (or Finish) and Retake wait on the save.',
     countdown:'A short countdown so the start of the timer is never a surprise.',
@@ -1983,7 +1995,7 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
         <${Seg} label="Connection" k="netMode" value=${S.netMode} opts=${[['online', 'Online'], ['poor', 'Weak'], ['offline', 'Offline']]} />
         <${Seg} label="Question video" k="videoMode" value=${S.videoMode} opts=${[['ok', 'Loads'], ['fail', 'Fails']]} />
         <${Seg} label="Saving the answer" k="saveMode" value=${S.saveMode} opts=${[['ok', 'Saves'], ['slow', 'Slow'], ['fail', 'Fails']]} />
-        <${Seg} label="Recording layout" k="recLayout" value=${S.recLayout} opts=${[['question', 'Question first'], ['camera', 'Camera first']]} />
+        <${Seg} label="Recording camera" k="recLayout" value=${S.recLayout} opts=${[['camera', 'Full screen'], ['question', 'Minimized']]} />
         <${Seg} label="Question 2 content" k="qContent" value=${S.qContent} opts=${[['short', 'Short'], ['long', 'Long text'], ['image', '1 image'], ['images', '3 images']]} />
         <${Seg} label="Prep time" k="prepSecs" value=${String(S.prepSecs)} opts=${[['5', '5s'], ['10', '10s'], ['30', '30s']]} />
         <${Seg} label="Countdown on the practice question" k="practicePrep" value=${S.practicePrep ? 'on' : 'off'} opts=${[['on', 'On'], ['off', 'Off']]} />
