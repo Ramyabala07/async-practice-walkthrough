@@ -81,10 +81,10 @@ details differ (tap vs click, address-bar steps, phone vs computer settings).
   like a real one (2 minutes), so the same timer runs there.
 - **Instructions once, on the practice question.** The question cards keep their header
   ("Question 2 of 2", or "Practice question · Not scored") and hold only the question. The
-  practice card adds a divider and four bullets on how answering works: prep starts when a
+  practice card adds a divider and three bullets on how answering works: prep starts when a
   question opens (video questions included), recording starts when prep ends or on Start
-  recording, scored questions give 2 minutes and one retake, and practice isn't scored. The
-  scored questions carry no instructions.
+  recording, and practice isn't scored. The scored questions carry no instructions. The
+  practice question gets 30 seconds of prep, to give a first-timer room to read.
 - **Recording opens full screen, and can be minimized:** the camera fills the screen with a
   short version of the question with its number in front ("2. Share a story…") and a "See full question" link (or "See question and 3
   images"). Hide preview is a toggle with an info button in a chip at the top left; Minimize is a round icon button at the top right. **Minimize** (or that link) animates the camera into a 108×144 corner preview and

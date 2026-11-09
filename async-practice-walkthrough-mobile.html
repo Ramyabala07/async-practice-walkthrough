@@ -60,7 +60,7 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
 /* ---------- The page frame: top bar, body, fixed footer ---------- */
 #viewport{flex:1;min-height:0;position:relative;display:flex;flex-direction:column;background:var(--bg-surface)}
 .topstack{flex:none;position:relative;z-index:6}
-.topstack .ts-candidate-top-nav__timer-row{min-height:51px;align-items:center}
+.topstack .ts-candidate-top-nav__timer-row{align-items:center;padding-top:var(--space-1);padding-bottom:var(--space-1)}
 #view{flex:1;min-height:0;position:relative;display:flex;flex-direction:column;color:var(--text-tertiary)}
 
 /* One spacing system on every screen: 16 around the page and the footer, 16 between blocks,
@@ -71,7 +71,7 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
 .pg-body.mid{justify-content:center}
 /* Camera screens: the top bar and the footer stay solid; the camera fills the space between. */
 /* Phase timer row: a label naming the phase, then Tessera's CandidateTimer (bar over digits) */
-.phase{display:flex;align-items:center;justify-content:center;gap:var(--space-3);width:100%;min-height:51px}
+.phase{display:flex;align-items:center;justify-content:center;gap:var(--space-3);width:100%}
 /* Tessera CandidateTimer with its hide switch removed: the label names the phase instead. */
 .phase .ts-candidate-timer__switch{display:none}
 .phase-label{color:var(--text-tertiary)}
@@ -549,7 +549,8 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
 
   // Prep time for this question. A multimedia question's video plays inside it, so setup keeps it
   // at least as long as the video; the sample question here is set to 30 seconds for a 12s clip.
-  const prepFor = q => q.kind === 'media' ? Math.max(S.prepSecs, 30) : S.prepSecs;
+  // The multimedia question needs time for its video; the practice question gives a first-timer room to read.
+  const prepFor = q => (q.kind === 'media' || q.practice) ? Math.max(S.prepSecs, 30) : S.prepSecs;
   function startPrep(){
     S.prepLeft = prepFor(Q());
     render();
@@ -1471,7 +1472,6 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
       ${S.practicePrep
         ? html`<li>Recording starts when prep time ends. Ready early? Tap <b>Start recording</b>.</li>`
         : html`<li>Here, tap <b>Start recording</b> when you’re ready. In scored questions, recording starts when prep time ends.</li>`}
-      <li>Scored questions give you ${answerTime()} to answer and one retake.</li>
       <li>This one isn’t scored, so try it as often as you like.</li>
     </ul>`;
   }
