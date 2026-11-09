@@ -75,29 +75,14 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
 /* Tessera CandidateTimer with its hide switch removed: the label names the phase instead. */
 .phase .ts-candidate-timer__switch{display:none}
 .phase-label{color:var(--text-tertiary)}
-/* Question, number first; facts as chips (layout "Chips") */
 .qnum{font-weight:500;color:var(--text-primary)}
 .phase-label{display:inline-flex;align-items:center;gap:var(--space-2)}
 .phase .livedot{box-shadow:none;width:8px;height:8px}
-.qcard.flat{flex:none!important}
-.qmeta{display:flex;flex-wrap:wrap;gap:var(--space-2)}
-.qcard .qmeta{padding:var(--space-3);border-top:1px solid var(--border-subtle)}
-.qnote{margin:0;color:var(--text-tertiary)}
-.qopen{display:grid;gap:var(--space-4)}
-.qopen .qbody{display:grid;gap:var(--space-3)}
-.qopen .qbody p{margin:0}
-.camtop.end{justify-content:flex-end}
-.camtop .ctl{display:flex;gap:var(--space-2)}
 .camcard .qtext .ts-chip{vertical-align:middle;margin-right:var(--space-1)}
 .phase-row{display:flex;align-items:center;justify-content:center;gap:var(--space-3)}
 .phase-label{color:var(--text-tertiary)}
 .phase-bar{height:2px;border-radius:var(--radius-full);background:var(--border-subtle);overflow:hidden;width:min(240px,100%);justify-self:center}
 .phase-bar span{display:block;height:100%;background:var(--interactive-link);transition:width 1s linear}
-/* How a question works: icon rows under the card */
-.rules{list-style:none;margin:0;padding:0 var(--space-1);display:grid;gap:var(--space-2);color:var(--text-tertiary)}
-.rules li{display:flex;align-items:flex-start;gap:var(--space-2)}
-.rules li>svg,.rules li>.ts-icon,.rules .rule-ic{flex:none;margin-top:2px;color:var(--text-tertiary);display:inline-flex}
-.rules b{font-weight:500;color:var(--text-primary)}
 /* Question pictures: full width, tap to open */
 .qimg{position:relative;display:block;width:100%;padding:0;border:1px solid var(--border-subtle);border-radius:var(--radius-lg);background:var(--bg-surface);overflow:hidden;cursor:zoom-in}
 .qimg img{display:block;width:100%;height:auto}
@@ -249,7 +234,8 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
 .qcard{background:var(--bg-muted);border:1px solid var(--border-subtle);border-radius:var(--radius-xl);display:flex;flex-direction:column;min-height:0}
 .qcard-head{display:flex;align-items:center;min-height:44px;padding:0 var(--space-3);border-bottom:1px solid var(--border-subtle);color:var(--text-primary)}
 .qcard .bullets{gap:var(--space-1)}
-.pg-body>.qcard{flex:1 0 auto}
+.qcard .ts-divider{margin:0}
+.pg-body>.qcard{flex:none}
 .qcard-head{justify-content:space-between;gap:var(--space-2)}
 .qcard .vcard{flex:none;aspect-ratio:4/3;min-height:0}
 .qcard-body{padding:var(--space-3);display:grid;gap:var(--space-3)}
@@ -386,7 +372,7 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
   const { useState, useEffect, useRef, Fragment } = React;
   const DS = window.TesseraDS;
   const html = htm.bind(React.createElement);
-  const { Button, IconButton, Icon, Spinner, Toggle, Dropdown, Chip, Tag, Tabs, TabList, Tab, TextLink, TextArea, Input, RadioGroup, Radio, Overlay, Modal, RtIconButton, usePresence, EditableData,
+  const { Button, IconButton, Icon, Spinner, Toggle, Dropdown, Chip, Divider, Tag, Tabs, TabList, Tab, TextLink, TextArea, Input, RadioGroup, Radio, Overlay, Modal, RtIconButton, usePresence, EditableData,
     CandidateTopNavigation, CandidateTimer, CandidateClock, CandidateSoundwave, CandidateBroadcastBanner, ProgressIndicator, SkeletonLoader, ChatPanel } = DS;
 
   /* Glyphs for the simulated browser chrome, the browser's own dialogs and the illustrations.
@@ -477,7 +463,7 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
     heard:false, micFailed:false, recording:false, hidePreview:false,
     interruptReason:'away', takeSecs:0, pendingInterrupt:false, lastFrame:null,
     qi:0, qExpanded:false, clipDone:false,
-    prepSecs:10, prepLeft:10, practicePrep:true, recLayout:'camera', qLayout:'card', qContent:'short', viewer:null, limitSecs:120, timerVisible:true,
+    prepSecs:10, prepLeft:10, practicePrep:true, recLayout:'camera', qContent:'short', viewer:null, limitSecs:120, timerVisible:true,
     assessing:false, timeLeft:TOTAL_SECS, resuming:false, restoreNote:false,
     saveStep:0, fb:{rating:null, liked:[], text:''},
     alvyOpen:false, alvyMsgs:[], alvyTyping:false, sheet:null, videoMode:'ok', videoState:'ok', linkCopied:false, retakeAsk:false, savedFlash:false,
@@ -1473,65 +1459,39 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
     return html`<p id="qtext" class=${cls + ' qtext'}>${shown}${long ? html`${' '}<${TextLink} as="button" size="sm" aria-expanded=${S.qExpanded} aria-controls="qtext"
       onClick=${() => { S.qExpanded = !S.qExpanded; render(); }}>${S.qExpanded ? 'Show less' : 'Read more'}<//>` : null}</p>`;
   }
-  // How to answer: short facts with icons, in their own strip under the question card, so they
-  // never read as part of the question. The rule that matters most comes first.
-  function AnswerRules({media, practice}){
-    const rows = [];
-    // Outline icons only; Tessera has no play glyph, so the play row uses the player's own.
-    const play = html`<span class="rule-ic" aria-hidden="true">${svg('play', 16)}</span>`;
-    if (practice && !S.practicePrep) rows.push(['video-on', html`Tap <b>Start recording</b> when you’re ready`]);
-    else rows.push(['video-on', html`Recording starts automatically when the timer ends. Ready early? Tap <b>Start recording</b>.`]);
-    if (media) rows.push([play, 'Play the video to hear the question. The timer is already running.']);
-    if (practice) rows.push(['circle-info', 'This is a practice question. It won’t be scored, and you can try again.']);
-    else rows.push(['clock-three', `${answerTime()} to answer`], ['arrow-rotate-right-regular', 'You can retake it']);
-    return html`<ul class="rules p2" aria-label="How this question works">
-      ${rows.map(([icon, text], i) => html`<li key=${i}>${typeof icon === 'string' ? html`<${Icon} name=${icon} size=${16} />` : icon}<span>${text}</span></li>`)}
+  // Start recording is always just that: the countdown lives in the timer row above.
+  function startControls({disabled} = {}){
+    return html`<${Cta} disabled=${disabled} onClick=${startRecordFlow}>Start recording<//>`;
+  }
+  // How answering works, said once: under the practice question, after a divider. The scored
+  // questions carry no instructions; the timer row and the button speak for themselves.
+  function HowItWorks(){
+    return html`<ul class="bullets p2" aria-label="How answering works">
+      <li>Prep time starts as soon as a question opens, video questions included.</li>
+      ${S.practicePrep
+        ? html`<li>Recording starts when prep time ends. Ready early? Tap <b>Start recording</b>.</li>`
+        : html`<li>Here, tap <b>Start recording</b> when you’re ready. In scored questions, recording starts when prep time ends.</li>`}
+      <li>Scored questions give you ${answerTime()} to answer and one retake.</li>
+      <li>This one isn’t scored, so try it as often as you like.</li>
     </ul>`;
   }
-
-  // Start recording is always just that: the countdown lives in the timer row above. In the
-  // Chips and Open layouts the auto-start rule sits right above the button it is about.
-  function startControls({disabled} = {}){
-    const q = Q(), note = S.qLayout !== 'list' && (!q.practice || S.practicePrep);
-    return html`<${Fragment}>
-      ${note ? html`<p class="note p3 muted">Recording starts when the timer ends.</p>` : null}
-      <${Cta} disabled=${disabled} onClick=${startRecordFlow}>Start recording<//><//>`;
-  }
-  // The facts about answering, as chips instead of sentences.
-  function QMeta({q}){
-    const ic = n => html`<${Icon} name=${n} size=${12} />`;
-    return html`<div class="qmeta">${q.practice
-      ? html`<${Chip} color="blue" variant="secondary" size="sm">Practice · Not scored<//><${Chip} color="gray" variant="secondary" size="sm" icon=${ic('arrow-rotate-right-regular')}>Try as often as you like<//>`
-      : html`<${Chip} color="gray" variant="secondary" size="sm" icon=${ic('clock-three')}>${answerTime()} to answer<//><${Chip} color="gray" variant="secondary" size="sm" icon=${ic('arrow-rotate-right-regular')}>1 retake<//>`}</div>`;
-  }
-  // One question view for the question screen and the minimized recording screen, in the layout
-  // picked in the panel: Chips (card, number first, facts as chips), Open (no card), or the earlier
-  // card with a header and a rules list. `meta` false drops the facts (during recording).
-  function QuestionView({q, meta = true}){
-    const media = q.kind === 'media' && S.state === 'question';
-    const body = media
-      ? html`<${MediaClip} m=${q.media} onEnded=${clipEnded} /><p class="qnote p3">The timer runs while the video plays.</p>`
-      : html`<${QBody} q=${q} num size=${S.qLayout === 'open' ? 'h4' : 'p1'} />`;
-    if (S.qLayout === 'list') return html`<${Fragment}>
-      <${QCard} title=${q.practice ? 'Practice question' : undefined} tag=${q.practice ? html`<${Chip} color="blue" variant="secondary" size="sm">Not scored<//>` : null}>
-        ${media ? html`<${MediaClip} m=${q.media} onEnded=${clipEnded} />` : html`<${QBody} q=${q} />`}<//>
-      ${meta ? html`<${AnswerRules} media=${q.kind === 'media'} practice=${q.practice} />` : null}<//>`;
-    if (S.qLayout === 'open') return html`<div class="qopen">
-      ${meta ? html`<${QMeta} q=${q} />` : null}
-      <div class="qbody">${media ? html`<p class="h4 qtext"><span class="qnum">${S.qi}.</span> Watch the question</p>` : null}${body}</div></div>`;
-    return html`<section class="qcard flat">
-      <div class="qcard-body">${media ? html`<p class="p1 qtext"><span class="qnum">${S.qi}.</span> Watch the question</p>` : null}${body}</div>
-      ${meta ? html`<${QMeta} q=${q} />` : null}</section>`;
+  // One question view for the question screen and the minimized recording screen: the card with its
+  // header, as in the Test Taker file. Only the practice question adds the instructions.
+  function QuestionView({q, rec = false}){
+    const media = q.kind === 'media' && !rec;
+    return html`<${QCard} title=${q.practice ? 'Practice question' : undefined} tag=${q.practice ? html`<${Chip} color="blue" variant="secondary" size="sm">Not scored<//>` : null}>
+      ${media ? html`<${MediaClip} m=${q.media} onEnded=${clipEnded} />` : html`<${QBody} q=${q} />`}
+      ${q.practice && !rec ? html`<${Fragment}><${Divider} /><${HowItWorks} /><//>` : null}
+    <//>`;
   }
 
   // The full question, never clamped: text (in paragraphs) and any pictures, stacked full width.
   // A picture opens full screen. Used the same way before and during recording.
-  function QBody({q, size = 'p1', num}){
+  function QBody({q, size = 'p1'}){
     const c = q.id === 'q2' ? QCONTENT[S.qContent] : {text:q.text};
     const paras = c.text.split('\n\n');
-    const n = num && !q.practice ? html`<span class="qnum">${S.qi}.</span>${' '}` : null;
     return html`<${Fragment}>
-      ${paras.map((t, i) => html`<p key=${i} class=${size + ' qtext'}>${i === 0 ? n : null}${t}</p>`)}
+      ${paras.map((t, i) => html`<p key=${i} class=${size + ' qtext'}>${t}</p>`)}
       ${(c.images || []).map((im, i) => html`<button key=${'im' + i} type="button" class="qimg" aria-label=${`Open image: ${im.alt}`}
         onClick=${() => { S.viewer = im; render(); }}><img src=${im.src} alt=${im.alt} /><span class="qimg-zoom" aria-hidden="true"><${Icon} name="expand" size=${16} /></span></button>`)}
     <//>`;
@@ -1634,17 +1594,20 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
         <button type="button" class="pip-btn" aria-pressed=${off} aria-label=${off ? 'Show preview' : 'Hide preview'}
           onClick=${() => { S.hidePreview = !off; render(); }}><${Icon} name=${off ? 'eye-open-regular' : 'eye-closed-regular'} size=${16} /></button><//>`
       : html`<${Fragment}>
-        <div class="camtop end"><div class="ctl">
-          <${IconButton} variant="overlay" shape="round" icon=${off ? 'eye-open-regular' : 'eye-closed-regular'} aria-pressed=${off}
-            aria-label=${off ? 'Show preview' : 'Hide preview'} onClick=${() => { S.hidePreview = !off; render(); }} />
+        <div class="camtop">
+          <span class="pill pill-anchor"><${Toggle} size="sm" label="Hide preview" checked=${off} onCheckedChange=${v => { S.hidePreview = v; render(); }} />
+            <${IconButton} size=${20} variant="tertiary-gray" icon="circle-info" className="info-btn" aria-label="What Hide preview does"
+              aria-expanded=${S.previewInfo} aria-controls="preview-info" onClick=${() => { S.previewInfo = !S.previewInfo; render(); }} />
+            ${S.previewInfo ? html`<span id="preview-info" class="info-bubble p3" role="note" style=${{left:0, right:'auto'}}>Hides your camera from your screen, so you don’t have to watch yourself. Your answer still records as normal.</span>` : null}
+          </span>
           <${IconButton} variant="overlay" shape="round" icon="arrow-down-left-and-arrow-up-right-to-center" className="min-btn" aria-label="Minimize camera" onClick=${() => setMini(true)} />
-        </div></div>
+        </div>
         <div class="camcard float">
           <${QText} lead=${q.practice ? html`<${Chip} color="blue" variant="secondary" size="sm">Practice<//>` : html`<span class="qnum">${S.qi}.</span>${' '}`} text=${c.text.replace(/\n\n/g, ' ')} more=${{label: nImg ? (nImg > 1 ? `See question and ${nImg} images` : 'See question and image') : 'See full question', force: nImg > 0, onClick: () => setMini(true)}} />
         </div><//>`}
     </div>`;
     return html`<${Page} stage=${stage} rec=${mini} cam=${!mini} foot=${html`<${Cta} onClick=${endRecording}>Stop recording<//>`}>
-      ${mini ? html`<${QuestionView} q=${q} meta=${false} />` : null}<//>`;
+      ${mini ? html`<${QuestionView} q=${q} rec />` : null}<//>`;
   }
 
   // A question picture, full screen: close to go back. Recording carries on underneath.
@@ -1915,7 +1878,7 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
     permission:'Same order as web. Continue hands off to the browser’s own dialog, so it says Continue, not Allow: the real Allow comes next and two in a row reads as being asked twice.',
     blocked:'Seven blocked states. Two catch today’s silent drop: a browser with no camera access (often an app’s built-in browser: Copy link) and a request that never appears (after 10 seconds).',
     test:'The camera fills the space between the solid top bar and footer. Continue stays locked until the mic is heard.',
-    question:'Prep starts when the question opens and counts down in the timer row (Tessera CandidateTimer, switch hidden). The number leads the question; answer time and retakes are chips; the auto-start rule is one line above Start recording. Compare layouts in the panel.',
+    question:'Prep starts when the question opens and counts down in the timer row (Tessera CandidateTimer, switch hidden). The practice question explains how answering works, once, in bullets under a divider; the scored questions carry no instructions.',
     record:'Opens full screen with a short version of the question. Minimize moves the camera to a corner preview and shows the full question, pictures included; the expand button brings it back. Recording carries on throughout, and the choice carries to the next question.',
     interrupted:'A call or a tapped notification ends the camera track. The answer in progress is lost and starts again; earlier answers stay saved.',
     review:'Stop recording saves the answer. Next (or Finish) and Retake wait on the save.',
@@ -2020,7 +1983,6 @@ body{margin:0;display:flex;flex-direction:row;font-family:var(--font-sans);font-
         <${Seg} label="Connection" k="netMode" value=${S.netMode} opts=${[['online', 'Online'], ['poor', 'Weak'], ['offline', 'Offline']]} />
         <${Seg} label="Question video" k="videoMode" value=${S.videoMode} opts=${[['ok', 'Loads'], ['fail', 'Fails']]} />
         <${Seg} label="Saving the answer" k="saveMode" value=${S.saveMode} opts=${[['ok', 'Saves'], ['slow', 'Slow'], ['fail', 'Fails']]} />
-        <${Seg} label="Question layout" k="qLayout" value=${S.qLayout} opts=${[['card', 'Chips'], ['open', 'Open'], ['list', 'Rules list']]} />
         <${Seg} label="Recording camera" k="recLayout" value=${S.recLayout} opts=${[['camera', 'Full screen'], ['question', 'Minimized']]} />
         <${Seg} label="Question 2 content" k="qContent" value=${S.qContent} opts=${[['short', 'Short'], ['long', 'Long text'], ['image', '1 image'], ['images', '3 images']]} />
         <${Seg} label="Prep time" k="prepSecs" value=${String(S.prepSecs)} opts=${[['5', '5s'], ['10', '10s'], ['30', '30s']]} />
