@@ -74,15 +74,21 @@ details differ (tap vs click, address-bar steps, phone vs computer settings).
   keep the prep time at least as long as the video (the sample multimedia question has 30s
   for a 12s clip).
 - **No section timer.** Async video interviews time each question, so the timer row under the
-  top bar shows the phase instead: "Preparation" counting down before recording, "Answer
-  time" with the record mark while recording, nothing otherwise. Start recording no longer
-  carries a countdown. Web hides its section timer too.
-- **The question card holds only the question.** How it works sits in an icon strip under
-  the card: recording starts automatically when the timer ends (ready early? tap Start
-  recording), play the video (multimedia), answer time, retake, or the practice note.
+  top bar shows the phase instead: "Prep time" before recording, "Answer time" with the record
+  mark while recording, nothing otherwise. The countdown is Tessera's CandidateTimer (bar over
+  digits) with its hide switch removed; the label takes the switch's place. Start recording no
+  longer carries a countdown. Web hides its section timer too. The practice question is timed
+  like a real one (2 minutes), so the same timer runs there.
+- **The question, numbered, with facts as chips.** "Question 2 of 2" no longer takes its own
+  line: the number leads the question ("2. Share a story…"). Answer time and retakes are
+  chips under the question (practice: "Practice · Not scored", "Try as often as you like").
+  The auto-start rule is one line right above Start recording: "Recording starts when the
+  timer ends." A multimedia question says "The timer runs while the video plays." under the
+  clip. "Question layout" in the panel compares Chips (default), Open (no card, the question
+  as the page heading) and the earlier Rules list.
 - **Recording opens full screen, and can be minimized:** the camera fills the screen with a
-  short version of the question and a "See full question" link (or "See question and 3
-  images"). **Minimize** (or that link) animates the camera into a 108×144 corner preview and
+  short version of the question, numbered, and a "See full question" link (or "See question and 3
+  images"). Hide preview and Minimize are round icon buttons in the top-right corner. **Minimize** (or that link) animates the camera into a 108×144 corner preview and
   shows the full question, scrollable, with pictures full width (tap to open full screen). The
   preview's expand button goes back. The camera element is never remounted, so recording
   carries on through both, and the choice carries to the next question. "Recording camera" in
